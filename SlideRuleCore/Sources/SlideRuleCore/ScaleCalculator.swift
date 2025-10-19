@@ -1,5 +1,74 @@
 import Foundation
 
+// MARK: - Modulo-Based Tick Generation Configuration
+
+/// Configuration for modulo-based tick generation algorithm
+public struct ModuloTickConfig: Sendable {
+    /// Precision multiplier (xfactor in PostScript)
+    /// Converts floating-point values to integers for exact modulo arithmetic
+    /// Example: xfactor=100 means 0.01 precision
+    public let precisionMultiplier: Int
+    
+    /// Minimum position separation to detect duplicates (normalized units)
+    public let minSeparation: Double
+    
+    /// Whether to skip last tick on circular scales (360° = 0°)
+    public let skipCircularOverlap: Bool
+    
+    public init(
+        precisionMultiplier: Int = 100,
+        minSeparation: Double = 0.001,
+        skipCircularOverlap: Bool = true
+    ) {
+        self.precisionMultiplier = precisionMultiplier
+        self.minSeparation = minSeparation
+        self.skipCircularOverlap = skipCircularOverlap
+    }
+    
+    /// Default configuration
+    public static let `default` = ModuloTickConfig()
+    
+    /// Determine appropriate xfactor based on finest interval in a subsection
+    public static func recommendedPrecisionMultiplier(
+        for subsection: ScaleSubsection
+    ) -> Int {
+        guard let finestInterval = subsection.tickIntervals.filter({ $0 > 0 }).min() else {
+            return 100
+        }
+        
+        return recommendedPrecisionMultiplier(forInterval: finestInterval)
+    }
+    
+    /// Determine appropriate xfactor based on finest interval in a scale definition
+    public static func recommendedPrecisionMultiplier(
+        for definition: ScaleDefinition
+    ) -> Int {
+        // Find finest interval across all subsections
+        let finestIntervals = definition.subsections.compactMap { subsection in
+            subsection.tickIntervals.filter { $0 > 0 }.min()
+        }
+        
+        guard let globalFinest = finestIntervals.min() else {
+            return 100
+        }
+        
+        return recommendedPrecisionMultiplier(forInterval: globalFinest)
+    }
+    
+    /// Determine xfactor needed for a specific interval
+    private static func recommendedPrecisionMultiplier(forInterval interval: Double) -> Int {
+        // Count decimal places needed
+        let string = String(format: "%.10f", interval)
+        let parts = string.components(separatedBy: ".")
+        guard parts.count > 1 else { return 10 }
+        
+        let decimals = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "0")).count
+        
+        // xfactor = 10^(decimals + 1) for safety margin
+        return Int(pow(10.0, Double(decimals + 1)))
+    }
+}
+
 // MARK: - Scale Calculator
 
 /// Calculates positions and generates tick marks for slide rule scales
@@ -13,6 +82,20 @@ import Foundation
 /// The same formula works for both! The difference is only in how we interpret the result.
 
 public struct ScaleCalculator: Sendable {
+    
+    // MARK: - Algorithm Selection
+    
+    /// Configuration for tick generation algorithm
+    public enum TickGenerationAlgorithm: Sendable {
+        /// Legacy multi-pass approach (default for compatibility)
+        case legacy
+        
+        /// New modulo-based single-pass approach
+        case modulo(config: ModuloTickConfig)
+    }
+    
+    /// Global algorithm preference (can be overridden per scale)
+    public static var defaultAlgorithm: TickGenerationAlgorithm = .legacy
     
     // MARK: - Position Calculation
     
@@ -117,16 +200,35 @@ public struct ScaleCalculator: Sendable {
     // MARK: - Tick Mark Generation
     
     /// Generate all tick marks for a scale definition
-    /// - Parameter definition: The scale definition
+    /// - Parameters:
+    ///   - definition: The scale definition
+    ///   - algorithm: Optional algorithm to use (defaults to defaultAlgorithm)
     /// - Returns: Array of all tick marks sorted by position
     public static func generateTickMarks(
+        for definition: ScaleDefinition,
+        algorithm: TickGenerationAlgorithm? = nil
+    ) -> [TickMark] {
+        let algo = algorithm ?? defaultAlgorithm
+        
+        switch algo {
+        case .legacy:
+            return generateTickMarksLegacy(for: definition)
+        case .modulo(let config):
+            return generateTickMarksModulo(for: definition, config: config)
+        }
+    }
+    
+    // MARK: - Legacy Implementation
+    
+    /// Generate all tick marks using legacy multi-pass algorithm
+    private static func generateTickMarksLegacy(
         for definition: ScaleDefinition
     ) -> [TickMark] {
         var allTicks: [TickMark] = []
         
         // Generate ticks for each subsection
         for subsection in definition.subsections {
-            let ticks = generateTickMarks(
+            let ticks = generateTickMarksLegacy(
                 for: subsection,
                 on: definition
             )
@@ -155,8 +257,8 @@ public struct ScaleCalculator: Sendable {
         return allTicks
     }
     
-    /// Generate tick marks for a specific subsection
-    private static func generateTickMarks(
+    /// Generate tick marks for a specific subsection using legacy algorithm
+    private static func generateTickMarksLegacy(
         for subsection: ScaleSubsection,
         on definition: ScaleDefinition
     ) -> [TickMark] {
@@ -231,6 +333,263 @@ public struct ScaleCalculator: Sendable {
         }
         
         return ticks
+    }
+    
+    // MARK: - Modulo-Based Implementation
+    
+    /// Generate all tick marks using modulo-based single-pass algorithm
+    private static func generateTickMarksModulo(
+        for definition: ScaleDefinition,
+        config: ModuloTickConfig
+    ) -> [TickMark] {
+        var allTicks: [TickMark] = []
+        
+        // Generate ticks for each subsection
+        for (subsectionIndex, subsection) in definition.subsections.enumerated() {
+            let ticks = generateSubsectionTicksModulo(
+                subsection: subsection,
+                subsectionIndex: subsectionIndex,
+                definition: definition,
+                config: config
+            )
+            allTicks.append(contentsOf: ticks)
+        }
+        
+        // Add constant markers (independent of modulo algorithm)
+        for constant in definition.constants {
+            let position = normalizedPosition(for: constant.value, on: definition)
+            let angularPos = definition.isCircular ? position * 360.0 : nil
+            
+            let tick = TickMark(
+                value: constant.value,
+                normalizedPosition: position,
+                angularPosition: angularPos,
+                style: constant.style,
+                label: constant.label
+            )
+            allTicks.append(tick)
+        }
+        
+        // Sort by position (should already be sorted, but ensure it)
+        allTicks.sort { $0.normalizedPosition < $1.normalizedPosition }
+        
+        return allTicks
+    }
+    
+    /// Generate ticks for a single subsection using modulo algorithm
+    private static func generateSubsectionTicksModulo(
+        subsection: ScaleSubsection,
+        subsectionIndex: Int,
+        definition: ScaleDefinition,
+        config: ModuloTickConfig
+    ) -> [TickMark] {
+        var ticks: [TickMark] = []
+        
+        // 1. Find finest (smallest non-null) interval
+        guard let finestInterval = subsection.tickIntervals.filter({ $0 > 0 }).min() else {
+            return []
+        }
+        
+        // 2. Calculate proper subsection boundaries using RangeExpression
+        let range = calculateSubsectionBoundaries(
+            subsection: subsection,
+            subsectionIndex: subsectionIndex,
+            definition: definition
+        )
+        
+        // 3. Convert to integer space using xfactor
+        let xfactor = config.precisionMultiplier
+        
+        // Extract start/end from range for integer conversion
+        // We need concrete bounds for stride calculation
+        let (startValue, endValue): (Double, Double)
+        if subsectionIndex == definition.subsections.count - 1 {
+            // Last subsection: closed range includes both endpoints
+            if let closedRange = range as? ClosedRange<Double> {
+                startValue = closedRange.lowerBound
+                endValue = closedRange.upperBound
+            } else {
+                return []
+            }
+        } else {
+            // Non-last subsection: half-open range excludes upper bound
+            if let halfOpenRange = range as? Range<Double> {
+                startValue = halfOpenRange.lowerBound
+                endValue = halfOpenRange.upperBound
+            } else {
+                return []
+            }
+        }
+        
+        let startInt = toIntegerSpace(startValue, xfactor: xfactor)
+        let endInt = toIntegerSpace(endValue, xfactor: xfactor)
+        let incrementInt = toIntegerSpace(finestInterval, xfactor: xfactor)
+        
+        guard incrementInt > 0 else {
+            return []
+        }
+        
+        // 4. Single pass through all positions using stride (naturally inclusive)
+        for tickInt in stride(from: startInt, through: endInt, by: incrementInt) {
+            // 5. Convert back to real value
+            let tickValue = toRealSpace(tickInt, xfactor: xfactor)
+            
+            // 6. Use Range.contains() for boundary check
+            guard range.contains(tickValue) else { continue }
+            
+            // 7. Determine hierarchy level using modulo
+            guard let level = determineTickLevel(
+                position: tickInt,
+                intervals: subsection.tickIntervals,
+                xfactor: xfactor
+            ) else {
+                continue
+            }
+            
+            // 8. Handle circular scale edge case
+            if definition.isCircular && config.skipCircularOverlap {
+                if shouldSkipCircularTick(tickValue, definition, tolerance: 0.01 * finestInterval) {
+                    continue
+                }
+            }
+            
+            // 9. Create tick at determined level
+            let tick = createTickAtLevel(
+                value: tickValue,
+                level: level,
+                subsection: subsection,
+                definition: definition
+            )
+            
+            ticks.append(tick)
+        }
+        
+        return ticks
+    }
+    
+    /// Calculate proper start and end boundaries for a subsection
+    /// Returns type-safe RangeExpression matching PostScript semantics
+    /// - Non-last subsection: [start, nextStart) using ..<
+    /// - Last subsection: [start, end] using ...
+    private static func calculateSubsectionBoundaries(
+        subsection: ScaleSubsection,
+        subsectionIndex: Int,
+        definition: ScaleDefinition
+    ) -> any RangeExpression<Double> {
+        // Clamp start to scale's begin value
+        let clampedStart = max(subsection.startValue, definition.beginValue)
+        
+        let isLastSubsection = subsectionIndex == definition.subsections.count - 1
+        
+        if isLastSubsection {
+            // Last subsection: closed range (includes both endpoints)
+            return clampedStart...definition.endValue
+        } else {
+            // Non-last subsection: half-open range (excludes upper bound)
+            let nextSubsection = definition.subsections[subsectionIndex + 1]
+            let clampedEnd = min(nextSubsection.startValue, definition.endValue)
+            return clampedStart..<clampedEnd
+        }
+    }
+    
+    /// Determine which tick level a position belongs to using modulo arithmetic
+    /// Tests intervals from largest (level 0) to smallest, matching PostScript order
+    private static func determineTickLevel(
+        position: Int,
+        intervals: [Double],
+        xfactor: Int
+    ) -> Int? {
+        // Test each interval level in order (0=major, 1=medium, 2=minor, 3=tiny)
+        for (level, interval) in intervals.enumerated() {
+            // Skip null intervals (0.0 or negative)
+            guard interval > 0 else { continue }
+            
+            // Convert interval to integer space
+            let intervalInt = toIntegerSpace(interval, xfactor: xfactor)
+            
+            // Test if position is divisible by this interval
+            if position % intervalInt == 0 {
+                return level
+            }
+        }
+        
+        // Should never reach here if finest interval is in the array
+        return nil
+    }
+    
+    /// Create a tick mark at the specified level
+    private static func createTickAtLevel(
+        value: ScaleValue,
+        level: Int,
+        subsection: ScaleSubsection,
+        definition: ScaleDefinition
+    ) -> TickMark {
+        // Calculate position
+        let position = normalizedPosition(for: value, on: definition)
+        let angularPos = definition.isCircular ? position * 360.0 : nil
+        
+        // Determine style based on level
+        let styleIndex = min(level, definition.defaultTickStyles.count - 1)
+        let style = definition.defaultTickStyles[styleIndex]
+        
+        // Determine if should have label
+        let shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
+        
+        let label: String? = if shouldLabel {
+            formatLabel(
+                value: value,
+                subsectionFormatter:subsection.labelFormatter,
+                scaleFormatter: definition.labelFormatter
+            )
+        } else {
+            nil
+        }
+        
+        return TickMark(
+            value: value,
+            normalizedPosition: position,
+            angularPosition: angularPos,
+            style: style,
+            label: label
+        )
+    }
+    
+    /// Check if tick should be skipped on circular scales
+    /// Prevents duplicate at 0°/360° overlap
+    private static func shouldSkipCircularTick(
+        _ value: ScaleValue,
+        _ definition: ScaleDefinition,
+        tolerance: Double
+    ) -> Bool {
+        guard (definition.isCircular) else {
+            return false
+        }
+        
+        // Check if this is near the end value
+        let isLastTick = abs(value - definition.endValue) < tolerance
+        guard isLastTick else {
+            return false
+        }
+        
+        // Check if scale covers full circle
+        let beginTransformed = definition.function.transform(definition.beginValue)
+        let endTransformed = definition.function.transform(definition.endValue)
+        let coverage = abs(endTransformed - beginTransformed)
+        let coversFullCircle = coverage >= 0.999
+        
+        return coversFullCircle
+    }
+    
+    // MARK: - Precision Utilities
+    
+    /// Convert value to integer space for exact modulo arithmetic
+    private static func toIntegerSpace(_ value: Double, xfactor: Int) -> Int {
+        Int((value * Double(xfactor)).rounded())
+    }
+    
+    /// Convert integer back to real space
+    private static func toRealSpace(_ intValue: Int, xfactor: Int) -> Double {
+        Double(intValue) / Double(xfactor)
     }
     
     // MARK: - Label Formatting

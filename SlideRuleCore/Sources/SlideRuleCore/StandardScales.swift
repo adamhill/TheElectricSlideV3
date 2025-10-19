@@ -90,7 +90,7 @@ public enum StandardScales {
                 ),
                 ScaleSubsection(
                     startValue: 4.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.02],
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1]
                 )
             ])
@@ -1009,7 +1009,7 @@ public enum StandardScales {
                 // 2.0-3.2: Medium subdivisions
                 ScaleSubsection(
                     startValue: 2.0,
-                    tickIntervals: [1.0, 0.1, 0.05, 0.01],
+                    tickIntervals: [1.0, 0.5, 0.1, 0.01],
                     labelLevels: [0, 1],
                     labelFormatter: { value in
                         let rounded = value.rounded()
@@ -1162,6 +1162,136 @@ public enum StandardScales {
             .build()
     }
     
+    // MARK: - Hyperbolic Scales
+    
+    /// Sh scale: Hyperbolic sine scale from 0.5 to 3.0
+    /// sinh(x) = (e^x - e^-x) / 2
+    public static func shScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("Sh")
+            .withFunction(CustomFunction(
+                name: "sinh",
+                transform: { log10(sinh($0)) },
+                inverseTransform: { asinh(pow(10, $0)) }
+            ))
+            .withRange(begin: 0.5, end: 3.0)
+            .withLength(length)
+            .withTickDirection(.down)
+            .withSubsections([
+                ScaleSubsection(
+                    startValue: 0.5,
+                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
+                )
+            ])
+            .build()
+    }
+    
+    /// Ch scale: Hyperbolic cosine scale from 0.0 to 3.0
+    /// cosh(x) = (e^x + e^-x) / 2
+    public static func chScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("Ch")
+            .withFunction(CustomFunction(
+                name: "cosh",
+                transform: { log10(cosh($0)) },
+                inverseTransform: { acosh(pow(10, $0)) }
+            ))
+            .withRange(begin: 0.0, end: 3.0)
+            .withLength(length)
+            .withTickDirection(.down)
+            .withSubsections([
+                ScaleSubsection(
+                    startValue: 0.0,
+                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
+                )
+            ])
+            .build()
+    }
+    
+    /// Th scale: Hyperbolic tangent scale from 0.5 to 2.5
+    /// tanh(x) = sinh(x) / cosh(x)
+    public static func thScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("Th")
+            .withFunction(CustomFunction(
+                name: "tanh",
+                transform: { log10(tanh($0)) },
+                inverseTransform: { atanh(pow(10, $0)) }
+            ))
+            .withRange(begin: 0.5, end: 2.5)
+            .withLength(length)
+            .withTickDirection(.down)
+            .withSubsections([
+                ScaleSubsection(
+                    startValue: 0.5,
+                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
+                )
+            ])
+            .build()
+    }
+    
+    // MARK: - Power Scales
+    
+    /// PA scale: Power of A scale - reads x^2 in exponential form
+    /// Specialized scale for compound calculations
+    public static func paScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("PA")
+            .withFunction(CustomFunction(
+                name: "power-a",
+                transform: { log10(pow($0, 2)) },
+                inverseTransform: { pow(10, $0 / 2.0) }
+            ))
+            .withRange(begin: 1.0, end: 100.0)
+            .withLength(length)
+            .withTickDirection(.up)
+            .withSubsections([
+                ScaleSubsection(
+                    startValue: 1.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                ScaleSubsection(
+                    startValue: 10.0,
+                    tickIntervals: [10.0, 5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                )
+            ])
+            .build()
+    }
+    
+    /// P scale: Pythagorean scale for √(x² + y²) calculations
+    /// Used for vector magnitude and hypotenuse calculations
+    public static func pScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("P")
+            .withFunction(CustomFunction(
+                name: "pythagorean",
+                transform: { log10(sqrt(pow($0, 2) + 1)) },
+                inverseTransform: { sqrt(pow(pow(10, $0), 2) - 1) }
+            ))
+            .withRange(begin: 1.0, end: 10.0)
+            .withLength(length)
+            .withTickDirection(.up)
+            .withSubsections([
+                ScaleSubsection(
+                    startValue: 1.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                )
+            ])
+            .build()
+    }
+    
     // MARK: - Helper Label Formatters
     
     /// Formats time in minutes as hours:minutes (e.g., 90 → "1:30")
@@ -1238,6 +1368,15 @@ public enum StandardScales {
         case "Q2": return q2Scale(length: length)
         case "Q3": return q3Scale(length: length)
         
+        // Hyperbolic scales
+        case "SH": return shScale(length: length)
+        case "CH": return chScale(length: length)
+        case "TH": return thScale(length: length)
+        
+        // Power scales
+        case "PA": return paScale(length: length)
+        case "P": return pScale(length: length)
+            
         default: return nil
         }
     }

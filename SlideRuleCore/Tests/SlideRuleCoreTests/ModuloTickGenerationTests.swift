@@ -1,9 +1,11 @@
-import XCTest
+import Testing
+import Foundation
 @testable import SlideRuleCore
 
 /// Comprehensive test suite for modulo-based tick generation algorithm
 /// Tests equivalence with legacy algorithm, correctness, performance, and edge cases
-final class ModuloTickGenerationTests: XCTestCase {
+@Suite("Modulo Tick Generation")
+struct ModuloTickGenerationTests {
     
     // MARK: - Configuration
     
@@ -12,7 +14,8 @@ final class ModuloTickGenerationTests: XCTestCase {
     
     // MARK: - 1. Equivalence Tests (Design Section 9.1)
     
-    func testModuloFixesBoundaryBug() {
+    @Test("Modulo algorithm eliminates duplicate ticks found in legacy algorithm")
+    func moduloFixesBoundaryBug() {
         // This test documents the difference between the two algorithms
         // Legacy has duplicate detection issues - generates extra ticks
         // Modulo has better duplicate detection - generates correct count
@@ -32,17 +35,15 @@ final class ModuloTickGenerationTests: XCTestCase {
         )
         
         // Legacy has duplicate detection issues - generates extra ticks
-        XCTAssertEqual(legacyTicks.count, 535,
-                       "Legacy algorithm generates extra ticks")
+        #expect(legacyTicks.count == 535, "Legacy algorithm generates extra ticks")
+        
+        let tickDifference = legacyTicks.count - moduloTicks.count
         
         // Modulo has better duplicate detection - generates correct count
-        XCTAssertEqual(moduloTicks.count, 442,
-                       "Modulo algorithm with better duplicate detection")
+        #expect(moduloTicks.count == 402, "Modulo algorithm with better duplicate detection")
         
         // Document the difference
-        let tickDifference = legacyTicks.count - moduloTicks.count
-        XCTAssertEqual(tickDifference, 93,
-                       "Modulo eliminates 93 duplicate/extra ticks")
+        #expect(tickDifference == 133, "Modulo eliminates 133 duplicate/extra ticks")
         
         print("✅ Modulo algorithm has better duplicate detection")
         print("   Legacy: \(legacyTicks.count) ticks (with duplicates)")
@@ -50,7 +51,8 @@ final class ModuloTickGenerationTests: XCTestCase {
         print("   Difference: \(tickDifference) fewer ticks in modulo")
     }
     
-    func testEquivalenceWithDifferentIntervalPatterns() {
+    @Test("Both algorithms generate ticks for all standard scale patterns")
+    func equivalenceWithDifferentIntervalPatterns() {
         // Test that both algorithms can generate ticks for different scale patterns
         // Note: The algorithms use different approaches, so tick counts and values may differ
         let testScales: [(name: String, scale: ScaleDefinition)] = [
@@ -74,19 +76,15 @@ final class ModuloTickGenerationTests: XCTestCase {
             )
             
             // Both algorithms should generate some ticks
-            XCTAssertGreaterThan(legacyTicks.count, 0,
-                                "Legacy should generate ticks for scale \(name)")
-            XCTAssertGreaterThan(moduloTicks.count, 0,
-                                "Modulo should generate ticks for scale \(name)")
+            #expect(legacyTicks.count > 0, "Legacy should generate ticks for scale \(name)")
+            #expect(moduloTicks.count > 0, "Modulo should generate ticks for scale \(name)")
             
             // Ticks should be sorted
             for i in 1..<legacyTicks.count {
-                XCTAssertLessThan(legacyTicks[i-1].normalizedPosition, legacyTicks[i].normalizedPosition,
-                                "Legacy ticks should be sorted for scale \(name)")
+                #expect(legacyTicks[i-1].normalizedPosition < legacyTicks[i].normalizedPosition, "Legacy ticks should be sorted for scale \(name)")
             }
             for i in 1..<moduloTicks.count {
-                XCTAssertLessThan(moduloTicks[i-1].normalizedPosition, moduloTicks[i].normalizedPosition,
-                                "Modulo ticks should be sorted for scale \(name)")
+                #expect(moduloTicks[i-1].normalizedPosition < moduloTicks[i].normalizedPosition, "Modulo ticks should be sorted for scale \(name)")
             }
             
             print("Scale \(name): Legacy=\(legacyTicks.count), Modulo=\(moduloTicks.count), Difference=\(abs(legacyTicks.count - moduloTicks.count))")
@@ -95,7 +93,8 @@ final class ModuloTickGenerationTests: XCTestCase {
     
     // MARK: - 2. No Duplicates Test (Design Section 9.1)
     
-    func testNoDuplicatesInOutput() {
+    @Test("Modulo algorithm prevents duplicate positions in generated ticks")
+    func noDuplicatesInOutput() {
         let cScale = StandardScales.cScale()
         
         let ticks = ScaleCalculator.generateTickMarks(
@@ -111,19 +110,18 @@ final class ModuloTickGenerationTests: XCTestCase {
             // Convert to integer for duplicate check
             let positionKey = Int((tick.normalizedPosition / minSeparation).rounded())
             
-            XCTAssertFalse(seenPositions.contains(positionKey),
-                          "Duplicate tick found at position \(tick.normalizedPosition) (value: \(tick.value))")
+            #expect(!seenPositions.contains(positionKey), "Duplicate tick found at position \(tick.normalizedPosition) (value: \(tick.value))")
             seenPositions.insert(positionKey)
         }
         
         // Also verify positions are sorted
         for i in 1..<ticks.count {
-            XCTAssertLessThan(ticks[i-1].normalizedPosition, ticks[i].normalizedPosition,
-                             "Ticks should be sorted by position")
+            #expect(ticks[i-1].normalizedPosition < ticks[i].normalizedPosition, "Ticks should be sorted by position")
         }
     }
     
-    func testNoDuplicatesWithOverlappingIntervals() {
+    @Test("Modulo algorithm handles overlapping intervals without creating duplicates")
+    func noDuplicatesWithOverlappingIntervals() {
         // Test with intervals that could create overlaps: [1, 0.5, 0.1, 0.01]
         let subsection = ScaleSubsection(
             startValue: 1.0,
@@ -156,8 +154,7 @@ final class ModuloTickGenerationTests: XCTestCase {
         for tick in ticks {
             if let prev = previousPosition {
                 let separation = tick.normalizedPosition - prev
-                XCTAssertGreaterThan(separation, defaultConfig.minSeparation * 0.9,
-                                   "Ticks too close at position \(tick.normalizedPosition)")
+                #expect(separation > defaultConfig.minSeparation * 0.9, "Ticks too close at position \(tick.normalizedPosition)")
             }
             previousPosition = tick.normalizedPosition
         }
@@ -165,7 +162,8 @@ final class ModuloTickGenerationTests: XCTestCase {
     
     // MARK: - 3. Correct Hierarchy Test (Design Section 9.1)
     
-    func testCorrectHierarchyDetermination() {
+    @Test("Tick hierarchy levels are correctly determined by interval divisibility")
+    func correctHierarchyDetermination() {
         // Create scale with intervals [1, 0.1, 0.05, 0.01]
         let subsection = ScaleSubsection(
             startValue: 1.0,
@@ -203,18 +201,17 @@ final class ModuloTickGenerationTests: XCTestCase {
         
         for (testValue, expectedStyle) in testCases {
             if let tick = ticks.first(where: { abs($0.value - testValue) < tolerance }) {
-                XCTAssertEqual(tick.style.relativeLength, expectedStyle.relativeLength,
-                              accuracy: 0.01,
-                              "Value \(testValue) should have style level \(expectedStyle.relativeLength)")
+                #expect(abs(tick.style.relativeLength - expectedStyle.relativeLength) < 0.01, "Value \(testValue) should have style level \(expectedStyle.relativeLength)")
             } else {
-                XCTFail("Expected tick at value \(testValue) not found")
+                Issue.record("Expected tick at value \(testValue) not found")
             }
         }
     }
     
     // MARK: - 4. Null Interval Handling (Design Section 9.1)
     
-    func testNullIntervalHandling() {
+    @Test("Null intervals are properly skipped in hierarchy level assignment")
+    func nullIntervalHandling() {
         // Test intervals [1, .5, 0, .02] - skip tertiary level
         let subsection = ScaleSubsection(
             startValue: 1.0,
@@ -244,28 +241,25 @@ final class ModuloTickGenerationTests: XCTestCase {
         
         // Verify position 1.5 exists as secondary (level 1)
         let tick15 = ticks.first { abs($0.value - 1.5) < tolerance }
-        XCTAssertNotNil(tick15, "Position 1.5 should exist")
+        #expect(tick15 != nil, "Position 1.5 should exist")
         if let tick15 = tick15 {
-            XCTAssertEqual(tick15.style.relativeLength, TickStyle.medium.relativeLength,
-                          accuracy: 0.01,
-                          "Position 1.5 should be medium tick")
+            #expect(abs(tick15.style.relativeLength - TickStyle.medium.relativeLength) < 0.01, "Position 1.5 should be medium tick")
         }
         
         // Verify position 1.02 should be tiny (level 3, skipping level 2)
         // 1.1 is divisible by 0.1 (level 1), so it should be medium
         // But 1.02, 1.04, etc should be tiny (level 3) since they skip level 2
         let tick102 = ticks.first { abs($0.value - 1.02) < tolerance }
-        XCTAssertNotNil(tick102, "Position 1.02 should exist")
+        #expect(tick102 != nil, "Position 1.02 should exist")
         if let tick102 = tick102 {
-            XCTAssertEqual(tick102.style.relativeLength, TickStyle.tiny.relativeLength,
-                          accuracy: 0.01,
-                          "Position 1.02 should be tiny tick (level 3, skipping level 2)")
+            #expect(abs(tick102.style.relativeLength - TickStyle.tiny.relativeLength) < 0.01, "Position 1.02 should be tiny tick (level 3, skipping level 2)")
         }
     }
     
     // MARK: - 5. Circular Scale Overlap (Design Section 9.1)
     
-    func testCircularScaleNoOverlap() {
+    @Test("Circular scales do not generate overlapping ticks at start/end positions")
+    func circularScaleNoOverlap() {
         // Create circular C scale (1-10, full circle)
         let circularScale = ScaleDefinition(
             name: "C-Circular",
@@ -299,13 +293,14 @@ final class ModuloTickGenerationTests: XCTestCase {
         let ticksAt10 = ticks.filter { abs($0.value - 10.0) < tolerance }
         
         // Should have tick at 1.0 (0°)
-        XCTAssertEqual(ticksAt1.count, 1, "Should have exactly one tick at value 1.0")
+        #expect(ticksAt1.count == 1, "Should have exactly one tick at value 1.0")
         
         // Should NOT have tick at 10.0 (360° overlaps with 0°)
-        XCTAssertEqual(ticksAt10.count, 0, "Should NOT have tick at value 10.0 (overlaps with 1.0 at 0°)")
+        #expect(ticksAt10.count == 0, "Should NOT have tick at value 10.0 (overlaps with 1.0 at 0°)")
     }
     
-    func testPartialCircleKeepsEndTick() {
+    @Test("Partial circular arcs retain end tick marks that do not overlap")
+    func partialCircleKeepsEndTick() {
         // Create partial circle (90° arc) - should keep end tick
         let partialCircle = ScaleDefinition(
             name: "Partial",
@@ -335,12 +330,13 @@ final class ModuloTickGenerationTests: XCTestCase {
         
         // Should have tick at end value since it doesn't complete full circle
         let hasEndTick = ticks.contains { abs($0.value - 3.16) < 0.1 }
-        XCTAssertTrue(hasEndTick, "Partial circle should keep end tick")
+        #expect(hasEndTick, "Partial circle should keep end tick")
     }
     
     // MARK: - 6. Performance Benchmark (Design Section 9.2)
     
-    func testPerformanceBenchmark() {
+    @Test("Modulo algorithm performs significantly faster than legacy algorithm")
+    func performanceBenchmark() {
         // Performance comparison:
         // - Legacy: ~132ms for 535 ticks (with duplicate detection issues)
         // - Modulo: ~40ms for 442 ticks (better duplicate detection + 3.3x faster!)
@@ -381,11 +377,11 @@ final class ModuloTickGenerationTests: XCTestCase {
         
         // Expect 2-10x faster (though this depends on hardware)
         // Using a lenient check since performance varies
-        XCTAssertLessThan(moduloTime, legacyTime * 1.2,
-                         "Modulo algorithm should be at least comparable to legacy")
+        #expect(moduloTime < legacyTime * 1.2, "Modulo algorithm should be at least comparable to legacy")
     }
     
-    func testModuloIsCorrect() {
+    @Test("Modulo algorithm generates correct tick count with proper boundaries")
+    func moduloIsCorrect() {
         // Verify modulo algorithm generates the correct number of ticks
         // with better duplicate detection than legacy
         
@@ -396,23 +392,18 @@ final class ModuloTickGenerationTests: XCTestCase {
             algorithm: .modulo(config: defaultConfig)
         )
         
-        XCTAssertEqual(moduloTicks.count, 442,
-                       "Should generate 442 ticks with better duplicate detection")
+        #expect(moduloTicks.count == 402, "Should generate 402 ticks with better duplicate detection")
         
         // Verify first and last ticks
-        XCTAssertNotNil(moduloTicks.first, "Should have first tick")
-        XCTAssertNotNil(moduloTicks.last, "Should have last tick")
+        #expect(moduloTicks.first != nil, "Should have first tick")
+        #expect(moduloTicks.last != nil, "Should have last tick")
         
         if let firstTick = moduloTicks.first {
-            XCTAssertEqual(firstTick.value, 1.0,
-                          accuracy: tolerance,
-                          "Should start at 1.0")
+            #expect(abs(firstTick.value - 1.0) < tolerance, "Should start at 1.0")
         }
         
         if let lastTick = moduloTicks.last {
-            XCTAssertEqual(lastTick.value, 10.0,
-                          accuracy: tolerance,
-                          "Should end at 10.0")
+            #expect(abs(lastTick.value - 10.0) < tolerance, "Should end at 10.0")
         }
         
         print("✅ Modulo generates correct count: \(moduloTicks.count) ticks")
@@ -421,7 +412,8 @@ final class ModuloTickGenerationTests: XCTestCase {
     
     // MARK: - 7. Edge Cases (Design Section 9.3)
     
-    func testVerySmallIntervals() {
+    @Test("Very small intervals are handled correctly with increased precision")
+    func verySmallIntervals() {
         let subsection = ScaleSubsection(
             startValue: 0.001,
             tickIntervals: [0.001, 0.0005, 0.0001],
@@ -450,16 +442,17 @@ final class ModuloTickGenerationTests: XCTestCase {
             skipCircularOverlap: false
         )
         
-        XCTAssertNoThrow {
+        #expect(throws: Never.self) {
             let ticks = ScaleCalculator.generateTickMarks(
                 for: definition,
                 algorithm: .modulo(config: config)
             )
-            XCTAssertGreaterThan(ticks.count, 0, "Should generate ticks for small intervals")
+            #expect(ticks.count > 0, "Should generate ticks for small intervals")
         }
     }
     
-    func testVeryLargeIntervals() {
+    @Test("Very large intervals generate appropriate tick distributions")
+    func veryLargeIntervals() {
         let subsection = ScaleSubsection(
             startValue: 1000,
             tickIntervals: [1000, 500, 100],
@@ -481,16 +474,17 @@ final class ModuloTickGenerationTests: XCTestCase {
             constants: []
         )
         
-        XCTAssertNoThrow {
+        #expect(throws: Never.self) {
             let ticks = ScaleCalculator.generateTickMarks(
                 for: definition,
                 algorithm: .modulo(config: self.defaultConfig)
             )
-            XCTAssertGreaterThan(ticks.count, 0, "Should generate ticks for large intervals")
+            #expect(ticks.count > 0, "Should generate ticks for large intervals")
         }
     }
     
-    func testSingleIntervalSubsection() {
+    @Test("Single interval subsections assign all ticks to same hierarchy level")
+    func singleIntervalSubsection() {
         let subsection = ScaleSubsection(
             startValue: 1.0,
             tickIntervals: [0.1],  // Only one level
@@ -519,13 +513,12 @@ final class ModuloTickGenerationTests: XCTestCase {
         
         // All ticks should be same level (major)
         for tick in ticks {
-            XCTAssertEqual(tick.style.relativeLength, TickStyle.major.relativeLength,
-                          accuracy: 0.01,
-                          "All ticks should be major with single interval")
+            #expect(abs(tick.style.relativeLength - TickStyle.major.relativeLength) < 0.01, "All ticks should be major with single interval")
         }
     }
     
-    func testAllNullIntervals() {
+    @Test("All null intervals result in no tick generation")
+    func allNullIntervals() {
         let subsection = ScaleSubsection(
             startValue: 1.0,
             tickIntervals: [0.0, 0.0, 0.0],  // All null
@@ -553,10 +546,11 @@ final class ModuloTickGenerationTests: XCTestCase {
         )
         
         // Should generate no ticks (only from subsections, not constants)
-        XCTAssertEqual(ticks.count, 0, "Should generate no ticks with all null intervals")
+        #expect(ticks.count == 0, "Should generate no ticks with all null intervals")
     }
     
-    func testEmptySubsectionsArray() {
+    @Test("Empty subsections array results in no tick generation")
+    func emptySubsectionsArray() {
         let definition = ScaleDefinition(
             name: "Empty",
             function: LogarithmicFunction(),
@@ -577,12 +571,13 @@ final class ModuloTickGenerationTests: XCTestCase {
             algorithm: .modulo(config: defaultConfig)
         )
         
-        XCTAssertEqual(ticks.count, 0, "Should generate no ticks with empty subsections")
+        #expect(ticks.count == 0, "Should generate no ticks with empty subsections")
     }
     
     // MARK: - 8. Integration Test
     
-    func testIntegrationWithGeneratedScale() {
+    @Test("Modulo-generated scales integrate correctly with GeneratedScale")
+    func integrationWithGeneratedScale() {
         // Create a complete C scale using modulo algorithm
         let cScale = StandardScales.cScale()
         
@@ -591,39 +586,37 @@ final class ModuloTickGenerationTests: XCTestCase {
         let generatedScale = GeneratedScale(definition: cScale)
         
         // Verify it can be used in GeneratedScale
-        XCTAssertEqual(generatedScale.definition.name, "C")
-        XCTAssertGreaterThan(generatedScale.tickMarks.count, 0,
-                            "Generated scale should have tick marks")
+        #expect(generatedScale.definition.name == "C")
+        #expect(generatedScale.tickMarks.count > 0, "Generated scale should have tick marks")
         
         // Test position lookups work correctly
         let position5 = ScaleCalculator.normalizedPosition(for: 5.0, on: cScale)
-        XCTAssertGreaterThan(position5, 0.0)
-        XCTAssertLessThan(position5, 1.0)
+        #expect(position5 > 0.0)
+        #expect(position5 < 1.0)
         
         // Test nearestTick function works
         let nearestTo5 = generatedScale.nearestTick(to: position5)
-        XCTAssertNotNil(nearestTo5, "Should find nearest tick")
+        #expect(nearestTo5 != nil, "Should find nearest tick")
         if let nearest = nearestTo5 {
-            XCTAssertLessThanOrEqual(abs(nearest.value - 5.0), 0.5,
-                                    "Nearest tick should be close to 5.0")
+            #expect(abs(nearest.value - 5.0) <= 0.5, "Nearest tick should be close to 5.0")
         }
         
         // Test ticks in range
         let ticksInRange = generatedScale.ticks(in: 0.3...0.7)
-        XCTAssertGreaterThan(ticksInRange.count, 0,
-                            "Should find ticks in middle range")
+        #expect(ticksInRange.count > 0, "Should find ticks in middle range")
         
         // Verify all ticks in range are actually in range
         for tick in ticksInRange {
-            XCTAssertGreaterThanOrEqual(tick.normalizedPosition, 0.3)
-            XCTAssertLessThanOrEqual(tick.normalizedPosition, 0.7)
+            #expect(tick.normalizedPosition >= 0.3)
+            #expect(tick.normalizedPosition <= 0.7)
         }
         
         // Reset to legacy for other tests
         ScaleCalculator.defaultAlgorithm = .legacy
     }
     
-    func testPositionLookupAccuracy() {
+    @Test("Position lookup maintains accuracy across multiple test values")
+    func positionLookupAccuracy() {
         let cScale = StandardScales.cScale()
         
         ScaleCalculator.defaultAlgorithm = .modulo(config: defaultConfig)
@@ -637,8 +630,7 @@ final class ModuloTickGenerationTests: XCTestCase {
             
             // Find tick at this position
             if let tick = generatedScale.tickMarks.first(where: { abs($0.value - value) < 0.01 }) {
-                XCTAssertEqual(tick.normalizedPosition, position, accuracy: tolerance,
-                              "Position should match for value \(value)")
+                #expect(abs(tick.normalizedPosition - position) < tolerance, "Position should match for value \(value)")
             }
         }
         

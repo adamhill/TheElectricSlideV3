@@ -373,6 +373,9 @@ public struct ScaleCalculator: Sendable {
         // Sort by position (should already be sorted, but ensure it)
         allTicks.sort { $0.normalizedPosition < $1.normalizedPosition }
         
+        // Remove any duplicates that slipped through (edge cases, rounding, boundaries)
+        allTicks = removeDuplicates(from: allTicks, isCircular: definition.isCircular)
+        
         return allTicks
     }
     

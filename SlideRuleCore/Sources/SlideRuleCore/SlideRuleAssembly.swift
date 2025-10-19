@@ -84,7 +84,7 @@ public struct SlideRule: Sendable {
 /// Circular: "(scales) circular:4inch"
 public struct RuleDefinitionParser {
     
-    public enum ParseError: Error, CustomStringConvertible {
+    public enum ParseError: Error, CustomStringConvertible, Equatable {
         case invalidFormat(String)
         case unknownScale(String)
         case missingBrackets

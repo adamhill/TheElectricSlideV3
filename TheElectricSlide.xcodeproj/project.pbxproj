@@ -27,6 +27,7 @@
 		9C6019BB2EA413B2003812CD /* TheElectricSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheElectricSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019CC2EA413B4003812CD /* TheElectricSlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019D62EA413B4003812CD /* TheElectricSlideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = TheElectricSlideConsole.xcodeproj; path = TheElectricSlideConsole/TheElectricSlideConsole.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -34,6 +35,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = 9C6019BA2EA413B2003812CD /* TheElectricSlide */;
+		};
+		9C601A4F2EA43006003812CD /* Exceptions for "SlideRuleCore" folder in "TheElectricSlide" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Package.swift,
 			);
 			target = 9C6019BA2EA413B2003812CD /* TheElectricSlide */;
 		};
@@ -56,6 +64,14 @@
 		9C6019D92EA413B4003812CD /* TheElectricSlideUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TheElectricSlideUITests;
+			sourceTree = "<group>";
+		};
+		9C6019EA2EA41413003812CD /* SlideRuleCore */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				9C601A4F2EA43006003812CD /* Exceptions for "SlideRuleCore" folder in "TheElectricSlide" target */,
+			);
+			path = SlideRuleCore;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +104,8 @@
 		9C6019B22EA413B2003812CD = {
 			isa = PBXGroup;
 			children = (
+				9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */,
+				9C6019EA2EA41413003812CD /* SlideRuleCore */,
 				9C6019BD2EA413B2003812CD /* TheElectricSlide */,
 				9C6019CF2EA413B4003812CD /* TheElectricSlideTests */,
 				9C6019D92EA413B4003812CD /* TheElectricSlideUITests */,
@@ -101,6 +119,13 @@
 				9C6019BB2EA413B2003812CD /* TheElectricSlide.app */,
 				9C6019CC2EA413B4003812CD /* TheElectricSlideTests.xctest */,
 				9C6019D62EA413B4003812CD /* TheElectricSlideUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9C601A0B2EA4190C003812CD /* Products */ = {
+			isa = PBXGroup;
+			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -122,6 +147,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9C6019BD2EA413B2003812CD /* TheElectricSlide */,
+				9C6019EA2EA41413003812CD /* SlideRuleCore */,
 			);
 			name = TheElectricSlide;
 			packageProductDependencies = (
@@ -211,6 +237,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9C6019BC2EA413B2003812CD /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 9C601A0B2EA4190C003812CD /* Products */;
+					ProjectRef = 9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				9C6019BA2EA413B2003812CD /* TheElectricSlide */,

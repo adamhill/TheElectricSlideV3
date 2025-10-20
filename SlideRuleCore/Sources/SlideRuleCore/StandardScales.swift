@@ -98,6 +98,30 @@ public enum StandardScales {
             .build()
     }
     
+    /// DI scale: Duplicate of CI scale with ticks pointing down
+    /// Same as CI scale but with tickdir = -1
+    /// Range: 10 to 1 (reciprocal, descending)
+    /// Formula: -log₁₀(x)
+    public static func diScale(length: Distance = 250.0) -> ScaleDefinition {
+        // Start with CI scale and change tick direction
+        let ciScale = self.ciScale(length: length)
+        
+        return ScaleDefinition(
+            name: "DI",
+            function: ciScale.function,
+            beginValue: ciScale.beginValue,
+            endValue: ciScale.endValue,
+            scaleLengthInPoints: length,
+            layout: ciScale.layout,
+            tickDirection: .down,  // Only difference from CI scale
+            subsections: ciScale.subsections,
+            defaultTickStyles: ciScale.defaultTickStyles,
+            labelFormatter: ciScale.labelFormatter,
+            labelColor: ciScale.labelColor,
+            constants: ciScale.constants
+        )
+    }
+    
     // MARK: - Folded Scales
     
     /// CF scale: C scale folded at π (π to 10π)
@@ -230,6 +254,29 @@ public enum StandardScales {
             .addConstant(value: .pi, label: "π", style: .major)
             .addConstant(value: 10.0, label: "10", style: .major)
             .build()
+    }
+    /// DIF scale: Duplicate of CIF scale with ticks pointing up
+    /// Same as CIF scale but with tickdir =1
+    /// Range: 10π to π (folded reciprocal, descending)
+    /// Formula: -log₁₀(x)
+    public static func difScale(length: Distance = 250.0) -> ScaleDefinition {
+        // Start with CIF scale and change tick direction
+        let cifScale = self.cifScale(length: length)
+        
+        return ScaleDefinition(
+            name: "DIF",
+            function: cifScale.function,
+            beginValue: cifScale.beginValue,
+            endValue: cifScale.endValue,
+            scaleLengthInPoints: length,
+            layout: cifScale.layout,
+            tickDirection: .up,  // Ticks pointing up (tickdir=1)
+            subsections: cifScale.subsections,
+            defaultTickStyles: cifScale.defaultTickStyles,
+            labelFormatter: cifScale.labelFormatter,
+            labelColor: cifScale.labelColor,
+            constants: cifScale.constants
+        )
     }
     /// A scale: Square scale (reads x² on D) from 1 to 100
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
@@ -1162,135 +1209,9 @@ public enum StandardScales {
             .build()
     }
     
-    // MARK: - Hyperbolic Scales
+   
     
-    /// Sh scale: Hyperbolic sine scale from 0.5 to 3.0
-    /// sinh(x) = (e^x - e^-x) / 2
-    public static func shScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("Sh")
-            .withFunction(CustomFunction(
-                name: "sinh",
-                transform: { log10(sinh($0)) },
-                inverseTransform: { asinh(pow(10, $0)) }
-            ))
-            .withRange(begin: 0.5, end: 3.0)
-            .withLength(length)
-            .withTickDirection(.down)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 0.5,
-                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.oneDecimal
-                )
-            ])
-            .build()
-    }
     
-    /// Ch scale: Hyperbolic cosine scale from 0.0 to 3.0
-    /// cosh(x) = (e^x + e^-x) / 2
-    public static func chScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("Ch")
-            .withFunction(CustomFunction(
-                name: "cosh",
-                transform: { log10(cosh($0)) },
-                inverseTransform: { acosh(pow(10, $0)) }
-            ))
-            .withRange(begin: 0.0, end: 3.0)
-            .withLength(length)
-            .withTickDirection(.down)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 0.0,
-                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.oneDecimal
-                )
-            ])
-            .build()
-    }
-    
-    /// Th scale: Hyperbolic tangent scale from 0.5 to 2.5
-    /// tanh(x) = sinh(x) / cosh(x)
-    public static func thScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("Th")
-            .withFunction(CustomFunction(
-                name: "tanh",
-                transform: { log10(tanh($0)) },
-                inverseTransform: { atanh(pow(10, $0)) }
-            ))
-            .withRange(begin: 0.5, end: 2.5)
-            .withLength(length)
-            .withTickDirection(.down)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 0.5,
-                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.oneDecimal
-                )
-            ])
-            .build()
-    }
-    
-    // MARK: - Power Scales
-    
-    /// PA scale: Power of A scale - reads x^2 in exponential form
-    /// Specialized scale for compound calculations
-    public static func paScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("PA")
-            .withFunction(CustomFunction(
-                name: "power-a",
-                transform: { log10(pow($0, 2)) },
-                inverseTransform: { pow(10, $0 / 2.0) }
-            ))
-            .withRange(begin: 1.0, end: 100.0)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 1.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.integer
-                ),
-                ScaleSubsection(
-                    startValue: 10.0,
-                    tickIntervals: [10.0, 5.0, 1.0],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.integer
-                )
-            ])
-            .build()
-    }
-    
-    /// P scale: Pythagorean scale for √(x² + y²) calculations
-    /// Used for vector magnitude and hypotenuse calculations
-    public static func pScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("P")
-            .withFunction(CustomFunction(
-                name: "pythagorean",
-                transform: { log10(sqrt(pow($0, 2) + 1)) },
-                inverseTransform: { sqrt(pow(pow(10, $0), 2) - 1) }
-            ))
-            .withRange(begin: 1.0, end: 10.0)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 1.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.integer
-                )
-            ])
-            .build()
-    }
     
     // MARK: - Helper Label Formatters
     
@@ -1318,9 +1239,12 @@ public enum StandardScales {
         case "C": return cScale(length: length)
         case "D": return dScale(length: length)
         case "CI": return ciScale(length: length)
+        case "DI": return diScale(length: length)
         case "CF": return cfScale(length: length)
+            
         case "DF": return dfScale(length: length)
         case "CIF": return cifScale(length: length)
+        case "DIF": return difScale(length: length)
         case "A": return aScale(length: length)
         case "K": return kScale(length: length)
         case "LL1": return ll1Scale(length: length)

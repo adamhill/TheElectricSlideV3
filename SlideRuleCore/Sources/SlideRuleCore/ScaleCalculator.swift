@@ -60,12 +60,20 @@ public struct ModuloTickConfig: Sendable {
         // Count decimal places needed
         let string = String(format: "%.10f", interval)
         let parts = string.components(separatedBy: ".")
-        guard parts.count > 1 else { return 10 }
+        guard parts.count > 1 else { return 100 }  // Return 100 for integers
         
-        let decimals = parts[1].trimmingCharacters(in: CharacterSet(charactersIn: "0")).count
+        let fractionalPart = parts[1]
         
-        // xfactor = 10^(decimals + 1) for safety margin
-        return Int(pow(10.0, Double(decimals + 1)))
+        // Find the position of the last non-zero digit
+        // This tells us how many decimal places we need to preserve
+        if let lastNonZeroIndex = fractionalPart.lastIndex(where: { $0 != "0" }) {
+            let decimalPlaces = fractionalPart.distance(from: fractionalPart.startIndex, to: lastNonZeroIndex) + 1
+            // xfactor = 10^(decimalPlaces + 1) for safety margin
+            return Int(pow(10.0, Double(decimalPlaces + 1)))
+        }
+        
+        // All zeros means this is an integer interval (like 1.0)
+        return 100  // Default for integer intervals
     }
 }
 

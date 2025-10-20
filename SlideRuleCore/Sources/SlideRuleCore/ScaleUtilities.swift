@@ -301,7 +301,7 @@ public enum ScaleExporter {
     /// - Returns: JSON string representation
     public static func toJSON(_ scale: GeneratedScale) throws -> String {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = .sortedKeys
         
         let exportData = ScaleExportData(scale: scale)
         let jsonData = try encoder.encode(exportData)

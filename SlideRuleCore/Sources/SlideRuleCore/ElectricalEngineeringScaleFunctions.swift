@@ -41,15 +41,15 @@ public struct CapacitiveReactanceFunction: ScaleFunction {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Formula: inverted logarithmic for 1/(2πfC)
-        // log(1/value) normalized over cycles, then inverted for scale direction
-        let logValue = log10(0.5 * .pi / value) / Double(cycles)
-        return 1.0 - logValue
+        // PostScript formula: log10(5π/value)/12 + (1 - cycle/12)
+        // Simplified: (log10(5π/value) + 11) / 12 for 12 cycles
+        // The cycle offset (1 - N/12) is implicit in the algebra
+        (log10(5.0 * .pi / value) + Double(cycles - 1)) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        let logValue = (1.0 - transformedValue) * Double(cycles)
-        return (0.5 * .pi) / pow(10, logValue)
+        let logValue = transformedValue * Double(cycles) - Double(cycles - 1)
+        return 5.0 * .pi / pow(10, logValue)
     }
 }
 
@@ -106,18 +106,14 @@ public struct ReflectionCoefficientFunction: ScaleFunction {
     public init() {}
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Formula from PostScript: 1 - (1 - (1 / (value / 2))²)^0.5
-        // This maps VSWR to reflection coefficient magnitude
-        let rho = 1.0 / (value * 0.5)
-        let term = sqrt(1.0 - rho * rho)
-        return (1.0 - term) * 0.472
+        // PostScript formula: { 1 1 1 4 -1 roll div .5 mul sub sub .472 mul }
+        // Simplified: (0.5 / value) × 0.472
+        (0.5 / value) * 0.472
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        // Inverse: solve for VSWR from position
-        let term = 1.0 - (transformedValue / 0.472)
-        let rho = sqrt(1.0 - term * term)
-        return 2.0 / rho
+        // Inverse: value = 0.5 / (transformedValue / 0.472)
+        0.5 / (transformedValue / 0.472)
     }
 }
 
@@ -200,15 +196,15 @@ public struct CapacitanceFrequencyFunction: ScaleFunction {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Formula: inverted log scale with special scaling
-        // log₁₀(100/(scaleFactor × value)) / cycles, inverted
-        let logValue = log10(100.0 / (scaleFactor * value)) / Double(cycles)
-        return 1.0 - logValue
+        // PostScript formula uses explicit /12 div, not cycles
+        // curcycle 1 add creates cycle+1 offset that cancels in the algebra
+        // Simplified: 1 - log10(scaleFactor × value) / 12
+        1.0 - log10(scaleFactor * value) / 12.0
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        let logValue = (1.0 - transformedValue) * Double(cycles)
-        return 100.0 / (scaleFactor * pow(10, logValue))
+        let logValue = (1.0 - transformedValue) * 12.0
+        return pow(10, logValue) / scaleFactor
     }
 }
 
@@ -226,10 +222,10 @@ public struct FrequencyWavelengthFunction: ScaleFunction {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Inverted logarithmic scale for wavelength
-        // As frequency increases, wavelength decreases: λ = c/f
-        let logValue = log10(value) / Double(cycles)
-        return 1.0 - logValue
+        // PostScript formula: 1 - [log10(value)/6 + (cycle-1)/6]
+        // The (cycle-1)/6 offset cancels with the implicit decade offset
+        // Simplified: 1 - log10(value) / 6
+        1.0 - log10(value) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {

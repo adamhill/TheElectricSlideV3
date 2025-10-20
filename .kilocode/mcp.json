@@ -14,7 +14,10 @@
         "TAVILY_API_KEY": "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"
       },
       "alwaysAllow": [
-        "tavily-search"
+        "tavily-search",
+        "tavily-extract",
+        "tavily-crawl",
+        "tavily-map"
       ]
     }
   }

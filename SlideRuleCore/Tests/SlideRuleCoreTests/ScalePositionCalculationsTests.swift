@@ -5,7 +5,7 @@ import Foundation
 /// Priority 1: Comprehensive Scale Position Calculations Test Suite
 /// Validates position calculations across different scale types and layouts
 @Suite("Scale Position Calculations")
-struct ScalePositionCalculationsSuite {
+struct ScalePositionCalculationsTests {
     
     @Suite("Logarithmic Scale Normalized Positions")
     struct LogarithmicNormalizedPositions {

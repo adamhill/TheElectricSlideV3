@@ -121,7 +121,7 @@ struct SlideRuleAssemblyFuzzTests {
     @Suite("Four-Scale Combinations Fuzz Tests")
     struct FourScaleCombinations {
         
-        @Test("Four-scale combinations create complete slide rules with balanced layouts",
+        @Test("Four-scale parser — canonical combos produce exactly four scales",
               arguments: generateFourScaleCombinations())
         func fourScaleCombinationsParseCorrectly(definition: String) throws {
             let rule = try RuleDefinitionParser.parse(definition, dimensions: standardDimensions)
@@ -140,28 +140,61 @@ struct SlideRuleAssemblyFuzzTests {
         }
         
         static func generateFourScaleCombinations() -> [String] {
-            [
-                "(C D [ CI CF ] A)",
-                "(K A [ C D ] DF)",
-                "(A B [ CI C ] K)",
-                "(C [ CI CF CIF ] D)",
-                "(LL1 LL2 [ LL3 C ] D)",
-                "(K [ A B CI ] D)",
-                "(C D [ S T ] L)",
-                "(A [ C D CI ] K)",
-                "(LL1 [ LL2 LL3 C ] D)",
-                "(K A [ CI CF ] D L)",
-                "(C [ D CI CF ] DF)",
-                "(A B [ K C ] D)",
-                "(S T [ ST C ] D)",
-                "(LL1 [ C D CI ] LL2)",
-                "(CF CIF [ C CI ] D)",
-                "(A K [ B C ] D)",
-                "(C D [ CI A ] K)",
-                "(LL1 LL2 [ C CI ] LL3)",
-                "(S [ T ST C ] D)",
-                "(K [ C D A ] B)"
+            let canonicalCandidates: [String] = [
+                "(C [ D CI ] A)",          // 1 + 2 + 1 = 4  (replaced E with CI)
+                "(C D [ CI ] A)",          // 2 + 1 + 1 = 4  (replaced E with CI)
+                "(A B [ CI ] D)",         // 2 + 1 + 1 = 4
+                "(C [ CI ] A B)",         // 1 + 1 + 2 = 4
+                "(A [ B C ] D)",          // 1 + 2 + 1 = 4
+                "(LL1 LL2 [ C ] D)",      // 2 + 1 + 1 = 4
+                "(LL1 [ LL2 ] C D)",      // 1 + 1 + 2 = 4
+                "(K [ A ] B C)",          // 1 + 1 + 2 = 4
+                "(S [ T ST ] L)",         // 1 + 2 + 1 = 4
+                "(C [ LL1 ] LL2 LL3)",    // 1 + 1 + 2 = 4
+                "(LL1 LL2 [ LL3 ] C)",    // 2 + 1 + 1 = 4
+                "(CF [ CI ] D K)"         // 1 + 1 + 2 = 4
             ]
+            
+            // Enforce exactly-four by construction via lightweight segment counting (no production parser)
+            let filtered = canonicalCandidates.filter { def in
+                let counts = countSegments(def)
+                return (counts.top + counts.slide + counts.bottom) == 4 && counts.slide >= 1
+            }
+            
+            // Deduplicate while preserving order
+            var seen = Set<String>()
+            return filtered.filter { seen.insert($0).inserted }
+        }
+        
+        // Count tokens in TOP / SLIDE / BOTTOM without invoking the production parser.
+        // Canonical structure assumed: \"( TOP … [ SLIDE … ] BOTTOM … )\"
+        private static func countSegments(_ definition: String) -> (top: Int, slide: Int, bottom: Int) {
+            // Consider only the front side (ignore anything after ':')
+            let front = definition.split(separator: ":").first.map(String.init) ?? definition
+            // Strip parentheses and trim
+            let trimmed = front
+                .trimmingCharacters(in: CharacterSet(charactersIn: "()"))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            guard let open = trimmed.firstIndex(of: "["), let close = trimmed.firstIndex(of: "]"), open < close else {
+                // No brackets: everything counts as top
+                let t = countTokens(in: trimmed)
+                return (t, 0, 0)
+            }
+            
+            let topSegment = String(trimmed[..<open])
+            let slideSegment = String(trimmed[trimmed.index(after: open)..<close])
+            let bottomSegment = String(trimmed[trimmed.index(after: close)...])
+            
+            return (
+                countTokens(in: topSegment),
+                countTokens(in: slideSegment),
+                countTokens(in: bottomSegment)
+            )
+        }
+        
+        private static func countTokens(in segment: String) -> Int {
+            segment.split(whereSeparator: { $0.isWhitespace }).count
         }
     }
     

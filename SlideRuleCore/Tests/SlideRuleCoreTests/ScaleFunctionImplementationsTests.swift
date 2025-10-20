@@ -5,7 +5,7 @@ import Foundation
 /// Priority 2: Comprehensive ScaleFunction Implementations Test Suite
 /// Validates all scale function types and their transform/inverse behaviors
 @Suite("ScaleFunction Implementations")
-struct ScaleFunctionImplementationsSuite {
+struct ScaleFunctionImplementationsTests {
     
     @Suite("LogarithmicFunction Tests")
     struct LogarithmicFunctionTests {

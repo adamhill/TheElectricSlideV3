@@ -265,6 +265,10 @@ public struct ScaleCalculator: Sendable {
         var ticks: [TickMark] = []
         let endValue = definition.endValue
         let beginValue = definition.beginValue
+        // Descending-domain handling: normalize bounds and iterate in the correct direction
+        let isDescending = beginValue > endValue
+        let lowerBound = min(beginValue, endValue)
+        let upperBound = max(beginValue, endValue)
         
         // Process each level of tick intervals
         for (level, interval) in subsection.tickIntervals.enumerated() {
@@ -277,57 +281,102 @@ public struct ScaleCalculator: Sendable {
             // Should this level have labels?
             let shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
             
-            // Generate ticks at this interval
-            var currentValue = subsection.startValue
+            // Generate ticks at this interval (explicit branches for direction)
+            let stepAbs = abs(interval)
+            var start = subsection.startValue
+            // Clamp start into [lowerBound, upperBound]
+            if start < lowerBound { start = lowerBound }
+            if start > upperBound { start = upperBound }
             
-            while currentValue <= endValue {
-                // Check if this value is within the scale range
-                if currentValue >= beginValue && currentValue <= endValue {
-                    
-                    // For circular scales, skip the last tick if it overlaps with the first
-                    // This prevents duplicate tick at 0°/360°
-                    if definition.isCircular {
-                        let isLastTick = abs(currentValue - endValue) < interval * 0.01
-                        let coversFullCircle = definition.function.transform(beginValue) - 
-                                              definition.function.transform(endValue) >= 0.999
-                        
-                        if isLastTick && coversFullCircle {
-                            // Skip this tick - it would overlap with 0°
-                            currentValue += interval
-                            continue
+            if isDescending {
+                var cv = start
+                while cv >= lowerBound {
+                    // Check if this value is within the normalized domain bounds
+                    if cv >= lowerBound && cv <= upperBound {
+                        // For circular scales, skip the last tick if it overlaps with the first
+                        if definition.isCircular {
+                            let isLastTick = abs(cv - endValue) < stepAbs * 0.01
+                            let coversFullCircle = definition.function.transform(beginValue) -
+                                                   definition.function.transform(endValue) >= 0.999
+                            if isLastTick && coversFullCircle {
+                                cv -= stepAbs
+                                continue
+                            }
                         }
-                    }
-                    
-                    let position = normalizedPosition(for: currentValue, on: definition)
-                    let angularPos = definition.isCircular ? position * 360.0 : nil
-                    
-                    // Format the label
-                    let label: String? = if shouldLabel {
-                        formatLabel(
-                            value: currentValue,
-                            subsectionFormatter: subsection.labelFormatter,
-                            scaleFormatter: definition.labelFormatter
+                        
+                        let position = normalizedPosition(for: cv, on: definition)
+                        let angularPos = definition.isCircular ? position * 360.0 : nil
+                        
+                        // Format the label
+                        let label: String? = if shouldLabel {
+                            formatLabel(
+                                value: cv,
+                                subsectionFormatter: subsection.labelFormatter,
+                                scaleFormatter: definition.labelFormatter
+                            )
+                        } else {
+                            nil
+                        }
+                        
+                        let tick = TickMark(
+                            value: cv,
+                            normalizedPosition: position,
+                            angularPosition: angularPos,
+                            style: style,
+                            label: label
                         )
-                    } else {
-                        nil
+                        ticks.append(tick)
                     }
                     
-                    let tick = TickMark(
-                        value: currentValue,
-                        normalizedPosition: position,
-                        angularPosition: angularPos,
-                        style: style,
-                        label: label
-                    )
+                    cv -= stepAbs
                     
-                    ticks.append(tick)
+                    // Safety check to prevent infinite loops
+                    if stepAbs < 1e-10 { break }
                 }
-                
-                currentValue += interval
-                
-                // Safety check to prevent infinite loops
-                if interval < 1e-10 {
-                    break
+            } else {
+                var cv = start
+                while cv <= upperBound {
+                    // Check if this value is within the normalized domain bounds
+                    if cv >= lowerBound && cv <= upperBound {
+                        // For circular scales, skip the last tick if it overlaps with the first
+                        if definition.isCircular {
+                            let isLastTick = abs(cv - endValue) < stepAbs * 0.01
+                            let coversFullCircle = definition.function.transform(beginValue) -
+                                                   definition.function.transform(endValue) >= 0.999
+                            if isLastTick && coversFullCircle {
+                                cv += stepAbs
+                                continue
+                            }
+                        }
+                        
+                        let position = normalizedPosition(for: cv, on: definition)
+                        let angularPos = definition.isCircular ? position * 360.0 : nil
+                        
+                        // Format the label
+                        let label: String? = if shouldLabel {
+                            formatLabel(
+                                value: cv,
+                                subsectionFormatter: subsection.labelFormatter,
+                                scaleFormatter: definition.labelFormatter
+                            )
+                        } else {
+                            nil
+                        }
+                        
+                        let tick = TickMark(
+                            value: cv,
+                            normalizedPosition: position,
+                            angularPosition: angularPos,
+                            style: style,
+                            label: label
+                        )
+                        ticks.append(tick)
+                    }
+                    
+                    cv += stepAbs
+                    
+                    // Safety check to prevent infinite loops
+                    if stepAbs < 1e-10 { break }
                 }
             }
         }
@@ -393,8 +442,7 @@ public struct ScaleCalculator: Sendable {
             return []
         }
         
-        // 2. Calculate proper subsection boundaries using RangeExpression
-        let range = calculateSubsectionBoundaries(
+        let bounds = calculateSubsectionBoundaries(
             subsection: subsection,
             subsectionIndex: subsectionIndex,
             definition: definition
@@ -403,42 +451,35 @@ public struct ScaleCalculator: Sendable {
         // 3. Convert to integer space using xfactor
         let xfactor = config.precisionMultiplier
         
-        // Extract start/end from range for integer conversion
-        // We need concrete bounds for stride calculation
-        let (startValue, endValue): (Double, Double)
-        if subsectionIndex == definition.subsections.count - 1 {
-            // Last subsection: closed range includes both endpoints
-            if let closedRange = range as? ClosedRange<Double> {
-                startValue = closedRange.lowerBound
-                endValue = closedRange.upperBound
-            } else {
-                return []
-            }
-        } else {
-            // Non-last subsection: half-open range excludes upper bound
-            if let halfOpenRange = range as? Range<Double> {
-                startValue = halfOpenRange.lowerBound
-                endValue = halfOpenRange.upperBound
-            } else {
-                return []
-            }
-        }
+        // Determine iteration direction based on overall domain, and clamp start to bounds
+        let isDescending = definition.beginValue > definition.endValue
+        let clampedStart = max(min(subsection.startValue, bounds.upper), bounds.lower)
+        // Iterate toward the appropriate boundary by domain direction
+        let targetEnd = isDescending ? bounds.lower : bounds.upper
         
-        let startInt = toIntegerSpace(startValue, xfactor: xfactor)
-        let endInt = toIntegerSpace(endValue, xfactor: xfactor)
+        let startInt = toIntegerSpace(clampedStart, xfactor: xfactor)
+        let endInt = toIntegerSpace(targetEnd, xfactor: xfactor)
         let incrementInt = toIntegerSpace(finestInterval, xfactor: xfactor)
         
         guard incrementInt > 0 else {
             return []
         }
         
-        // 4. Single pass through all positions using stride (naturally inclusive)
-        for tickInt in stride(from: startInt, through: endInt, by: incrementInt) {
+        // 4. Single pass through all positions using stride; use negative stride for descending
+        let step = (startInt <= endInt) ? incrementInt : -incrementInt
+        for tickInt in stride(from: startInt, through: endInt, by: step) {
             // 5. Convert back to real value
             let tickValue = toRealSpace(tickInt, xfactor: xfactor)
             
-            // 6. Use Range.contains() for boundary check
-            guard range.contains(tickValue) else { continue }
+            // 6. Boundary check using normalized bounds; exclusive upper when not last subsection
+            let inside: Bool = {
+                if bounds.includeUpper {
+                    return (tickValue >= bounds.lower && tickValue <= bounds.upper)
+                } else {
+                    return (tickValue >= bounds.lower && tickValue < bounds.upper)
+                }
+            }()
+            guard inside else { continue }
             
             // 7. Determine hierarchy level using modulo
             guard let level = determineTickLevel(
@@ -470,29 +511,37 @@ public struct ScaleCalculator: Sendable {
         return ticks
     }
     
-    /// Calculate proper start and end boundaries for a subsection
-    /// Returns type-safe RangeExpression matching PostScript semantics
-    /// - Non-last subsection: [start, nextStart) using ..<
-    /// - Last subsection: [start, end] using ...
+    /// Calculate normalized subsection boundaries (handles ascending and descending domains)
+    /// - Returns: (lower, upper, includeUpper) where bounds are ordered (lower <= upper).
+    ///            includeUpper is true for the last subsection (closed upper bound),
+    ///            false otherwise (half-open to avoid boundary duplication).
     private static func calculateSubsectionBoundaries(
         subsection: ScaleSubsection,
         subsectionIndex: Int,
         definition: ScaleDefinition
-    ) -> any RangeExpression<Double> {
-        // Clamp start to scale's begin value
-        let clampedStart = max(subsection.startValue, definition.beginValue)
+    ) -> (lower: Double, upper: Double, includeUpper: Bool) {
+        let domainLower = min(definition.beginValue, definition.endValue)
+        let domainUpper = max(definition.beginValue, definition.endValue)
         
-        let isLastSubsection = subsectionIndex == definition.subsections.count - 1
+        // Raw subsection endpoints (unclamped)
+        let startCandidate = subsection.startValue
+        let endCandidate: Double = {
+            if subsectionIndex == definition.subsections.count - 1 {
+                return definition.endValue
+            } else {
+                return definition.subsections[subsectionIndex + 1].startValue
+            }
+        }()
         
-        if isLastSubsection {
-            // Last subsection: closed range (includes both endpoints)
-            return clampedStart...definition.endValue
-        } else {
-            // Non-last subsection: half-open range (excludes upper bound)
-            let nextSubsection = definition.subsections[subsectionIndex + 1]
-            let clampedEnd = min(nextSubsection.startValue, definition.endValue)
-            return clampedStart..<clampedEnd
-        }
+        // Clamp to domain and normalize ordering
+        let startClamped = max(min(startCandidate, domainUpper), domainLower)
+        let endClamped = max(min(endCandidate, domainUpper), domainLower)
+        
+        let lower = min(startClamped, endClamped)
+        let upper = max(startClamped, endClamped)
+        let includeUpper = (subsectionIndex == definition.subsections.count - 1)
+        
+        return (lower: lower, upper: upper, includeUpper: includeUpper)
     }
     
     /// Determine which tick level a position belongs to using modulo arithmetic

@@ -1,5 +1,73 @@
 import Foundation
 
+// MARK: - Standard Scales Reading Guide
+//
+// POSTSCRIPT SCALE IMPLEMENTATION NOTES:
+// These scales implement the core PostScript formulas from postscript-engine-for-sliderules.ps.
+// Standard scales form the foundation of all slide rule calculations:
+//   - C/D scales: Base 10 logarithmic scales for multiplication/division
+//   - A/B scales: Square scales (read x² on D)
+//   - K scale: Cube scale (read x³ on D)
+//   - CI/DI scales: Reciprocal scales (inverted C/D)
+//   - CF/DF scales: Folded at π to prevent running off scale edge
+//   - LL scales: Log-log scales for exponential calculations (e^x)
+//   - Trig scales: S, T, ST for sine, tangent, small angles
+//
+// SCALE ALIGNMENT:
+// Basic operations using C and D scales:
+//   - Multiply: Set 1 on C to first number on D, read second number on C against result on D
+//   - Divide: Set divisor on C to dividend on D, read result on D under 1 on C
+//   - Square: Read from A scale, value appears on D scale
+//   - Cube: Read from K scale, value appears on D scale
+//   - Reciprocal: Use CI/DI scales (inverted C/D)
+//
+// POSTSCRIPT REFERENCES (postscript-engine-for-sliderules.ps):
+// Basic Scales:
+//   - C scale:    Line 395  - {log}
+//   - D scale:    Line 470  - {log} with tickdir=-1
+//   - CI scale:   Line 503  - {1 exch div 10 mul log}
+//   - DI scale:   Line 509  - {1 exch div 10 mul log} with tickdir=-1
+//
+// Folded Scales:
+//   - CF scale:   Line 484  - {log PI log sub}
+//   - DF scale:   Line 498  - {log PI log sub} with tickdir=1
+//   - CIF scale:  Line 514  - {1 exch div 100 mul PI div log}
+//   - DIF scale:  Line 523  - {1 exch div 100 mul PI div log} with tickdir=1
+//
+// Power Scales:
+//   - A scale:    Line 672  - {log 2 div}
+//   - B scale:    Line 692  - {log 2 div} with tickdir=-1
+//   - AI scale:   Line 698  - {100 exch div log 2 div}
+//   - BI scale:   Line 704  - {100 exch div log 2 div} with tickdir=-1
+//   - K scale:    Line 710  - {log 3 div}
+//
+// Square Root Scales:
+//   - R1 (Sq1):   Line 1016 - {log 2 mul} (range 1 to 3.2)
+//   - R2 (Sq2):   Line 1021 - {log 2 mul} with offset {1 sub}
+//
+// Cube Root Scales:
+//   - Q1:         Line 1027 - {log 3 mul} (range 1 to 2.16)
+//   - Q2:         Line 1032 - {log 3 mul} with offset {1 sub}
+//   - Q3:         Line 1040 - {log 3 mul} with offset {2 sub}
+//
+// Logarithmic Scales:
+//   - LL0-LL3:    Lines 1348-1446 - Various {ln X mul log} formulas
+//   - L scale:    Line 1136 - {} (linear/identity)
+//   - Ln scale:   Line 1173 - {10 ln div}
+//
+// Trigonometric Scales:
+//   - S scale:    Line 586  - {sin 10 mul log}
+//   - T scale:    Line 623  - {tan 10 mul log}
+//   - ST scale:   Line 638  - {radians 100 mul log}
+//   - KE-S:       Line 661  - S scale starting at 5.5°
+//   - KE-T:       Line 657  - T scale starting at 5.5°
+//   - KE-ST/SRT:  Line 665  - ST scale range 0.55° to 6°
+//
+// Special Scales:
+//   - C10-100:    Line 530  - C scale with ×10 labels
+//   - C100-1000:  Line 538  - C scale with ×100 labels  
+//   - D10-100:    Line 579  - D scale with ×10 labels
+
 // MARK: - Standard Scale Definitions
 
 /// Factory for creating standard slide rule scales based on the PostScript definitions
@@ -278,6 +346,8 @@ public enum StandardScales {
             constants: cifScale.constants
         )
     }
+    // MARK: - Folding scales: CF (C folded scale), DF (D folded scale), CIF (inverted folded scale), DIF (inverted folded reciprocal scale)
+
     /// A scale: Square scale (reads x² on D) from 1 to 100
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
@@ -562,6 +632,8 @@ public enum StandardScales {
             .build()
     }
     
+    // MARK: - Folding scales: CF (C folded scale), DF (D folded scale), CIF (inverted folded scale), DIF (inverted folded reciprocal scale)
+
     /// B scale - Duplicate of A scale with ticks pointing down
     /// Same as A scale but with tickdir = -1
     /// Range: 1 to 100 (squares)

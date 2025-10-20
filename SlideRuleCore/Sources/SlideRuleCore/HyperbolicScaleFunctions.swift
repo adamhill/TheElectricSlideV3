@@ -1,9 +1,37 @@
 import Foundation
 
+// MARK: - PostScript to Swift Concordance
+//
+// PostScript uses Reverse Polish Notation (RPN) with a stack-based execution model.
+//
+// Reading PostScript formulas:
+//   - Numbers are pushed onto the stack
+//   - Operations pop values from stack, push result back
+//   - 'exch' swaps top two stack items
+//   - 'dup' duplicates top of stack
+//
+// Common operators:
+//   x y add  → x+y          x y mul  → x×y
+//   x y sub  → x-y          x y div  → x÷y
+//   x exp    → eˣ           x log    → log₁₀(x)
+//   x ln     → ln(x)        x sqrt   → √x
+//   x y exp  → xʸ           x neg    → -x
+//
+// Examples:
+//   {log}                    →  log₁₀(x)
+//   {2 exp}                  →  x²  (x raised to power 2)
+//   {10 mul log}             →  log₁₀(10×x)
+//   {1 exch div}             →  1/x  (exch swaps 1 and x, then divide)
+//   {dup 2 exp 1 sub}        →  x²-1  (dup duplicates x)
+//   {2 exp 1 sub .5 exp}     →  √(x²-1)  (.5 exp means raise to power 0.5)
+//   {1 exch 2 exp sub}       →  1-x²  (exch swaps 1 and x before operations)
+
 // MARK: - Hyperbolic Scale Functions
 
-/// Hyperbolic cosine function for Ch scale: log₁₀(cosh(x))
-/// Used for: Catenary curves, hyperbolic geometry, transmission line theory
+// MARK: - Hyperbolic Cosine Function
+// PostScript: {cosh log}
+// Formula: log₁₀(cosh(x))
+// Used for: catenary-curves, transmission-lines, hyperbolic-geometry
 public struct HyperbolicCosineFunction: ScaleFunction {
     public let name = "cosh"
     
@@ -18,8 +46,10 @@ public struct HyperbolicCosineFunction: ScaleFunction {
     }
 }
 
-/// Hyperbolic tangent function for Th scale: log₁₀(10×tanh(x))
-/// Used for: Velocity addition in relativity, signal processing, neural networks
+// MARK: - Hyperbolic Tangent Function
+// PostScript: {tanh 10 mul log}
+// Formula: log₁₀(10×tanh(x))
+// Used for: relativity-velocity-addition, signal-processing, neural-networks
 public struct HyperbolicTangentFunction: ScaleFunction {
     public let name = "tanh"
     public let multiplier: Double
@@ -37,8 +67,10 @@ public struct HyperbolicTangentFunction: ScaleFunction {
     }
 }
 
-/// Hyperbolic sine function for Sh scale: log₁₀(10×sinh(x))
-/// Used for: Catenary curves, hanging cable problems, special relativity
+// MARK: - Hyperbolic Sine Function
+// PostScript: {sinh 10 mul log}
+// Formula: log₁₀(10×sinh(x-offset))
+// Used for: catenary-curves, hanging-cables, special-relativity
 public struct HyperbolicSineFunction: ScaleFunction {
     public let name = "sinh"
     public let multiplier: Double
@@ -60,9 +92,11 @@ public struct HyperbolicSineFunction: ScaleFunction {
 
 // MARK: - Pythagorean/Hyperbolic Scale Functions
 
-/// H scale function: log₁₀(√(x²-1))
-/// Used for: Pythagorean theorem calculations, computing √(x²-1)
-/// Mathematical basis: For unit circle, if radius = x, then adjacent side = √(x²-1)
+// MARK: - Pythagorean H Function
+// PostScript (H1): {2 exp 1 sub .5 exp 10 mul log}
+// PostScript (H2): {2 exp 1 sub .5 exp log}
+// Formula: log₁₀(m×√(x²-1)) where m is multiplier
+// Used for: pythagorean-theorem, vector-calculations, right-triangles
 public struct PythagoreanHFunction: ScaleFunction {
     public let name = "pythagorean-h"
     public let multiplier: Double
@@ -82,9 +116,10 @@ public struct PythagoreanHFunction: ScaleFunction {
     }
 }
 
-/// P scale function: log₁₀(√(1-x²))
-/// Used for: Pythagorean complement, computing √(1-x²)
-/// Mathematical basis: For unit circle, if one side = x, then other side = √(1-x²)
+// MARK: - Pythagorean P Function
+// PostScript: {1 exch 2 exp sub .5 exp 10 mul log}
+// Formula: log₁₀(10×√(1-x²))
+// Used for: pythagorean-complement, unit-circle, trigonometric-identities
 public struct PythagoreanPFunction: ScaleFunction {
     public let name = "pythagorean-p"
     public let multiplier: Double
@@ -106,9 +141,11 @@ public struct PythagoreanPFunction: ScaleFunction {
 
 // MARK: - Percentage/Angular Scale Functions
 
-/// PA scale function: Complex percentage/angular scale
-/// Range: 9% to 91%, used for percentage and angular calculations
-/// Formula: log₁₀(√(1-(x/100)²)) scaled to match standard C/D scales
+// MARK: - Percentage Angular Function
+// PostScript: {10 sub 7.6 log 1.72 log sub 81 div mul 7.6 log exch sub}
+// Formula: log₁₀(7.6) - ((x-10)×(log₁₀(7.6)-log₁₀(1.72))/81)
+// Range: 9% to 91%
+// Used for: percentage-calculations, angular-measurements, specialized-scales
 public struct PercentageAngularFunction: ScaleFunction {
     public let name = "percentage-angular"
     
@@ -116,8 +153,7 @@ public struct PercentageAngularFunction: ScaleFunction {
     
     public func transform(_ value: ScaleValue) -> Double {
         // PostScript formula: {10 sub 7.6 log 1.72 log sub 81 div mul 7.6 log exch sub}
-        // Converted: (value - 10) * (log₁₀(7.6) - log₁₀(1.72)) / 81 + log₁₀(7.6) - ???
-        // Simplified interpretation: percentage to angular scale mapping
+        // Reading the RPN: (x-10) * (log(7.6) - log(1.72)) / 81, then log(7.6) - result
         let percentage = (value - 10.0) / 81.0  // Normalize to 0-1 range from 9-90
         let scaleFactor = log10(7.6) - log10(1.72)
         return log10(7.6) - (percentage * scaleFactor)
@@ -132,8 +168,11 @@ public struct PercentageAngularFunction: ScaleFunction {
 
 // MARK: - Linear Degree Scales
 
-/// Linear degree scale for L360 and L180 scales
-/// Simple linear mapping of degrees to normalized positions
+// MARK: - Linear Degree Function
+// PostScript (L360): {360 div}
+// PostScript (L180): {360 div} with inverted direction
+// Formula: x/maxDegrees (simple linear mapping)
+// Used for: degree-measurements, circular-scales, angular-conversions
 public struct LinearDegreeFunction: ScaleFunction {
     public let name = "linear-degrees"
     public let maxDegrees: Double

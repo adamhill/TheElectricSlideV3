@@ -1,4 +1,3 @@
-// ... existing code ...
 # Inverted Scales and Multi-Cycle Logarithmic Scales
 
 ## Executive Summary
@@ -772,6 +771,133 @@ Understanding these concepts prevents the "intuitive but wrong" implementation o
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Last Updated**: 2025-10-20  
 **Author**: Architectural analysis of PostScript formulas and Swift implementation
+
+---
+
+## Appendix A: Historical Electronics Slide Rules
+
+### Hemmi 266 (1968)
+
+The Hemmi 266, manufactured by Hemmi in Japan (1968), is considered "one of the best" electronics slide rules ever made.
+
+**Key Features:**
+- **12-decade scales**: XL (inductive reactance), Xc (capacitive reactance), F (frequency)
+- **Color-coded gauge marks**: Red marks at special constants for quick reference
+- **Applications**: Filter design, impedance matching, resonant circuits
+- **Manufacturing**: Precision bamboo construction with celluloid facing
+- **Labeling**: Dual labeling showing both reactance (Ω) and time constants (seconds)
+
+**Historical Significance:**
+The Hemmi 266 was standard equipment for electronics engineers and technicians working on radio, television, and early computer circuits. Its 12-decade scales eliminated the need for separate calculation of powers of 10.
+
+**Reference**: Oughtred Society publications, Journal of the Oughtred Society Vol. 12, No. 1, 2003
+
+### Pickett N515-T "Electronics" (1965+)
+
+The Pickett N515-T was manufactured for the Cleveland Institute of Electronics and became one of the most widely distributed electronics slide rules.
+
+**Key Features:**
+- **Self-documenting labels**: Each scale marked with its formula
+- **H scale**: For hyperbolic and transmission line calculations  
+- **2π scale**: Marked at key engineering constants
+- **Construction**: Aluminum frame with white plastic faces
+- **Instruction booklet**: Included comprehensive usage examples
+
+**Historical Significance:**
+Distributed to thousands of electronics students through correspondence courses. The self-documenting nature made it ideal for learning.
+
+**Reference**: Oughtred Society Slide Rule Reference Manual, Pickett section
+
+### K&E 4091-3 "Electrical Engineering"
+
+The Keuffel & Esser 4091-3 featured advanced "folded" scales (terminology note: sometimes called "inverted").
+
+**Key Innovation:**
+- **Folded A scale**: Centered at (1/2π)² for direct impedance calculations
+- **Terminology**: "Folded" (manufacturer term) vs "inverted" (modern usage)
+- Both refer to position manipulation, not value reciprocation
+
+**Reference**: K&E catalog documentation, 1960s
+
+---
+
+## Appendix B: Manufacturing Specifications and Tolerances
+
+### Component Tolerances
+
+Historical context for ±10% tolerance discussions:
+
+**Standard Component Tolerances (1960s-1970s):**
+- Carbon resistors: ±10% (4-band code), ±5% (4-band precision)
+- Electrolytic capacitors: ±20% typical, ±10% for precision
+- Ceramic capacitors: ±20% (class 2), ±5% (class 1)
+- Inductors (air core): ±5% to ±10%
+
+**Slide Rule Accuracy:**
+- Reading precision: ±0.5% with careful alignment
+- Manufacturing tolerance: ±0.1% for premium rules
+- **Result**: Slide rule accuracy matched or exceeded component tolerances
+
+This justified slide rule usage for electronics work - the instrument precision exceeded the parts being designed with.
+
+### Decimal Point Independence
+
+A crucial feature of logarithmic scales: decimal point position doesn't affect the physical location on the scale.
+
+**Example:**
+```
+1 Ω,  10 Ω,  100 Ω  → Same position modulo cycles
+1 µF, 10 µF, 100 µF → Same position modulo cycles
+```
+
+This allowed engineers to work with "normalized" values (1-10 range) and mentally track powers of 10, reducing calculation complexity.
+
+### Manufacturing Precision
+
+**PostScript coordinates** in the reference file use millimeter precision for tick marks:
+```postscript
+/Ptick .30 cm def  % Primary tick: 3.0mm
+/Stick .28 cm def  % Secondary tick: 2.8mm  
+/Ttick .150 cm def % Tertiary tick: 1.5mm
+```
+
+This level of precision (0.01mm) was achievable with professional printing but represents the upper limit of mechanical slide rule manufacturing.
+
+**Reference**: [`postscript-engine-for-sliderules.ps:1688`](../../../reference/postscript-engine-for-sliderules.ps:1688)
+
+---
+
+## Appendix C: "Folded" vs "Inverted" Terminology
+
+### Historical Usage
+
+Different manufacturers used different terms for scales with manipulated positioning:
+
+- **"Folded scale"** (K&E, Post): A scale with its origin point moved to a special constant
+  - Example: CF scale "folded at π" starts at π instead of 1
+  - Mathematical: log₁₀(x/π) instead of log₁₀(x)
+
+- **"Inverted scale"** (Hemmi, Pickett): A scale reading right-to-left (decreasing)
+  - Example: CI scale reads backwards from C scale
+  - Mathematical: 1 - log₁₀(x) instead of log₁₀(x)
+
+### Modern Terminology
+
+Contemporary slide rule literature tends toward:
+- **"Folded"**: Origin shifted to a constant (CF, DF at π)
+- **"Inverted"**: Direction reversed for reciprocal relationships (CI, Xc, Fo)
+- **"Position inversion"**: The correct mathematical description of what's happening
+
+### Why It Matters
+
+This documentation uses "inverted" to mean **position inversion**, following the mathematical implementation. Historical catalogs may use "folded" for the same concept, especially for Xc and wavelength scales.
+
+**Key Point**: Regardless of terminology, the implementation is:
+```
+inverted_position = 1 - (normal_position)
+```
+
+Not value reciprocation: `log₁₀(1/x) = -log₁₀(x)` ❌

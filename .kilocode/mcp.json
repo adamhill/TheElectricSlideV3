@@ -19,6 +19,19 @@
         "tavily-crawl",
         "tavily-map"
       ]
+    },
+    "dash-api": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/Kapeli/dash-mcp-server.git",
+        "dash-mcp-server"
+      ],
+      "alwaysAllow": [
+        "list_installed_docsets",
+        "search_documentation",
+        "enable_docset_fts"
+      ]
     }
   }
 }

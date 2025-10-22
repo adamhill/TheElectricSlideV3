@@ -24,6 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9C404F972EA85F8B0078AC0C /* TheElectricSlide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = TheElectricSlide.xctestplan; sourceTree = "<group>"; };
 		9C6019BB2EA413B2003812CD /* TheElectricSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheElectricSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019CC2EA413B4003812CD /* TheElectricSlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019D62EA413B4003812CD /* TheElectricSlideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -104,6 +105,7 @@
 		9C6019B22EA413B2003812CD = {
 			isa = PBXGroup;
 			children = (
+				9C404F972EA85F8B0078AC0C /* TheElectricSlide.xctestplan */,
 				9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */,
 				9C6019EA2EA41413003812CD /* SlideRuleCore */,
 				9C6019BD2EA413B2003812CD /* TheElectricSlide */,

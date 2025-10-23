@@ -7,11 +7,14 @@ public struct Stator: Sendable {
     public let name: String
     public let scales: [GeneratedScale]
     public let heightInPoints: Distance
+    /// Whether to render a border around this stator
+    public let showBorder: Bool
     
-    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance) {
+    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance, showBorder: Bool = false) {
         self.name = name
         self.scales = scales
         self.heightInPoints = heightInPoints
+        self.showBorder = showBorder
     }
 }
 
@@ -20,11 +23,14 @@ public struct Slide: Sendable {
     public let name: String
     public let scales: [GeneratedScale]
     public let heightInPoints: Distance
+    /// Whether to render a border around this slide
+    public let showBorder: Bool
     
-    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance) {
+    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance, showBorder: Bool = false) {
         self.name = name
         self.scales = scales
         self.heightInPoints = heightInPoints
+        self.showBorder = showBorder
     }
 }
 

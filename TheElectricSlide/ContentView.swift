@@ -33,23 +33,25 @@ struct ScaleView: View {
                             for: scaleDefinition,
                             algorithm: .modulo(config: ModuloTickConfig.default) )
                         
-                        // Draw baseline based on tick direction
-                        let baselinePath = Path { path in
-                            switch scaleDefinition.tickDirection {
-                            case .down:
-                                path.move(to: CGPoint(x: 0, y: 0))
-                                path.addLine(to: CGPoint(x: size.width, y: 0))
-                            case .up:
-                                path.move(to: CGPoint(x: 0, y: size.height))
-                                path.addLine(to: CGPoint(x: size.width, y: size.height))
+                        // Draw baseline if enabled
+                        if scaleDefinition.showBaseline {
+                            let baselinePath = Path { path in
+                                switch scaleDefinition.tickDirection {
+                                case .down:
+                                    path.move(to: CGPoint(x: 0, y: 0))
+                                    path.addLine(to: CGPoint(x: size.width, y: 0))
+                                case .up:
+                                    path.move(to: CGPoint(x: 0, y: size.height))
+                                    path.addLine(to: CGPoint(x: size.width, y: size.height))
+                                }
                             }
+                            
+                            context.stroke(
+                                baselinePath,
+                                with: .color(.black),
+                                lineWidth: 2.0
+                            )
                         }
-                        
-                        context.stroke(
-                            baselinePath,
-                            with: .color(.black),
-                            lineWidth: 2.0
-                        )
                         
                         for tick in tickMarks {
                             // Calculate horizontal position
@@ -167,8 +169,12 @@ struct StatorView: View {
                 .fill(backgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(borderColor, lineWidth: 2)
+            Group {
+                if stator.showBorder {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(borderColor, lineWidth: 2)
+                }
+            }
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
@@ -205,8 +211,12 @@ struct SlideView: View {
                 .fill(backgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(borderColor, lineWidth: 2)
+            Group {
+                if slide.showBorder {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(borderColor, lineWidth: 2)
+                }
+            }
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)

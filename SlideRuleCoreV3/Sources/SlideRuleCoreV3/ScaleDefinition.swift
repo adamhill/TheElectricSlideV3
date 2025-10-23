@@ -40,6 +40,9 @@ public struct ScaleDefinition: Sendable {
     /// Optional constants to mark on the scale (like π, e)
     public let constants: [ScaleConstant]
     
+    /// Whether to render a horizontal baseline for this scale
+    public let showBaseline: Bool
+    
     public init(
         name: String,
         function: any ScaleFunction,
@@ -52,7 +55,8 @@ public struct ScaleDefinition: Sendable {
         defaultTickStyles: [TickStyle] = [.major, .medium, .minor, .tiny],
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
         labelColor: (red: Double, green: Double, blue: Double)? = nil,
-        constants: [ScaleConstant] = []
+        constants: [ScaleConstant] = [],
+        showBaseline: Bool = false
     ) {
         self.name = name
         self.function = function
@@ -66,6 +70,7 @@ public struct ScaleDefinition: Sendable {
         self.labelFormatter = labelFormatter
         self.labelColor = labelColor
         self.constants = constants
+        self.showBaseline = showBaseline
     }
     /// Whether this is a circular scale
     public var isCircular: Bool {
@@ -107,6 +112,7 @@ public struct ScaleBuilder {
     private var labelFormatter: (@Sendable (ScaleValue) -> String)?
     private var labelColor: (red: Double, green: Double, blue: Double)?
     private var constants: [ScaleConstant] = []
+    private var showBaseline: Bool = false
     
     public init() {}
     
@@ -183,6 +189,12 @@ public struct ScaleBuilder {
         return copy
     }
     
+    public func withBaseline(_ show: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.showBaseline = show
+        return copy
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -200,7 +212,8 @@ public struct ScaleBuilder {
             defaultTickStyles: defaultTickStyles,
             labelFormatter: labelFormatter,
             labelColor: labelColor,
-            constants: constants
+            constants: constants,
+            showBaseline: showBaseline
         )
     }
 }

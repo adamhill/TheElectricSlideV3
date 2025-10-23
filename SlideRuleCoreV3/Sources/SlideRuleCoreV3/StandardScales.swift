@@ -151,14 +151,22 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // 10.0 to 4.0: mirrors C scale's 1.0 to 2.0 subsection
                 ScaleSubsection(
-                    startValue: 1.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    startValue: 10.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.02],
                     labelLevels: [0]
                 ),
+                // 4.0 to 2.0: mirrors C scale's 2.0 to 4.0 subsection
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0, 1]
+                ),
+                // 2.0 to 1.0: mirrors C scale's 4.0 to 10.0 but denser
+                ScaleSubsection(
+                    startValue: 2.0,
+                    tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1]
                 )
             ])
@@ -295,16 +303,20 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // Mirror of CF but reversed
+                // Start from 10π and work backwards to π
                 ScaleSubsection(
-                    startValue: .pi,
-                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.oneDecimal
+                    startValue: 10 * .pi,
+                    tickIntervals: [5.0, 1.0, 0.5, 0.1],
+                    labelLevels: [0]
                 ),
                 ScaleSubsection(
-                    startValue: 4.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    startValue: 20.0,
+                    tickIntervals: [5.0, 1.0, 0.5, 0.1],
+                    labelLevels: [0]
+                ),
+                ScaleSubsection(
+                    startValue: 10.0,
+                    tickIntervals: [5.0, 1.0, 0.5, 0.1],
                     labelLevels: [0]
                 ),
                 ScaleSubsection(
@@ -313,9 +325,15 @@ public enum StandardScales {
                     labelLevels: [0]
                 ),
                 ScaleSubsection(
-                    startValue: 10.0,
-                    tickIntervals: [5.0, 1.0, 0.5, 0.1],
+                    startValue: 4.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0]
+                ),
+                ScaleSubsection(
+                    startValue: .pi,
+                    tickIntervals: [0.5, 0.1, 0.05, 0.01],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
@@ -323,8 +341,8 @@ public enum StandardScales {
             .addConstant(value: 10.0, label: "10", style: .major)
             .build()
     }
-    /// DIF scale: Duplicate of CIF scale with ticks pointing up
-    /// Same as CIF scale but with tickdir =1
+    /// DIF scale: Duplicate of CIF scale with ticks pointing down
+    /// Same as CIF scale but with tickdir = -1
     /// Range: 10π to π (folded reciprocal, descending)
     /// Formula: -log₁₀(x)
     public static func difScale(length: Distance = 250.0) -> ScaleDefinition {
@@ -338,7 +356,7 @@ public enum StandardScales {
             endValue: cifScale.endValue,
             scaleLengthInPoints: length,
             layout: cifScale.layout,
-            tickDirection: .up,  // Ticks pointing up (tickdir=1)
+            tickDirection: .down,  // Ticks pointing down (tickdir=-1) - opposite of CIF
             subsections: cifScale.subsections,
             defaultTickStyles: cifScale.defaultTickStyles,
             labelFormatter: cifScale.labelFormatter,

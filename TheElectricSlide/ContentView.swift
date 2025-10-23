@@ -119,7 +119,7 @@ struct ScaleView: View {
                 }
             }
             .frame(width: width)
-            .frame(maxHeight: .infinity)
+            .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
         }
     }
     
@@ -146,6 +146,11 @@ struct StatorView: View {
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
     
+    // Calculate total max height based on number of scales
+    private var maxTotalHeight: CGFloat {
+        scaleHeight * CGFloat(stator.scales.count)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(stator.scales.enumerated()), id: \.offset) { index, generatedScale in
@@ -155,7 +160,6 @@ struct StatorView: View {
                     height: scaleHeight,
                     scaleName: generatedScale.definition.name
                 )
-                .frame(height: scaleHeight)
             }
         }
         .background(
@@ -166,7 +170,8 @@ struct StatorView: View {
             RoundedRectangle(cornerRadius: 4)
                 .stroke(borderColor, lineWidth: 2)
         )
-        .frame(width: width)
+        .frame(width: width, height: maxTotalHeight)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -179,6 +184,11 @@ struct SlideView: View {
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
     
+    // Calculate total max height based on number of scales
+    private var maxTotalHeight: CGFloat {
+        scaleHeight * CGFloat(slide.scales.count)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(slide.scales.enumerated()), id: \.offset) { index, generatedScale in
@@ -188,7 +198,6 @@ struct SlideView: View {
                     height: scaleHeight,
                     scaleName: generatedScale.definition.name
                 )
-                .frame(height: scaleHeight)
             }
         }
         .background(
@@ -199,7 +208,8 @@ struct SlideView: View {
             RoundedRectangle(cornerRadius: 4)
                 .stroke(borderColor, lineWidth: 2)
         )
-        .frame(width: width)
+        .frame(width: width, height: maxTotalHeight)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -211,7 +221,16 @@ struct ContentView: View {
     // Constants for sizing
     private let statorWidth: CGFloat = 800  // Width of fixed stators
     private let sliderWidth: CGFloat = 800  // Slider is same length as stators
-    private let scaleHeight: CGFloat = 50   // Configurable height per individual scale
+    
+    // Scale height configuration
+    private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
+    private let idealScaleHeight: CGFloat = 25 // Ideal height per scale (half of original 50)
+    private let maxScaleHeight: CGFloat = 30   // Maximum height per scale
+    
+    // Computed property for current scale height (using ideal as default)
+    private var scaleHeight: CGFloat {
+        idealScaleHeight
+    }
     
     // Maximum offset - allow slider to slide along the full length of the stators
     // With equal lengths, slider can move the full width in either direction
@@ -233,7 +252,7 @@ struct ContentView: View {
         // Bottom stator: D and L scales
         do {
             return try RuleDefinitionParser.parse(
-                "(K A [ B BI CI C ] D L)",
+                "( DF- [ CF CIF CI C ] D L)",
                 dimensions: dimensions,
                 scaleLength: statorWidth
             )
@@ -282,6 +301,8 @@ struct ContentView: View {
                 scaleHeight: scaleHeight
             )
         }
+        .fixedSize(horizontal: true, vertical: true) // Don't expand beyond content size
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // Center in window
         .padding()
         // No clipping - allow slider to extend beyond stators like a physical slide rule
     }

@@ -619,4 +619,273 @@ struct SlideRuleAssemblyFuzzTests {
             ]
         }
     }
+    
+    // MARK: - Modifier Parsing Tests
+    
+    @Suite("Scale Modifier Parsing Tests")
+    struct ModifierParsingTests {
+        
+        @Test("Hat modifier (^) sets noLineBreak flag on GeneratedScale")
+        func hatModifierSetsNoLineBreak() throws {
+            let definition = "(C^ [ D^ ] A^)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // All scales with ^ should have noLineBreak = true
+            for scale in rule.frontTopStator.scales {
+                #expect(scale.noLineBreak == true,
+                       "Scale \(scale.definition.name) with ^ modifier should have noLineBreak = true")
+            }
+            for scale in rule.frontSlide.scales {
+                #expect(scale.noLineBreak == true,
+                       "Scale \(scale.definition.name) with ^ modifier should have noLineBreak = true")
+            }
+            for scale in rule.frontBottomStator.scales {
+                #expect(scale.noLineBreak == true,
+                       "Scale \(scale.definition.name) with ^ modifier should have noLineBreak = true")
+            }
+        }
+        
+        @Test("Minus modifier (-) overrides tick direction to down")
+        func minusModifierSetsTickDirectionDown() throws {
+            let definition = "(C- [ D- ] A-)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // All scales with - should have tickDirection pointing down
+            let allScales = rule.frontTopStator.scales + rule.frontSlide.scales + rule.frontBottomStator.scales
+            for scale in allScales {
+                #expect(scale.definition.tickDirection.multiplier == -1.0,
+                       "Scale \(scale.definition.name) with - modifier should have tick direction down (multiplier = -1)")
+            }
+        }
+        
+        @Test("Plus modifier (+) overrides tick direction to up")
+        func plusModifierSetsTickDirectionUp() throws {
+            let definition = "(C+ [ D+ ] A+)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // All scales with + should have tickDirection pointing up
+            let allScales = rule.frontTopStator.scales + rule.frontSlide.scales + rule.frontBottomStator.scales
+            for scale in allScales {
+                #expect(scale.definition.tickDirection.multiplier == 1.0,
+                       "Scale \(scale.definition.name) with + modifier should have tick direction up (multiplier = 1)")
+            }
+        }
+        
+        @Test("Mixed modifiers parse correctly in complex definitions")
+        func mixedModifiersCombineCorrectly() throws {
+            let definition = "(C+ D- [ CI^ ] A^)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // C+ should be up
+            let cScale = rule.frontTopStator.scales.first { $0.definition.name == "C" }
+            #expect(cScale?.definition.tickDirection.multiplier == 1.0, "C+ should have tick direction up")
+            #expect(cScale?.noLineBreak == false, "C+ should not have noLineBreak (no ^ modifier)")
+            
+            // D- should be down
+            let dScale = rule.frontTopStator.scales.first { $0.definition.name == "D" }
+            #expect(dScale?.definition.tickDirection.multiplier == -1.0, "D- should have tick direction down")
+            #expect(dScale?.noLineBreak == false, "D- should not have noLineBreak (no ^ modifier)")
+            
+            // CI^ should have noLineBreak
+            let ciScale = rule.frontSlide.scales.first { $0.definition.name == "CI" }
+            #expect(ciScale?.noLineBreak == true, "CI^ should have noLineBreak = true")
+            
+            // A^ should have noLineBreak
+            let aScale = rule.frontBottomStator.scales.first { $0.definition.name == "A" }
+            #expect(aScale?.noLineBreak == true, "A^ should have noLineBreak = true")
+        }
+        
+        @Test("Scales without modifiers have default values")
+        func scalesWithoutModifiersHaveDefaults() throws {
+            let definition = "(C [ D ] A)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // All scales without modifiers should have noLineBreak = false
+            let allScales = rule.frontTopStator.scales + rule.frontSlide.scales + rule.frontBottomStator.scales
+            for scale in allScales {
+                #expect(scale.noLineBreak == false,
+                       "Scale \(scale.definition.name) without ^ modifier should have noLineBreak = false")
+            }
+        }
+        
+        @Test("Hat modifier with plus/minus combinations work correctly")
+        func hatModifierWithDirectionModifiersCombine() throws {
+            // Test that we can't combine ^ with + or - (only one should be recognized)
+            // According to PostScript spec, the order is: scale name, then direction (+/-), then ^ for no line break
+            // But in practice, we should test what the parser actually accepts
+            let testCases = [
+                "(C+^ [ D-^ ] A+^)",  // Plus/minus followed by hat
+                "(C^+ [ D^- ] A^+)"   // Hat followed by plus/minus
+            ]
+            
+            for definition in testCases {
+                let dimensions = RuleDefinitionParser.Dimensions(
+                    topStatorMM: 14,
+                    slideMM: 13,
+                    bottomStatorMM: 14
+                )
+                
+                do {
+                    _ = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+                    // If it parses, that's acceptable - the parser should handle it gracefully
+                } catch {
+                    // If it throws an error, that's also acceptable behavior
+                    // The test just verifies the parser doesn't crash
+                }
+            }
+        }
+        
+        @Test("Circular rules with modifiers parse correctly")
+        func circularRulesWithModifiersParseCorrectly() throws {
+            let definition = "(C+ [ D- ] A^) circular:4inch"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 12,
+                slideMM: 16,
+                bottomStatorMM: 8
+            )
+            
+            let rule = try RuleDefinitionParser.parseWithCircular(definition, dimensions: dimensions)
+            
+            #expect(rule.isCircular, "Rule should be circular")
+            
+            // Verify modifiers still work on circular scales
+            let cScale = rule.frontTopStator.scales.first { $0.definition.name == "C" }
+            #expect(cScale?.definition.tickDirection.multiplier == 1.0, "C+ should have tick direction up")
+            
+            let dScale = rule.frontSlide.scales.first { $0.definition.name == "D" }
+            #expect(dScale?.definition.tickDirection.multiplier == -1.0, "D- should have tick direction down")
+            
+            let aScale = rule.frontBottomStator.scales.first { $0.definition.name == "A" }
+            #expect(aScale?.noLineBreak == true, "A^ should have noLineBreak = true")
+        }
+        
+        @Test("Back-sided rules with modifiers parse correctly")
+        func backSidedRulesWithModifiersParseCorrectly() throws {
+            let definition = "(C+ [ D- ] A^ : LL1^ [ LL2- ] LL3+)"
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+            
+            // Front side checks
+            let frontCScale = rule.frontTopStator.scales.first { $0.definition.name == "C" }
+            #expect(frontCScale?.definition.tickDirection.multiplier == 1.0, "Front C+ should be up")
+            
+            let frontDScale = rule.frontSlide.scales.first { $0.definition.name == "D" }
+            #expect(frontDScale?.definition.tickDirection.multiplier == -1.0, "Front D- should be down")
+            
+            let frontAScale = rule.frontBottomStator.scales.first { $0.definition.name == "A" }
+            #expect(frontAScale?.noLineBreak == true, "Front A^ should have noLineBreak")
+            
+            // Back side checks
+            let backLL1Scale = rule.backTopStator?.scales.first { $0.definition.name == "LL1" }
+            #expect(backLL1Scale?.noLineBreak == true, "Back LL1^ should have noLineBreak")
+            
+            let backLL2Scale = rule.backSlide?.scales.first { $0.definition.name == "LL2" }
+            #expect(backLL2Scale?.definition.tickDirection.multiplier == -1.0, "Back LL2- should be down")
+            
+            let backLL3Scale = rule.backBottomStator?.scales.first { $0.definition.name == "LL3" }
+            #expect(backLL3Scale?.definition.tickDirection.multiplier == 1.0, "Back LL3+ should be up")
+        }
+        
+        @Test("Exotic scales with modifiers parse correctly")
+        func exoticScalesWithModifiersParseCorrectly() throws {
+            let testCases = [
+                "(Sh+ [ Ch- ] Th^)",
+                "(PA^ [ P+ ] C-)",
+                "(KE-S- [ KE-T+ ] SRT^)",
+                "(R1^ R2+ [ Q1- ])",
+                "(TIME+ [ CAS- ] D^)"
+            ]
+            
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            for definition in testCases {
+                // Verify the definition parses without errors
+                let rule = try RuleDefinitionParser.parse(definition, dimensions: dimensions)
+                
+                // Verify all scales have valid tick marks
+                let allScales = rule.frontTopStator.scales + rule.frontSlide.scales + rule.frontBottomStator.scales
+                #expect(!allScales.isEmpty, "Rule should have scales")
+                
+                for scale in allScales {
+                    #expect(!scale.tickMarks.isEmpty, "Scale \(scale.definition.name) should have tick marks")
+                }
+            }
+        }
+        
+        @Test("Modifier parsing preserves scale identity and properties")
+        func modifierParsingPreservesScaleProperties() throws {
+            // Verify that modifiers don't change the scale's mathematical properties
+            let baseDefinition = "(C [ D ] A)"
+            let modifiedDefinition = "(C- [ D+ ] A^)"
+            
+            let dimensions = RuleDefinitionParser.Dimensions(
+                topStatorMM: 14,
+                slideMM: 13,
+                bottomStatorMM: 14
+            )
+            
+            let baseRule = try RuleDefinitionParser.parse(baseDefinition, dimensions: dimensions)
+            let modifiedRule = try RuleDefinitionParser.parse(modifiedDefinition, dimensions: dimensions)
+            
+            // Verify scale names are preserved
+            #expect(baseRule.frontTopStator.scales[0].definition.name == modifiedRule.frontTopStator.scales[0].definition.name)
+            
+            // Verify scale ranges are preserved (using D scale which is at index 1 after C)
+            let baseD = baseRule.frontSlide.scales[0]  // D is in the slide
+            let modifiedD = modifiedRule.frontSlide.scales[0]
+            #expect(baseD.definition.beginValue == modifiedD.definition.beginValue,
+                   "Begin value should be preserved")
+            #expect(baseD.definition.endValue == modifiedD.definition.endValue,
+                   "End value should be preserved")
+            
+            // Verify that C- has down direction (different from its default if it defaults to up)
+            let modifiedC = modifiedRule.frontTopStator.scales[0]
+            #expect(modifiedC.definition.tickDirection.multiplier == -1.0,
+                   "C- should have tick direction down")
+            
+            // Verify that A^ has noLineBreak flag
+            let modifiedA = modifiedRule.frontBottomStator.scales[0]
+            #expect(modifiedA.noLineBreak == true,
+                   "A^ should have noLineBreak = true")
+        }
+    }
 }

@@ -348,7 +348,7 @@ public struct RuleDefinitionParser {
                 
             default:
                 // Parse scale name with optional modifiers
-                let (scaleName, tickDir) = parseScaleToken(token)
+                let (scaleName, tickDir, noLineBreak) = parseScaleToken(token)
                 
                 guard let definition = StandardScales.scale(named: scaleName, length: scaleLength) else {
                     throw ParseError.unknownScale(scaleName)
@@ -373,7 +373,7 @@ public struct RuleDefinitionParser {
                     )
                 }
                 
-                let generated = GeneratedScale(definition: finalDefinition)
+                let generated = GeneratedScale(definition: finalDefinition, noLineBreak: noLineBreak)
                 
                 switch currentTarget {
                 case .topStator:
@@ -434,10 +434,11 @@ public struct RuleDefinitionParser {
     
     /// Parse a scale token which may have modifiers
     /// Examples: "C", "D-", "ST+", "LL1^"
-    /// - Returns: (scale name, optional tick direction override)
-    private static func parseScaleToken(_ token: String) -> (String, TickDirection?) {
+    /// - Returns: (scale name, optional tick direction override, noLineBreak flag)
+    private static func parseScaleToken(_ token: String) -> (String, TickDirection?, Bool) {
         var scaleName = token
         var tickDir: TickDirection?
+        var noLineBreak = false
         
         // Check for tick direction override at the end
         if token.hasSuffix("-") {
@@ -447,11 +448,12 @@ public struct RuleDefinitionParser {
             tickDir = .up
             scaleName = String(token.dropLast())
         } else if token.hasSuffix("^") {
-            // No line break indicator - not relevant for calculation, just strip it
+            // No line break indicator - scale continues on same line
+            noLineBreak = true
             scaleName = String(token.dropLast())
         }
         
-        return (scaleName, tickDir)
+        return (scaleName, tickDir, noLineBreak)
     }
     
     // MARK: - Circular Conversion Helpers
@@ -499,7 +501,8 @@ public struct RuleDefinitionParser {
             constants: generated.definition.constants
         )
         
-        return GeneratedScale(definition: circularDef)
+        // Preserve the noLineBreak flag when converting to circular
+        return GeneratedScale(definition: circularDef, noLineBreak: generated.noLineBreak)
     }
 }
 

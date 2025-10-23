@@ -1,4 +1,3 @@
-//
 //  TheElectricSlideApp.swift
 //  TheElectricSlide
 //
@@ -12,7 +11,8 @@ import SwiftData
 struct TheElectricSlideApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            CurrentSlideRule.self,
+            
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

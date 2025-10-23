@@ -246,7 +246,7 @@ public enum StandardScales {
             .withFunction(LogarithmicFunction())
             .withRange(begin: .pi, end: 10 * .pi)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
                 ScaleSubsection(
                     startValue: .pi,

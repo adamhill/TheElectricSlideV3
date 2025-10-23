@@ -113,7 +113,6 @@
 			mainGroup = 9C6019F72EA4190C003812CD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				9C601A502EA430A8003812CD /* XCLocalSwiftPackageReference "../SlideRuleCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9C601A012EA4190C003812CD /* Products */;
@@ -304,13 +303,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		9C601A502EA430A8003812CD /* XCLocalSwiftPackageReference "../SlideRuleCore" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../SlideRuleCore;
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		9C601A512EA430A8003812CD /* SlideRuleCore */ = {

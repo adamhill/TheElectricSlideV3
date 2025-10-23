@@ -24,11 +24,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		9C404F972EA85F8B0078AC0C /* TheElectricSlide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = TheElectricSlide.xctestplan; sourceTree = "<group>"; };
+		9C404F972EA85F8B0078AC0C /* TheElectricSlide.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TheElectricSlide.xctestplan; sourceTree = "<group>"; };
 		9C6019BB2EA413B2003812CD /* TheElectricSlide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheElectricSlide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019CC2EA413B4003812CD /* TheElectricSlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6019D62EA413B4003812CD /* TheElectricSlideUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TheElectricSlideUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = TheElectricSlideConsole.xcodeproj; path = TheElectricSlideConsole/TheElectricSlideConsole.xcodeproj; sourceTree = "<group>"; };
+		9C9D7B3C2EA947FC007A72AE /* SlideRuleCoreV3 */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SlideRuleCoreV3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,13 +37,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-			);
-			target = 9C6019BA2EA413B2003812CD /* TheElectricSlide */;
-		};
-		9C601A4F2EA43006003812CD /* Exceptions for "SlideRuleCore" folder in "TheElectricSlide" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Package.swift,
 			);
 			target = 9C6019BA2EA413B2003812CD /* TheElectricSlide */;
 		};
@@ -65,14 +59,6 @@
 		9C6019D92EA413B4003812CD /* TheElectricSlideUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = TheElectricSlideUITests;
-			sourceTree = "<group>";
-		};
-		9C6019EA2EA41413003812CD /* SlideRuleCore */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				9C601A4F2EA43006003812CD /* Exceptions for "SlideRuleCore" folder in "TheElectricSlide" target */,
-			);
-			path = SlideRuleCore;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -105,9 +91,9 @@
 		9C6019B22EA413B2003812CD = {
 			isa = PBXGroup;
 			children = (
+				9C9D7B3C2EA947FC007A72AE /* SlideRuleCoreV3 */,
 				9C404F972EA85F8B0078AC0C /* TheElectricSlide.xctestplan */,
 				9C601A0A2EA4190C003812CD /* TheElectricSlideConsole.xcodeproj */,
-				9C6019EA2EA41413003812CD /* SlideRuleCore */,
 				9C6019BD2EA413B2003812CD /* TheElectricSlide */,
 				9C6019CF2EA413B4003812CD /* TheElectricSlideTests */,
 				9C6019D92EA413B4003812CD /* TheElectricSlideUITests */,
@@ -149,7 +135,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9C6019BD2EA413B2003812CD /* TheElectricSlide */,
-				9C6019EA2EA41413003812CD /* SlideRuleCore */,
 			);
 			name = TheElectricSlide;
 			packageProductDependencies = (
@@ -236,6 +221,9 @@
 			);
 			mainGroup = 9C6019B22EA413B2003812CD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9C9D7B632EA949A6007A72AE /* XCLocalSwiftPackageReference "SlideRuleCoreV3" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9C6019BC2EA413B2003812CD /* Products */;
 			projectDirPath = "";
@@ -330,6 +318,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TheElectricSlide/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Electric Slide";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -340,7 +330,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -355,9 +345,9 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.1;
+				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
 		};
@@ -375,6 +365,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TheElectricSlide/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Electric Slide";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -385,7 +377,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -400,9 +392,9 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.1;
+				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
 		};
@@ -465,6 +457,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -519,6 +512,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -541,7 +535,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TheElectricSlide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TheElectricSlide";
 				XROS_DEPLOYMENT_TARGET = 26.1;
@@ -567,7 +561,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TheElectricSlide.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TheElectricSlide";
 				XROS_DEPLOYMENT_TARGET = 26.1;
@@ -592,7 +586,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = TheElectricSlide;
 				XROS_DEPLOYMENT_TARGET = 26.1;
@@ -617,7 +611,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = TheElectricSlide;
 				XROS_DEPLOYMENT_TARGET = 26.1;
@@ -664,6 +658,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		9C9D7B632EA949A6007A72AE /* XCLocalSwiftPackageReference "SlideRuleCoreV3" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SlideRuleCoreV3;
+		};
+/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 9C6019B32EA413B2003812CD /* Project object */;
 }

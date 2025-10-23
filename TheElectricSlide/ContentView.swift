@@ -252,7 +252,7 @@ struct ContentView: View {
         // Bottom stator: D and L scales
         do {
             return try RuleDefinitionParser.parse(
-                "( DF [ CF- CIF DI CI C ] D L)",
+                "( L DF [ CF- CIF DI CI C ] D A)",
                 dimensions: dimensions,
                 scaleLength: statorWidth
             )

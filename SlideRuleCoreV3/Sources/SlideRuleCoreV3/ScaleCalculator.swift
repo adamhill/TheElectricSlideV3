@@ -457,7 +457,8 @@ public struct ScaleCalculator: Sendable {
         )
         
         // 3. Convert to integer space using xfactor
-        let xfactor = config.precisionMultiplier
+        // Use recommended precision based on finest interval to avoid rounding to 0
+        let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
         
         // Determine iteration direction based on overall domain, and clamp start to bounds
         let isDescending = definition.beginValue > definition.endValue

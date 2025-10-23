@@ -609,13 +609,14 @@ public enum StandardScales {
     // MARK: - Special Scales
     
     /// L scale: Linear logarithm scale from 0 to 1 (mantissa)
+    /// PostScript Reference: line 1136 - tickdir=1 (up)
     public static func lScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("L")
             .withFunction(LinearFunction())
             .withRange(begin: 0, end: 1)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)  // Fixed: PostScript has tickdir=1 (up), not -1 (down)
             .withSubsections([
                 ScaleSubsection(
                     startValue: 0.0,

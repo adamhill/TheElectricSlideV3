@@ -13,14 +13,22 @@
             "url": "https://sosumi.ai/mcp"
         },
         "XcodeBuildMCP": {
-			"command": "mise",
-			"args": [
-				"x",
-				"npm:xcodebuildmcp@1.4.0",
-				"--",
-				"xcodebuildmcp"
-			],
-			"type": "stdio"
-		},
+            "command": "mise",
+            "args": [
+                "x",
+                "npm:xcodebuildmcp@1.4.0",
+                "--",
+                "xcodebuildmcp"
+            ],
+            "type": "stdio"
+        },
+        "apple-docs": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@kimsungwhee/apple-docs-mcp"
+            ]
+        }
     }
 }

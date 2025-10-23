@@ -1,0 +1,143 @@
+%KandE scales
+/Tscale 32 dict dup 3 1 roll def begin
+    (T) 1 5.7 45 100 {tan 10 mul log} gradsizes scalevars
+    /ctitleoffset 10 def
+    /plabelR 0 {.5 add cvi} NumFontRi MedF /Nright load scaleLvars def
+    /plabelL 0 {90 exch sub .5 add cvi} NumFontLi MedF /Nleft load scaleLvars def
+    plabelL /labelcolor [Red] put
+    /subsections [
+    5.5 [ 1 .5 .1 .05 ] [ plabelL plabelR ] scaleSvars
+    10 [ 5 1 .5 .1 ] [ plabelL plabelR ] scaleSvars
+    30 [ 5 null 1 .2 ] [ plabelL plabelR ] scaleSvars
+    45 [ 5 null null null ] [ 0 {.5 add cvi} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+    ] def
+end
+
+% The ST scale is for sin and tan of small angles.  Since the angle in
+% radians of small angles splits the difference, we use that for the ST scale.
+/STscale 32 dict dup 3 1 roll def begin
+    (ST) 1 .57 5.70 100 { radians 100 mul log } gradsizes scalevars
+    /ctitleoffset 10 def
+    /subsections [
+    .55 [ .05 null .05 .01 ] [ 0 {} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+    .6 [ .1 null .05 .01 ] [ 0 {} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+%    1 [ .5 null .1 .02] [ 0 {dup dup cvi sub abs .001 lt {cvi dup 1 eq {/lsuffix (\353) def} if} if} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+    1 [ .5 null .1 .02] [ 0 {dup dup cvi sub abs .001 lt {cvi dup 1 eq {/lsuffix (\207) def} if} if} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+    3 [ 1 .5 .1 .02] [ 0 {dup dup cvi sub abs .001 lt {cvi} if} NumFont1 MedF /Ntop load scaleLvars ] scaleSvars
+    ] def
+
+
+
+
+/KE-LL0scale LL0scale ddup begin
+    /title (Ln 0) def
+    currentdict
+    end
+def
+
+/KE-LL1scale LL1scale ddup begin
+    /title (Ln 1) def
+    /endscale 1.11 def
+    currentdict
+    end
+def
+
+/KE-LL2scale 32 dict dup 3 1 roll def begin
+    /plabel1 1 {} NumFont1 MedF /Ntop load scaleLvars def
+    /plabel 0 {} NumFont1 MedF /Ntop load scaleLvars def
+    (Ln 2) 1 1.1 2.8 1000 {ln 10 mul log} gradsizes scalevars
+    /subsections [
+    1.1 [.1 .01 .005 .001] [plabel] scaleSvars
+    1.11 [.05 .01 .005 .001] [plabel] scaleSvars
+    1.200 [.05 null .010 .002] [plabel] scaleSvars
+    1.400 [.10 .05 .010 .005] [plabel] scaleSvars
+    1.800 [.10 null .050 .010] [plabel] scaleSvars
+    2.000 [.50 .1 .050 .010] [plabel] scaleSvars
+    2.500 [.50 null .100 .020] [plabel] scaleSvars
+    2.800 [.10 null .100 .020] [plabel] scaleSvars
+    ] def
+    /constants [
+	{1} NumFont1 SmallF (e) ticklength 0 get /Ntop-HalfTick scaleCvars
+    ] def
+end
+
+/KE-LL3scale 32 dict dup 3 1 roll def begin
+    /plabel 0 {dup dup cvi sub abs .001 lt {.5 add cvi}if} NumFont1 MedF /Ntop load scaleLvars def
+    /plabels 0 { dup 100 gt {dup cvi dup log cvi 10 exch exp div cvi dup 10 mod 1 ne {exch pop} {pop cvi} ifelse } if }
+	NumFont1 MedF /Ntop load scaleLvars def
+    (Ln 3) 1 2.6 30000 100 {ln log} gradsizes scalevars
+
+    /subsections [
+    2.6 [.1 null null .02] [plabel] scaleSvars
+    2.62 [1 .5 .1 .02] [plabel] scaleSvars
+    4 [1 .5 .1 .05] [plabel] scaleSvars
+    6 [1 null .5 .1] [plabel] scaleSvars
+    10 [5 null 1 .2] [plabel] scaleSvars
+    15 [5 null 1 .5] [plabel] scaleSvars
+    20 [10 5 1 .5] [plabel] scaleSvars
+    30 [10 null 5 1] [plabel] scaleSvars
+    50 [50 null 10 2] [plabel] scaleSvars
+    100 [100 50 10 5] [plabel] scaleSvars
+    200 [100 null 50 10] [plabels] scaleSvars
+    500 [500 null 100 50] [plabels] scaleSvars
+    1000 [1000 null 500 100] [plabels] scaleSvars
+    2000 [1000 null null 200] [plabels] scaleSvars
+%    4000 [5000 null 1000 200] [plabels] scaleSvars
+    5000 [5000 null 1000 500] [plabels] scaleSvars
+    10000 [10000 null 5000 1000] [plabels] scaleSvars
+    20000 [10000 null null 2000] [plabels] scaleSvars
+    ] def
+    /constants [
+	{0} NumFont1 SmallF (e) ticklength 0 get /Ntop scaleCvars
+	{1} NumFont1 SmallF () ticklength 2 get /Ncent scaleCvars
+    ] def
+end
+
+/KE-LL03scale 32 dict dup 3 1 roll def begin
+    /plabel 0 {} NumFont1 MedF /Ntop load scaleLvars def
+    /plabels 0 { dup .01 lt {dup 100000 mul cvi dup log cvi 10 exch exp div cvi dup 10 mod 1 ne {exch pop} {pop} ifelse } if }
+	NumFont1 MedF /Ntop load scaleLvars def
+    (Ln-3) 1 .00003 .3800 100000 {ln -1 mul log} gradsizes scalevars
+    /subsections [
+    .00003 [.00003 null .00001 null] [plabels] scaleSvars
+    .00005 [.00005 null null .00001] [plabels] scaleSvars
+    .00010 [.00010 null .00005 .00001] [plabels] scaleSvars
+    .00020 [.00020 null .00010 .00002] [plabels] scaleSvars
+    .00030 [.00050 null .00010 .00002] [plabels] scaleSvars
+    .00050 [.00050 null null .00010] [plabels] scaleSvars
+    .00100 [.00100 null .00050 .00010] [plabels] scaleSvars
+    .00200 [.00100  null null .00020] [plabels] scaleSvars
+    .00300 [.00500  null .00100 .00020] [plabels] scaleSvars
+%    .00300 [.00500 null .00100 .00020] [plabels] scaleSvars
+    .01000 [.01000 .00500 .00100 .00050] [plabel] scaleSvars
+    .02000 [.02000 .01000 .00500 .00100] [plabel] scaleSvars
+%    .06000 [.05000 null .00500 .00100] [plabel] scaleSvars
+    .10000 [.05000 null .01000 .00200] [plabel] scaleSvars
+    .38000 [.01000 null .01000 .00200] [plabel] scaleSvars
+    ] def
+    /labelcolor [Red] def
+    /constants [
+	{0} NumFont1 SmallF (1/e) ticklength 0 get /Ntop-HalfTick scaleCvars
+    ] def
+end
+/KE-LL02scale LL02scale ddup begin
+    /title (Ln-2) def
+    /beginscale .35 def
+    /endscale .91 def
+    /constants [
+%	{0} NumFont1 SmallF () ticklength 0 get /Ncent scaleCvars
+	{1} NumFont1 SmallF (1/e) ticklength 0 get /Ntop-HalfTick scaleCvars
+    ] def
+    currentdict
+    end
+def
+/KE-LL01scale LL01scale ddup begin
+    /title (Ln-1) def
+    /beginscale .90 def
+    currentdict
+    end
+def
+/KE-LL00scale LL00scale ddup begin
+    /title (Ln-0) def
+    currentdict
+    end

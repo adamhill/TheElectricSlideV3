@@ -801,9 +801,13 @@ public struct GeneratedScale: Sendable {
     /// Quick lookup: value -> normalized position
     public let valuePositionMap: [ScaleValue: NormalizedPosition]
     
-    public init(definition: ScaleDefinition) {
+    /// Whether this scale should be rendered without a line break (on the same line as previous scale)
+    public let noLineBreak: Bool
+    
+    public init(definition: ScaleDefinition, noLineBreak: Bool = false) {
         self.definition = definition
         self.tickMarks = ScaleCalculator.generateTickMarks(for: definition)
+        self.noLineBreak = noLineBreak
         
         // Build position map for quick lookups
         var map: [ScaleValue: NormalizedPosition] = [:]

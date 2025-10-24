@@ -142,11 +142,7 @@ public enum StandardScales {
     public static func ciScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CI")
-            .withFunction(CustomFunction(
-                name: "reciprocal-log",
-                transform: { -log10($0) },
-                inverseTransform: { pow(10, -$0) }
-            ))
+            .withFunction(ReciprocalLogFunction())
             .withRange(begin: 10, end: 1) // Reversed
             .withLength(length)
             .withTickDirection(.up)
@@ -294,11 +290,7 @@ public enum StandardScales {
     public static func cifScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CIF")
-            .withFunction(CustomFunction(
-                name: "reciprocal-log",
-                transform: { -log10($0) },
-                inverseTransform: { pow(10, -$0) }
-            ))
+            .withFunction(ReciprocalLogFunction())
             .withRange(begin: 10 * .pi, end: .pi) // Reversed for reciprocal
             .withLength(length)
             .withTickDirection(.up)
@@ -370,11 +362,7 @@ public enum StandardScales {
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("A")
-            .withFunction(CustomFunction(
-                name: "half-log",
-                transform: { 0.5 * log10($0) },
-                inverseTransform: { pow(10, 2 * $0) }
-            ))
+            .withFunction(HalfLogFunction())
             .withRange(begin: 1, end: 100)
             .withLength(length)
             .withTickDirection(.up)
@@ -398,11 +386,7 @@ public enum StandardScales {
     public static func kScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("K")
-            .withFunction(CustomFunction(
-                name: "third-log",
-                transform: { log10($0) / 3.0 },
-                inverseTransform: { pow(10, 3 * $0) }
-            ))
+            .withFunction(ThirdLogFunction())
             .withRange(begin: 1, end: 1000)
             .withLength(length)
             .withTickDirection(.up)
@@ -433,11 +417,7 @@ public enum StandardScales {
     public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL1")
-            .withFunction(CustomFunction(
-                name: "log-ln",
-                transform: { log10(log($0)) * 10.0 },
-                inverseTransform: { exp(pow(10, $0 / 10.0)) }
-            ))
+            .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.01, end: 1.105)
             .withLength(length)
             .withTickDirection(.up)
@@ -456,11 +436,7 @@ public enum StandardScales {
     public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL2")
-            .withFunction(CustomFunction(
-                name: "log-ln",
-                transform: { log10(log($0)) * 10.0 },
-                inverseTransform: { exp(pow(10, $0 / 10.0)) }
-            ))
+            .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.105, end: 2.72)
             .withLength(length)
             .withTickDirection(.up)
@@ -480,11 +456,7 @@ public enum StandardScales {
     public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL3")
-            .withFunction(CustomFunction(
-                name: "log-ln",
-                transform: { log10(log($0)) },
-                inverseTransform: { exp(pow(10, $0)) }
-            ))
+            .withFunction(LogLnFunction(multiplier: 1.0))
             .withRange(begin: 2.74, end: 21000)
             .withLength(length)
             .withTickDirection(.up)
@@ -581,11 +553,7 @@ public enum StandardScales {
     public static func stScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ST")
-            .withFunction(CustomFunction(
-                name: "small-tan",
-                transform: { log10($0 * .pi / 180.0 * 100.0) },
-                inverseTransform: { pow(10, $0) * 180.0 / .pi / 100.0 }
-            ))
+            .withFunction(SmallTanFunction())
             .withRange(begin: 0.57, end: 5.7)
             .withLength(length)
             .withTickDirection(.down)
@@ -632,11 +600,7 @@ public enum StandardScales {
     public static func lnScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Ln")
-            .withFunction(CustomFunction(
-                name: "ln-normalized",
-                transform: { log($0) / (10 * log(10)) },
-                inverseTransform: { exp($0 * 10 * log(10)) }
-            ))
+            .withFunction(LnNormalizedFunction())
             .withRange(begin: 0, end: 10 * log(10))
             .withLength(length)
             .withTickDirection(.down)
@@ -686,15 +650,7 @@ public enum StandardScales {
         let aScale = self.aScale(length: length)
         
         // Inverse formula: log(100/x) / 2
-        let aiFunction = CustomFunction(
-            name: "AI-scale",
-            transform: { value in
-                log10(100.0 / value) / 2.0
-            },
-            inverseTransform: { transformed in
-                100.0 / pow(10, transformed * 2.0)
-            }
-        )
+        let aiFunction = AIScaleFunction()
         
         return ScaleDefinition(
             name: AttributedString("AI"),
@@ -802,11 +758,7 @@ public enum StandardScales {
     public static func keSTScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("SRT")
-            .withFunction(CustomFunction(
-                name: "small-tan",
-                transform: { log10($0 * .pi / 180.0 * 100.0) },
-                inverseTransform: { pow(10, $0) * 180.0 / .pi / 100.0 }
-            ))
+            .withFunction(SmallTanFunction())
             .withRange(begin: 0.55, end: 6.0)
             .withLength(length)
             .withTickDirection(.down)
@@ -916,11 +868,7 @@ public enum StandardScales {
     public static func casScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CAS")
-            .withFunction(CustomFunction(
-                name: "calibrated-airspeed",
-                transform: { log10(($0 * 22.74 + 698.7) / 1000.0) },
-                inverseTransform: { (pow(10, $0) * 1000.0 - 698.7) / 22.74 }
-            ))
+            .withFunction(CalibratedAirspeedFunction())
             .withRange(begin: 80, end: 1000)
             .withLength(length)
             .withTickDirection(.up)
@@ -950,11 +898,7 @@ public enum StandardScales {
     public static func timeScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("TIME")
-            .withFunction(CustomFunction(
-                name: "time-conversion",
-                transform: { log10($0 / 60.0) + log10(6.0) },
-                inverseTransform: { pow(10, $0 - log10(6.0)) * 60.0 }
-            ))
+            .withFunction(TimeConversionFunction())
             .withRange(begin: 60, end: 600)
             .withLength(length)
             .withTickDirection(.up)
@@ -982,11 +926,7 @@ public enum StandardScales {
     public static func time2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("TIME2")
-            .withFunction(CustomFunction(
-                name: "time-conversion",
-                transform: { log10($0 / 60.0) + log10(6.0) },
-                inverseTransform: { pow(10, $0 - log10(6.0)) * 60.0 }
-            ))
+            .withFunction(TimeConversionFunction())
             .withRange(begin: 600, end: 6000)
             .withLength(length)
             .withTickDirection(.down)
@@ -1122,11 +1062,7 @@ public enum StandardScales {
     public static func r1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sq1")
-            .withFunction(CustomFunction(
-                name: "square-root",
-                transform: { log10($0) * 2.0 },
-                inverseTransform: { pow(10, $0 / 2.0) }
-            ))
+            .withFunction(SquareRootFunction())
             .withRange(begin: 1.0, end: 3.2)
             .withLength(length)
             .withTickDirection(.up)
@@ -1167,11 +1103,7 @@ public enum StandardScales {
     public static func r2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sq2")
-            .withFunction(CustomFunction(
-                name: "square-root-offset",
-                transform: { (log10($0) - 1.0) * 2.0 },
-                inverseTransform: { pow(10, $0 / 2.0 + 1.0) }
-            ))
+            .withFunction(SquareRootOffsetFunction())
             .withRange(begin: 3.1, end: 10.0)
             .withLength(length)
             .withTickDirection(.up)
@@ -1202,11 +1134,7 @@ public enum StandardScales {
     public static func q1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q1")
-            .withFunction(CustomFunction(
-                name: "cube-root",
-                transform: { log10($0) * 3.0 },
-                inverseTransform: { pow(10, $0 / 3.0) }
-            ))
+            .withFunction(CubeRootFunction())
             .withRange(begin: 1.0, end: 2.16)
             .withLength(length)
             .withTickDirection(.up)
@@ -1241,11 +1169,7 @@ public enum StandardScales {
     public static func q2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q2")
-            .withFunction(CustomFunction(
-                name: "cube-root-offset1",
-                transform: { (log10($0) - 1.0) * 3.0 },
-                inverseTransform: { pow(10, $0 / 3.0 + 1.0) }
-            ))
+            .withFunction(CubeRootOffset1Function())
             .withRange(begin: 2.15, end: 4.7)
             .withLength(length)
             .withTickDirection(.up)
@@ -1280,11 +1204,7 @@ public enum StandardScales {
     public static func q3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q3")
-            .withFunction(CustomFunction(
-                name: "cube-root-offset2",
-                transform: { (log10($0) - 2.0) * 3.0 },
-                inverseTransform: { pow(10, $0 / 3.0 + 2.0) }
-            ))
+            .withFunction(CubeRootOffset2Function())
             .withRange(begin: 4.6, end: 10.0)
             .withLength(length)
             .withTickDirection(.up)

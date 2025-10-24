@@ -57,6 +57,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("XL")
+            .withFormula("2πfL")
             .withFunction(xlFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -105,6 +106,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Xc")
+            .withFormula("1/(2πfC)")
             .withFunction(xcFunction)
             .withRange(begin: 100.0, end: 1.0) // Inverted range
             .withLength(length)

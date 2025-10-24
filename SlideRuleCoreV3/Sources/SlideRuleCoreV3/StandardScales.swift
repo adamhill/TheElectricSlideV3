@@ -79,6 +79,7 @@ public enum StandardScales {
     public static func cScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("C")
+            .withFormula("x")
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1, end: 10)
             .withLength(length)
@@ -112,6 +113,7 @@ public enum StandardScales {
     public static func dScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("D")
+            .withFormula("x")
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1, end: 10)
             .withLength(length)
@@ -142,6 +144,7 @@ public enum StandardScales {
     public static func ciScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CI")
+            .withFormula("1/x")
             .withFunction(ReciprocalLogFunction())
             .withRange(begin: 10, end: 1) // Reversed
             .withLength(length)
@@ -180,6 +183,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("DI"),
+            formula: AttributedString("1/x"),
             function: ciScale.function,
             beginValue: ciScale.beginValue,
             endValue: ciScale.endValue,
@@ -201,6 +205,7 @@ public enum StandardScales {
     public static func cfScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CF")
+            .withFormula("πx")
             .withFunction(LogarithmicFunction())
             .withRange(begin: .pi, end: 10 * .pi)
             .withLength(length)
@@ -247,6 +252,7 @@ public enum StandardScales {
     public static func dfScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("DF")
+            .withFormula("πx")
             .withFunction(LogarithmicFunction())
             .withRange(begin: .pi, end: 10 * .pi)
             .withLength(length)
@@ -290,6 +296,7 @@ public enum StandardScales {
     public static func cifScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CIF")
+            .withFormula("1/πx")
             .withFunction(ReciprocalLogFunction())
             .withRange(begin: 10 * .pi, end: .pi) // Reversed for reciprocal
             .withLength(length)
@@ -343,6 +350,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("DIF"),
+            formula: AttributedString("1/πx"),
             function: cifScale.function,
             beginValue: cifScale.beginValue,
             endValue: cifScale.endValue,
@@ -362,6 +370,7 @@ public enum StandardScales {
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("A")
+            .withFormula("x²")
             .withFunction(HalfLogFunction())
             .withRange(begin: 1, end: 100)
             .withLength(length)
@@ -386,6 +395,7 @@ public enum StandardScales {
     public static func kScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("K")
+            .withFormula("x³")
             .withFunction(ThirdLogFunction())
             .withRange(begin: 1, end: 1000)
             .withLength(length)
@@ -417,6 +427,7 @@ public enum StandardScales {
     public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL1")
+            .withFormula("e^(0.01x)")
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.01, end: 1.105)
             .withLength(length)
@@ -436,6 +447,7 @@ public enum StandardScales {
     public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL2")
+            .withFormula("e^(0.1x)")
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.105, end: 2.72)
             .withLength(length)
@@ -456,6 +468,7 @@ public enum StandardScales {
     public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL3")
+            .withFormula("e^x")
             .withFunction(LogLnFunction(multiplier: 1.0))
             .withRange(begin: 2.74, end: 21000)
             .withLength(length)
@@ -497,6 +510,7 @@ public enum StandardScales {
     public static func sScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("S")
+            .withFormula("∡sin")
             .withFunction(SineFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 90)
             .withLength(length)
@@ -528,6 +542,7 @@ public enum StandardScales {
     public static func tScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("T")
+            .withFormula("∡tan")
             .withFunction(TangentFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 45)
             .withLength(length)
@@ -553,6 +568,7 @@ public enum StandardScales {
     public static func stScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ST")
+            .withFormula("∡tan ≈ ∡")
             .withFunction(SmallTanFunction())
             .withRange(begin: 0.57, end: 5.7)
             .withLength(length)
@@ -581,6 +597,7 @@ public enum StandardScales {
     public static func lScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("L")
+            .withFormula("log₁₀ x")
             .withFunction(LinearFunction())
             .withRange(begin: 0, end: 1)
             .withLength(length)
@@ -600,6 +617,7 @@ public enum StandardScales {
     public static func lnScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Ln")
+            .withFormula("ln x")
             .withFunction(LnNormalizedFunction())
             .withRange(begin: 0, end: 10 * log(10))
             .withLength(length)
@@ -627,6 +645,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("B"),
+            formula: AttributedString("x²"),
             function: aScale.function,
             beginValue: aScale.beginValue,
             endValue: aScale.endValue,
@@ -654,6 +673,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("AI"),
+            formula: AttributedString("100/x²"),
             function: aiFunction,
             beginValue: 100.0,  // Start at 100
             endValue: 1.0,      // End at 1 (descending)
@@ -678,6 +698,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("BI"),
+            formula: AttributedString("100/x²"),
             function: aiScale.function,
             beginValue: aiScale.beginValue,
             endValue: aiScale.endValue,
@@ -699,6 +720,7 @@ public enum StandardScales {
     public static func keSScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("KE-S")
+            .withFormula("sin x")
             .withFunction(SineFunction(multiplier: 10.0))
             .withRange(begin: 5.5, end: 90)
             .withLength(length)
@@ -731,6 +753,7 @@ public enum StandardScales {
     public static func keTScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("KE-T")
+            .withFormula("tan x")
             .withFunction(TangentFunction(multiplier: 10.0))
             .withRange(begin: 5.5, end: 45)
             .withLength(length)
@@ -758,6 +781,7 @@ public enum StandardScales {
     public static func keSTScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("SRT")
+            .withFormula("tan x ≈ x")
             .withFunction(SmallTanFunction())
             .withRange(begin: 0.55, end: 6.0)
             .withLength(length)
@@ -793,6 +817,7 @@ public enum StandardScales {
     public static func c10to100Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("C10-100")
+            .withFormula("10x")
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1, end: 10)
             .withLength(length)
@@ -829,6 +854,7 @@ public enum StandardScales {
     public static func c100to1000Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("C100-1000")
+            .withFormula("100x")
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1, end: 10)
             .withLength(length)
@@ -868,6 +894,7 @@ public enum StandardScales {
     public static func casScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("CAS")
+            .withFormula("(22.74x+698.7)/1000")
             .withFunction(CalibratedAirspeedFunction())
             .withRange(begin: 80, end: 1000)
             .withLength(length)
@@ -898,6 +925,7 @@ public enum StandardScales {
     public static func timeScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("TIME")
+            .withFormula("x min")
             .withFunction(TimeConversionFunction())
             .withRange(begin: 60, end: 600)
             .withLength(length)
@@ -926,6 +954,7 @@ public enum StandardScales {
     public static func time2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("TIME2")
+            .withFormula("x hr")
             .withFunction(TimeConversionFunction())
             .withRange(begin: 600, end: 6000)
             .withLength(length)
@@ -964,6 +993,7 @@ public enum StandardScales {
     public static func cr3sScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("S/C")
+            .withFormula("sin x / cos x")
             .withFunction(SineFunction(multiplier: 10.0))
             .withRange(begin: 6, end: 90)
             .withLength(length)
@@ -1027,6 +1057,7 @@ public enum StandardScales {
     public static func d10to100Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("D10-100")
+            .withFormula("10x")
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1, end: 10)
             .withLength(length)
@@ -1062,6 +1093,7 @@ public enum StandardScales {
     public static func r1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sq1")
+            .withFormula("√x")
             .withFunction(SquareRootFunction())
             .withRange(begin: 1.0, end: 3.2)
             .withLength(length)
@@ -1103,6 +1135,7 @@ public enum StandardScales {
     public static func r2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sq2")
+            .withFormula("√(10x)")
             .withFunction(SquareRootOffsetFunction())
             .withRange(begin: 3.1, end: 10.0)
             .withLength(length)
@@ -1134,6 +1167,7 @@ public enum StandardScales {
     public static func q1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q1")
+            .withFormula("∛x")
             .withFunction(CubeRootFunction())
             .withRange(begin: 1.0, end: 2.16)
             .withLength(length)
@@ -1169,6 +1203,7 @@ public enum StandardScales {
     public static func q2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q2")
+            .withFormula("∛(10x)")
             .withFunction(CubeRootOffset1Function())
             .withRange(begin: 2.15, end: 4.7)
             .withLength(length)
@@ -1204,6 +1239,7 @@ public enum StandardScales {
     public static func q3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Q3")
+            .withFormula("∛(100x)")
             .withFunction(CubeRootOffset2Function())
             .withRange(begin: 4.6, end: 10.0)
             .withLength(length)

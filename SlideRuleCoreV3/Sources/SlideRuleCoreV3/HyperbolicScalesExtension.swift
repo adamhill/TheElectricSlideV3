@@ -60,6 +60,7 @@ extension StandardScales {
     public static func chScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Ch")
+            .withFormula("cosh x")
             .withFunction(HyperbolicCosineFunction())
             .withRange(begin: 0, end: 3)
             .withLength(length)
@@ -132,6 +133,7 @@ extension StandardScales {
     public static func thScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Th")
+            .withFormula("tanh x")
             .withFunction(HyperbolicTangentFunction(multiplier: 10.0))
             .withRange(begin: 0.1, end: 3)
             .withLength(length)
@@ -211,6 +213,7 @@ extension StandardScales {
     public static func shScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sh")
+            .withFormula("sinh x")
             .withFunction(HyperbolicSineFunction(multiplier: 10.0))
             .withRange(begin: 0.1, end: 3)
             .withLength(length)
@@ -265,6 +268,7 @@ extension StandardScales {
     public static func sh1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sh1")
+            .withFormula("sinh x")
             .withFunction(HyperbolicSineFunction(multiplier: 10.0))
             .withRange(begin: 0.1, end: 0.90)
             .withLength(length)
@@ -318,6 +322,7 @@ extension StandardScales {
     public static func sh2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Sh2")
+            .withFormula("sinh(x-1)")
             .withFunction(HyperbolicSineFunction(multiplier: 10.0, offset: 1.0))
             .withRange(begin: 0.88, end: 3.0)
             .withLength(length)
@@ -384,6 +389,7 @@ extension StandardScales {
     public static func h1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("H1")
+            .withFormula("√(x²-1)")
             .withFunction(PythagoreanHFunction(multiplier: 10.0))
             .withRange(begin: 1.005, end: 1.415)
             .withLength(length)
@@ -461,6 +467,7 @@ extension StandardScales {
     public static func h2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("H2")
+            .withFormula("√(x²-1)")
             .withFunction(PythagoreanHFunction(multiplier: 1.0))
             .withRange(begin: 1.42, end: 10.0)
             .withLength(length)
@@ -531,6 +538,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("P")
+            .withFormula("√(1-x²)")
             .withFunction(PythagoreanPFunction(multiplier: 10.0))
             .withRange(begin: 0, end: 0.995)
             .withLength(length)
@@ -636,6 +644,7 @@ extension StandardScales {
     public static func l360Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("L360")
+            .withFormula("θ° (0-360)")
             .withFunction(LinearDegreeFunction(maxDegrees: 360.0))
             .withRange(begin: 0, end: 360)
             .withLength(length)

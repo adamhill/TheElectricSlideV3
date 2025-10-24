@@ -11,15 +11,14 @@ import SlideRuleCoreV3
 // MARK: - ScaleView Component
 
 struct ScaleView: View {
-    let scaleDefinition: ScaleDefinition
+    let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
-    let scaleName: String
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left
-            Text(scaleDefinition.name)
+            Text(generatedScale.definition.name)
                 .font(.caption2)
                 .foregroundColor(.black.opacity(0.7))
                 .frame(width: 20)
@@ -29,94 +28,13 @@ struct ScaleView: View {
                 ZStack(alignment: .topLeading) {
                     // Tick marks and labels
                     Canvas { context, size in
-                        let tickMarks = ScaleCalculator.generateTickMarks(
-                            for: scaleDefinition,
-                            algorithm: .modulo(config: ModuloTickConfig.default) )
-                        
-                        // Draw baseline if enabled
-                        if scaleDefinition.showBaseline {
-                            let baselinePath = Path { path in
-                                switch scaleDefinition.tickDirection {
-                                case .down:
-                                    path.move(to: CGPoint(x: 0, y: 0))
-                                    path.addLine(to: CGPoint(x: size.width, y: 0))
-                                case .up:
-                                    path.move(to: CGPoint(x: 0, y: size.height))
-                                    path.addLine(to: CGPoint(x: size.width, y: size.height))
-                                }
-                            }
-                            
-                            context.stroke(
-                                baselinePath,
-                                with: .color(.black),
-                                lineWidth: 2.0
-                            )
-                        }
-                        
-                        for tick in tickMarks {
-                            // Calculate horizontal position
-                            let xPos = tick.normalizedPosition * size.width
-                            
-                            // Calculate tick height based on relativeLength
-                            let tickHeight = tick.style.relativeLength * (size.height * 0.6)
-                            
-                            // Calculate tick start and end positions based on direction
-                            let (tickStartY, tickEndY): (CGFloat, CGFloat)
-                            switch scaleDefinition.tickDirection {
-                            case .down:
-                                tickStartY = 0
-                                tickEndY = tickHeight
-                            case .up:
-                                tickStartY = size.height
-                                tickEndY = size.height - tickHeight
-                            }
-                            
-                            // Draw tick mark (vertical line) with anti-aliasing disabled
-                            let tickPath = Path { path in
-                                path.move(to: CGPoint(x: xPos, y: tickStartY))
-                                path.addLine(to: CGPoint(x: xPos, y: tickEndY))
-                            }
-                            
-                            context.withCGContext { cgContext in
-                                cgContext.setShouldAntialias(false)
-                                context.stroke(
-                                    tickPath,
-                                    with: .color(.black),
-                                    lineWidth: tick.style.lineWidth / 1.5
-                                )
-                            }
-                            
-                            // Draw label if present
-                            if let labelText = tick.label {
-                                let fontSize = fontSizeForTick(tick.style.relativeLength)
-                                
-                                if fontSize > 0 {
-                                    let text = Text(labelText)
-                                        .font(.system(size: fontSize))
-                                        .foregroundColor(.black)
-                                    
-                                    let resolvedText = context.resolve(text)
-                                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
-                                    
-                                    // Position label based on tick direction
-                                    let labelY: CGFloat
-                                    switch scaleDefinition.tickDirection {
-                                    case .down:
-                                        // Labels below tick mark
-                                        labelY = tickHeight + 2
-                                    case .up:
-                                        // Labels above tick mark
-                                        labelY = size.height - tickHeight - textSize.height - 2
-                                    }
-                                    let labelX = xPos - textSize.width / 2
-                                    
-                                    context.draw(
-                                        resolvedText,
-                                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
-                                    )
-                                }
-                            }
-                        }
+                        // ✅ Use pre-computed tick marks from GeneratedScale
+                        drawScale(
+                            context: &context,
+                            size: size,
+                            tickMarks: generatedScale.tickMarks,
+                            definition: generatedScale.definition
+                        )
                     }
                 }
             }
@@ -124,11 +42,105 @@ struct ScaleView: View {
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
             
             // Formula label on the right
-            Text(scaleDefinition.formula)
+            Text(generatedScale.definition.formula)
                 .font(.caption2)
-                .tracking((scaleDefinition.formulaTracking - 1.0) * 2.0)
+                .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black.opacity(0.7))
                 .frame(width: 40, alignment: .leading)
+        }
+    }
+    
+    /// Draw the scale with pre-computed tick marks
+    private func drawScale(
+        context: inout GraphicsContext,
+        size: CGSize,
+        tickMarks: [TickMark],
+        definition: ScaleDefinition
+    ) {
+        // Draw baseline if enabled
+        if definition.showBaseline {
+            let baselinePath = Path { path in
+                switch definition.tickDirection {
+                case .down:
+                    path.move(to: CGPoint(x: 0, y: 0))
+                    path.addLine(to: CGPoint(x: size.width, y: 0))
+                case .up:
+                    path.move(to: CGPoint(x: 0, y: size.height))
+                    path.addLine(to: CGPoint(x: size.width, y: size.height))
+                }
+            }
+            
+            context.stroke(
+                baselinePath,
+                with: .color(.black),
+                lineWidth: 2.0
+            )
+        }
+        
+        // Draw tick marks
+        for tick in tickMarks {
+            // Calculate horizontal position
+            let xPos = tick.normalizedPosition * size.width
+            
+            // Calculate tick height based on relativeLength
+            let tickHeight = tick.style.relativeLength * (size.height * 0.6)
+            
+            // Calculate tick start and end positions based on direction
+            let (tickStartY, tickEndY): (CGFloat, CGFloat)
+            switch definition.tickDirection {
+            case .down:
+                tickStartY = 0
+                tickEndY = tickHeight
+            case .up:
+                tickStartY = size.height
+                tickEndY = size.height - tickHeight
+            }
+            
+            // Draw tick mark (vertical line) with anti-aliasing disabled
+            let tickPath = Path { path in
+                path.move(to: CGPoint(x: xPos, y: tickStartY))
+                path.addLine(to: CGPoint(x: xPos, y: tickEndY))
+            }
+            
+            context.withCGContext { cgContext in
+                cgContext.setShouldAntialias(false)
+                context.stroke(
+                    tickPath,
+                    with: .color(.black),
+                    lineWidth: tick.style.lineWidth / 1.5
+                )
+            }
+            
+            // Draw label if present
+            if let labelText = tick.label {
+                let fontSize = fontSizeForTick(tick.style.relativeLength)
+                
+                if fontSize > 0 {
+                    let text = Text(labelText)
+                        .font(.system(size: fontSize))
+                        .foregroundColor(.black)
+                    
+                    let resolvedText = context.resolve(text)
+                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+                    
+                    // Position label based on tick direction
+                    let labelY: CGFloat
+                    switch definition.tickDirection {
+                    case .down:
+                        // Labels below tick mark
+                        labelY = tickHeight + 2
+                    case .up:
+                        // Labels above tick mark
+                        labelY = size.height - tickHeight - textSize.height - 2
+                    }
+                    let labelX = xPos - textSize.width / 2
+                    
+                    context.draw(
+                        resolvedText,
+                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+                    )
+                }
+            }
         }
     }
     
@@ -164,10 +176,9 @@ struct StatorView: View {
         VStack(spacing: 0) {
             ForEach(Array(stator.scales.enumerated()), id: \.offset) { index, generatedScale in
                 ScaleView(
-                    scaleDefinition: generatedScale.definition,
+                    generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight,
-                    scaleName: String(generatedScale.definition.name.characters)
+                    height: scaleHeight
                 )
             }
         }
@@ -206,10 +217,9 @@ struct SlideView: View {
         VStack(spacing: 0) {
             ForEach(Array(slide.scales.enumerated()), id: \.offset) { index, generatedScale in
                 ScaleView(
-                    scaleDefinition: generatedScale.definition,
+                    generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight,
-                    scaleName: String(generatedScale.definition.name.characters)
+                    height: scaleHeight
                 )
             }
         }

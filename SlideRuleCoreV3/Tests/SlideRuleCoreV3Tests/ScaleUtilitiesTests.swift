@@ -694,7 +694,7 @@ struct ScaleUtilitiesTests {
             }
         }
         
-        @Test("Validationhandles unexpected error types gracefully in validateRule")
+        @Test("Validation handles unexpected error types gracefully in validateRule")
         func unexpectedErrorHandling() {
             // Create a scale that will pass individual validation
             let validScale = StandardScales.cScale(length: 250.0)

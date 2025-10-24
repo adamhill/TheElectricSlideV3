@@ -126,6 +126,7 @@ struct ScaleView: View {
             // Formula label on the right
             Text(scaleDefinition.formula)
                 .font(.caption2)
+                .tracking((scaleDefinition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black.opacity(0.7))
                 .frame(width: 40, alignment: .leading)
         }
@@ -261,7 +262,8 @@ struct ContentView: View {
         // Note: scaleLength is a reference value; actual rendering width is responsive
         do {
             return try RuleDefinitionParser.parse(
-                "( L DF [ CF- CIF DI CI C ] D A)",
+               // "( L DF [ CF- CIF DI CI C ] D A)",
+               "(A [ B L K C ] D LL3 LL2 LL1)",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )

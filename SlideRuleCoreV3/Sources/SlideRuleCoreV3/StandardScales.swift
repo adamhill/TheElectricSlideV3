@@ -370,7 +370,7 @@ public enum StandardScales {
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("A")
-            .withFormula("x²")
+            .withFormula(AttributedString.formulaWithUnicode("x", superscript: "2"))
             .withFunction(HalfLogFunction())
             .withRange(begin: 1, end: 100)
             .withLength(length)
@@ -395,7 +395,7 @@ public enum StandardScales {
     public static func kScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("K")
-            .withFormula("x³")
+            .withFormula(AttributedString.formulaWithUnicode("x", superscript: "3"))
             .withFunction(ThirdLogFunction())
             .withRange(begin: 1, end: 1000)
             .withLength(length)
@@ -427,7 +427,7 @@ public enum StandardScales {
     public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL1")
-            .withFormula("e^(0.01x)")
+            .withFormula(AttributedString.formula("e", superscript: "0.01x"))
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.01, end: 1.105)
             .withLength(length)
@@ -447,7 +447,7 @@ public enum StandardScales {
     public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL2")
-            .withFormula("e^(0.1x)")
+            .withFormula(AttributedString.formula("e", superscript: "0.1x"))
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.105, end: 2.72)
             .withLength(length)
@@ -468,7 +468,7 @@ public enum StandardScales {
     public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL3")
-            .withFormula("e^x")
+            .withFormula(AttributedString.formula("e", superscript: "x"))
             .withFunction(LogLnFunction(multiplier: 1.0))
             .withRange(begin: 2.74, end: 21000)
             .withLength(length)
@@ -645,7 +645,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("B"),
-            formula: AttributedString("x²"),
+            formula: AttributedString.formulaWithUnicode("x", superscript: "2"),
             function: aScale.function,
             beginValue: aScale.beginValue,
             endValue: aScale.endValue,
@@ -673,7 +673,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("AI"),
-            formula: AttributedString("100/x²"),
+            formula: AttributedString.formulaWithUnicode("100/x", superscript: "2"),
             function: aiFunction,
             beginValue: 100.0,  // Start at 100
             endValue: 1.0,      // End at 1 (descending)
@@ -698,7 +698,7 @@ public enum StandardScales {
         
         return ScaleDefinition(
             name: AttributedString("BI"),
-            formula: AttributedString("100/x²"),
+            formula: AttributedString.formulaWithUnicode("100/x", superscript: "2"),
             function: aiScale.function,
             beginValue: aiScale.beginValue,
             endValue: aiScale.endValue,

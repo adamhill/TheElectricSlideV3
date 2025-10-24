@@ -54,6 +54,12 @@ public struct ScaleDefinition: Sendable {
     /// Whether to render a horizontal baseline for this scale
     public let showBaseline: Bool
     
+    /// Typography adjustment for formula text spacing
+    /// - 1.0 = normal spacing (no modification)
+    /// - < 1.0 = tighter/condensed spacing
+    /// - > 1.0 = looser/expanded spacing
+    public let formulaTracking: Double
+    
     public init(
         name: AttributedString,
         formula: AttributedString = ScaleDefinition.defaultFormula,
@@ -68,7 +74,8 @@ public struct ScaleDefinition: Sendable {
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
         labelColor: (red: Double, green: Double, blue: Double)? = nil,
         constants: [ScaleConstant] = [],
-        showBaseline: Bool = false
+        showBaseline: Bool = false,
+        formulaTracking: Double = 1.0
     ) {
         self.name = name
         self.formula = formula
@@ -84,6 +91,7 @@ public struct ScaleDefinition: Sendable {
         self.labelColor = labelColor
         self.constants = constants
         self.showBaseline = showBaseline
+        self.formulaTracking = formulaTracking
     }
     
     /// Convenience property to get name as String
@@ -134,6 +142,7 @@ public struct ScaleBuilder {
     private var labelColor: (red: Double, green: Double, blue: Double)?
     private var constants: [ScaleConstant] = []
     private var showBaseline: Bool = false
+    private var formulaTracking: Double = 1.0
     
     public init() {}
     
@@ -240,6 +249,15 @@ public struct ScaleBuilder {
         return copy
     }
     
+    /// Sets the formula tracking/kerning adjustment
+    /// - Parameter tracking: Typography adjustment (1.0 = normal, <1.0 = tighter, >1.0 = looser)
+    /// - Returns: Updated builder
+    public func withFormulaTracking(_ tracking: Double) -> ScaleBuilder {
+        var copy = self
+        copy.formulaTracking = tracking
+        return copy
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -259,7 +277,8 @@ public struct ScaleBuilder {
             labelFormatter: labelFormatter,
             labelColor: labelColor,
             constants: constants,
-            showBaseline: showBaseline
+            showBaseline: showBaseline,
+            formulaTracking: formulaTracking
         )
     }
 }
@@ -321,5 +340,69 @@ public enum StandardLabelFormatter {
             return "1"
         }
         return String(format: "e^%.2f", power)
+    }
+}
+
+// MARK: - AttributedString Formula Helpers
+
+extension AttributedString {
+    /// Creates a formula with superscript notation using Unicode superscript characters
+    /// Example: formula("e", superscript: "0.01x") creates e⁰·⁰¹ˣ with Unicode superscripts
+    public static func formula(_ base: String, superscript: String) -> AttributedString {
+        let unicodeSuperscripts: [Character: Character] = [
+            "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+            "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+            "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+            "n": "ⁿ", "i": "ⁱ", "x": "ˣ", ".": "·"
+        ]
+        
+        let convertedSuperscript = String(superscript.compactMap { unicodeSuperscripts[$0] ?? $0 })
+        return AttributedString(base + convertedSuperscript)
+    }
+    
+    /// Creates a formula with subscript notation using Unicode subscript characters
+    /// Example: formula("H", subscript: "2") creates H₂ with Unicode subscripts
+    public static func formula(_ base: String, subscript sub: String) -> AttributedString {
+        let unicodeSubscripts: [Character: Character] = [
+            "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+            "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+            "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+            "a": "ₐ", "e": "ₑ", "o": "ₒ", "x": "ₓ", "h": "ₕ",
+            "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ", "p": "ₚ",
+            "s": "ₛ", "t": "ₜ"
+        ]
+        
+        let convertedSubscript = String(sub.compactMap { unicodeSubscripts[$0] ?? $0 })
+        return AttributedString(base + convertedSubscript)
+    }
+    
+    /// Creates a formula with superscript notation using Unicode superscript characters
+    /// Example: formulaWithUnicode("x", superscript: "2") creates x² using Unicode ²
+    public static func formulaWithUnicode(_ base: String, superscript: String) -> AttributedString {
+        let unicodeSuperscripts: [Character: Character] = [
+            "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+            "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+            "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+            "n": "ⁿ", "i": "ⁱ"
+        ]
+        
+        let convertedSuperscript = String(superscript.compactMap { unicodeSuperscripts[$0] ?? $0 })
+        return AttributedString(base + convertedSuperscript)
+    }
+    
+    /// Creates a formula with Unicode subscript characters
+    /// Example: formulaWithUnicode("H", subscript: "2") creates H₂ using Unicode ₂
+    public static func formulaWithUnicode(_ base: String, subscript sub: String) -> AttributedString {
+        let unicodeSubscripts: [Character: Character] = [
+            "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+            "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+            "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+            "a": "ₐ", "e": "ₑ", "o": "ₒ", "x": "ₓ", "h": "ₕ",
+            "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ", "p": "ₚ",
+            "s": "ₛ", "t": "ₜ"
+        ]
+        
+        let convertedSubscript = String(sub.compactMap { unicodeSubscripts[$0] ?? $0 })
+        return AttributedString(base + convertedSubscript)
     }
 }

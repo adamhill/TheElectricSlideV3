@@ -1,0 +1,34 @@
+{
+    "servers": {
+        "dash-api": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+https://github.com/Kapeli/dash-mcp-server.git",
+                "dash-mcp-server"
+            ]
+        },
+        "sosumi": {
+            "type": "http",
+            "url": "https://sosumi.ai/mcp"
+        },
+        "XcodeBuildMCP": {
+            "command": "mise",
+            "args": [
+                "x",
+                "npm:xcodebuildmcp@1.4.0",
+                "--",
+                "xcodebuildmcp"
+            ],
+            "type": "stdio"
+        },
+        "apple-docs": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@kimsungwhee/apple-docs-mcp"
+            ]
+        }
+    }
+}

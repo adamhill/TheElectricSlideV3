@@ -241,7 +241,6 @@ func example6_exportScaleData() throws {
 
 // MARK: - Example 7: Concurrent Scale Generation
 
-@available(macOS 13.0, iOS 16.0, *)
 func example7_concurrentGeneration() async {
     print("\n=== Example 7: Concurrent Scale Generation ===\n")
     

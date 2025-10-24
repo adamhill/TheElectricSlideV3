@@ -32,7 +32,7 @@ struct ScaleView: View {
             // Scale name label on the left
             Text(generatedScale.definition.name)
                 .font(.caption2)
-                .foregroundColor(.black.opacity(0.7))
+                .foregroundColor(.black)
                 .frame(width: 20)
             
             // Scale view
@@ -57,7 +57,7 @@ struct ScaleView: View {
             Text(generatedScale.definition.formula)
                 .font(.caption2)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
-                .foregroundColor(.black.opacity(0.7))
+                .foregroundColor(.black)
                 .frame(width: 40, alignment: .leading)
         }
     }
@@ -172,12 +172,21 @@ struct ScaleView: View {
 
 // MARK: - StatorView Component (renders multiple scales)
 
-struct StatorView: View {
+struct StatorView: View, Equatable {
     let stator: Stator
     let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    static func == (lhs: StatorView, rhs: StatorView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.stator.scales.count == rhs.stator.scales.count &&
+        lhs.backgroundColor == rhs.backgroundColor &&
+        lhs.borderColor == rhs.borderColor
+    }
     
     // Calculate total max height based on number of scales
     private var maxTotalHeight: CGFloat {
@@ -213,12 +222,21 @@ struct StatorView: View {
 
 // MARK: - SlideView Component (renders multiple scales)
 
-struct SlideView: View {
+struct SlideView: View, Equatable {
     let slide: Slide
     let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    static func == (lhs: SlideView, rhs: SlideView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.slide.scales.count == rhs.slide.scales.count &&
+        lhs.backgroundColor == rhs.backgroundColor &&
+        lhs.borderColor == rhs.borderColor
+    }
     
     // Calculate total max height based on number of scales
     private var maxTotalHeight: CGFloat {
@@ -339,6 +357,7 @@ struct ContentView: View {
                 borderColor: .blue,
                 scaleHeight: calculatedDimensions.scaleHeight
             )
+            .equatable()  // ✅ Use Equatable conformance to skip updates
             .id("topStator")  // ✅ Stable identity for performance
             
             // Slider (Movable) - depends on both calculatedDimensions and sliderOffset
@@ -349,6 +368,7 @@ struct ContentView: View {
                 borderColor: .orange,
                 scaleHeight: calculatedDimensions.scaleHeight
             )
+            .equatable()  // ✅ Use Equatable conformance to skip updates
             .offset(x: sliderOffset)
             .gesture(dragGesture)
             .animation(.interactiveSpring(), value: sliderOffset)
@@ -361,6 +381,7 @@ struct ContentView: View {
                 borderColor: .blue,
                 scaleHeight: calculatedDimensions.scaleHeight
             )
+            .equatable()  // ✅ Use Equatable conformance to skip updates
             .id("bottomStator")  // ✅ Stable identity for performance
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

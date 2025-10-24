@@ -326,8 +326,8 @@ public enum ScaleExporter {
         }
         
         init(scale: GeneratedScale) {
-            self.name = scale.definition.name
-            self.functionName = scale.definition.function.name
+            self.name = String(scale.definition.name.characters)
+            self.functionName = String(scale.definition.function.name)
             self.beginValue = scale.definition.beginValue
             self.endValue = scale.definition.endValue
             self.scaleLengthInPoints = scale.definition.scaleLengthInPoints

@@ -365,6 +365,7 @@ public struct RuleDefinitionParser {
                 if let overrideDir = tickDir {
                     finalDefinition = ScaleDefinition(
                         name: finalDefinition.name,
+                        formula: finalDefinition.formula,
                         function: finalDefinition.function,
                         beginValue: finalDefinition.beginValue,
                         endValue: finalDefinition.endValue,
@@ -494,6 +495,7 @@ public struct RuleDefinitionParser {
         // Create circular layout version of the scale
         let circularDef = ScaleDefinition(
             name: generated.definition.name,
+            formula: generated.definition.formula,
             function: generated.definition.function,
             beginValue: generated.definition.beginValue,
             endValue: generated.definition.endValue,

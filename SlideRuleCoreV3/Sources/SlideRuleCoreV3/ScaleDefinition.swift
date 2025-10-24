@@ -4,8 +4,19 @@ import Foundation
 
 /// Complete configuration for a slide rule scale
 public struct ScaleDefinition: Sendable {
+    /// Default placeholder formula: ℵ√-1 (ALEPH SYMBOL × sqrt(-1))
+    public static let defaultFormula: AttributedString = {
+        let aleph = "\u{2135}"  // ℵ ALEPH SYMBOL
+        let sqrt = "√"          // SQUARE ROOT SYMBOL
+        var str = AttributedString("\(aleph)√-1")
+        return str
+    }()
+    
     /// Human-readable name/label for the scale (e.g., "C", "D", "LL3")
-    public let name: String
+    public let name: AttributedString
+    
+    /// Formula representation for this scale (displayed on right side)
+    public let formula: AttributedString
     
     /// The mathematical function this scale represents
     public let function: any ScaleFunction
@@ -44,7 +55,8 @@ public struct ScaleDefinition: Sendable {
     public let showBaseline: Bool
     
     public init(
-        name: String,
+        name: AttributedString,
+        formula: AttributedString = ScaleDefinition.defaultFormula,
         function: any ScaleFunction,
         beginValue: ScaleValue,
         endValue: ScaleValue,
@@ -59,6 +71,7 @@ public struct ScaleDefinition: Sendable {
         showBaseline: Bool = false
     ) {
         self.name = name
+        self.formula = formula
         self.function = function
         self.beginValue = beginValue
         self.endValue = endValue
@@ -72,6 +85,12 @@ public struct ScaleDefinition: Sendable {
         self.constants = constants
         self.showBaseline = showBaseline
     }
+    
+    /// Convenience property to get name as String
+    public var nameString: String {
+        String(name.characters)
+    }
+    
     /// Whether this is a circular scale
     public var isCircular: Bool {
         layout.isCircular
@@ -99,8 +118,10 @@ public struct ScaleConstant: Sendable {
 // MARK: - Scale Builder
 
 /// Fluent API for building scale definitions
+@available(macOS 12, *)
 public struct ScaleBuilder {
-    private var name: String = ""
+    private var name: AttributedString = AttributedString("")
+    private var formula: AttributedString = ScaleDefinition.defaultFormula
     private var function: (any ScaleFunction)?
     private var beginValue: ScaleValue = 1.0
     private var endValue: ScaleValue = 10.0
@@ -118,7 +139,31 @@ public struct ScaleBuilder {
     
     public func withName(_ name: String) -> ScaleBuilder {
         var copy = self
+        copy.name = AttributedString(name)
+        return copy
+    }
+    
+    public func withName(_ name: AttributedString) -> ScaleBuilder {
+        var copy = self
         copy.name = name
+        return copy
+    }
+    
+    /// Sets the formula display for this scale
+    /// - Parameter formula: The formula as a String (will be converted to AttributedString)
+    /// - Returns: Updated builder
+    public func withFormula(_ formula: String) -> ScaleBuilder {
+        var copy = self
+        copy.formula = AttributedString(formula)
+        return copy
+    }
+    
+    /// Sets the formula display for this scale
+    /// - Parameter formula: The formula as an AttributedString
+    /// - Returns: Updated builder
+    public func withFormula(_ formula: AttributedString) -> ScaleBuilder {
+        var copy = self
+        copy.formula = formula
         return copy
     }
     
@@ -202,6 +247,7 @@ public struct ScaleBuilder {
         
         return ScaleDefinition(
             name: name,
+            formula: formula,
             function: function,
             beginValue: beginValue,
             endValue: endValue,

@@ -183,7 +183,7 @@ public enum StandardScales {
         let ciScale = self.ciScale(length: length)
         
         return ScaleDefinition(
-            name: "DI",
+            name: AttributedString("DI"),
             function: ciScale.function,
             beginValue: ciScale.beginValue,
             endValue: ciScale.endValue,
@@ -350,7 +350,7 @@ public enum StandardScales {
         let cifScale = self.cifScale(length: length)
         
         return ScaleDefinition(
-            name: "DIF",
+            name: AttributedString("DIF"),
             function: cifScale.function,
             beginValue: cifScale.beginValue,
             endValue: cifScale.endValue,
@@ -662,7 +662,7 @@ public enum StandardScales {
         let aScale = self.aScale(length: length)
         
         return ScaleDefinition(
-            name: "B",
+            name: AttributedString("B"),
             function: aScale.function,
             beginValue: aScale.beginValue,
             endValue: aScale.endValue,
@@ -697,7 +697,7 @@ public enum StandardScales {
         )
         
         return ScaleDefinition(
-            name: "AI",
+            name: AttributedString("AI"),
             function: aiFunction,
             beginValue: 100.0,  // Start at 100
             endValue: 1.0,      // End at 1 (descending)
@@ -721,7 +721,7 @@ public enum StandardScales {
         let aiScale = self.aiScale(length: length)
         
         return ScaleDefinition(
-            name: "BI",
+            name: AttributedString("BI"),
             function: aiScale.function,
             beginValue: aiScale.beginValue,
             endValue: aiScale.endValue,

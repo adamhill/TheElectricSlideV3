@@ -48,6 +48,7 @@ struct ScaleView: View {
                             definition: generatedScale.definition
                         )
                     }
+                    .drawingGroup()  // ✅ Metal-accelerated rendering for complex Canvas
                 }
             }
             .frame(width: width)

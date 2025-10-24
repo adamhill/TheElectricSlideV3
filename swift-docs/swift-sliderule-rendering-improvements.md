@@ -12,15 +12,15 @@ The ContentView.swift rendering pipeline has significant performance issues, esp
 
 ---
 
-## 📋 TODO List
+## TODO List
 
-- [x] **Optimization 1:** Use `onGeometryChange` instead of GeometryReader (HIGHEST IMPACT) ✅ COMPLETED
-- [x] **Optimization 2:** Use pre-computed tick marks from GeneratedScale (HIGH IMPACT) ✅ COMPLETED
-- [x] **Optimization 3:** Add Equatable conformance to StatorView (MODERATE IMPACT) ✅ COMPLETED
-- [ ] **Optimization 4:** Add `.drawingGroup()` for complex Canvas rendering (MODERATE IMPACT)
-- [ ] **Optimization 5:** Separate slide offset state from stator rendering (HIGH IMPACT)
-- [ ] **Optimization 6:** (Optional) Use PreferenceKey for dimension communication
-- [ ] **Optimization 7:** (Optional) Lazy rendering for off-screen scales
+- [x] **Solution 1**: Replace GeometryReader with onGeometryChange ✅ COMPLETED
+- [x] **Solution 2**: Use pre-computed tick marks from GeneratedScale ✅ COMPLETED
+- [x] **Solution 3**: Add Equatable conformance to views ✅ COMPLETED
+- [x] **Solution 4**: Add `.drawingGroup()` for complex Canvas rendering ✅ COMPLETED
+- [ ] **Solution 5**: Verify slide offset state separation
+- [ ] **Solution 6**: (Optional) Use PreferenceKey for dimension communication
+- [ ] **Solution 7**: (Optional) Implement lazy rendering for off-screen scales
 
 ---
 

@@ -8,6 +8,18 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// NOTE:
+// `onGeometryChange(for:)` requires the value type to be usable across isolation domains.
+// A main-actor–isolated conformance to `Equatable` cannot satisfy a generic `Sendable` requirement.
+// By making the type's conformances `nonisolated` and using `@unchecked Sendable` for this trivial
+// value type (two `CGFloat`s), we assert it's safe to pass across tasks/actors.
+// This avoids the compiler error: "Main actor-isolated conformance ... cannot satisfy conformance
+// requirement for a 'Sendable' type parameter".
+nonisolated struct Dimensions: Equatable, @unchecked Sendable {
+    var width: CGFloat
+    var scaleHeight: CGFloat
+}
+
 // MARK: - ScaleView Component
 
 struct ScaleView: View {
@@ -244,6 +256,9 @@ struct SlideView: View {
 
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
+    // ✅ State for calculated dimensions - only updates when window size changes
+
+    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
     
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
@@ -291,7 +306,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> (width: CGFloat, scaleHeight: CGFloat) {
+    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
@@ -311,60 +326,68 @@ struct ContentView: View {
         // Use the smaller of the two to ensure it fits within window
         let width = min(maxWidth, widthFromAspectRatio)
         
-        return (width, scaleHeight)
+        return Dimensions(width: width, scaleHeight: scaleHeight)
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            let dimensions = calculateDimensions(
-                availableWidth: geometry.size.width,
-                availableHeight: geometry.size.height
+        VStack(spacing: 0) {
+            // Top Stator (Fixed) - only depends on calculatedDimensions
+            StatorView(
+                stator: slideRule.frontTopStator,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .blue,
+                scaleHeight: calculatedDimensions.scaleHeight
             )
-            let width = dimensions.width
-            let scaleHeight = dimensions.scaleHeight
+            .id("topStator")  // ✅ Stable identity for performance
             
-            VStack(spacing: 0) {
-                // Top Stator (Fixed) - with multiple scales
-                StatorView(
-                    stator: slideRule.frontTopStator,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .blue,
-                    scaleHeight: scaleHeight
-                )
-                
-                // Slider (Movable) - with multiple scales
-                SlideView(
-                    slide: slideRule.frontSlide,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .orange,
-                    scaleHeight: scaleHeight
-                )
-                .offset(x: sliderOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { gesture in
-                            // Calculate new offset with bounds
-                            let newOffset = gesture.translation.width
-                            sliderOffset = min(max(newOffset, -width), width)
-                        }
-                )
-                .animation(.interactiveSpring(), value: sliderOffset)
-                
-                // Bottom Stator (Fixed) - with multiple scales
-                StatorView(
-                    stator: slideRule.frontBottomStator,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .blue,
-                    scaleHeight: scaleHeight
-                )
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // No clipping - allow slider to extend beyond stators like a physical slide rule
+            // Slider (Movable) - depends on both calculatedDimensions and sliderOffset
+            SlideView(
+                slide: slideRule.frontSlide,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .orange,
+                scaleHeight: calculatedDimensions.scaleHeight
+            )
+            .offset(x: sliderOffset)
+            .gesture(dragGesture)
+            .animation(.interactiveSpring(), value: sliderOffset)
+            
+            // Bottom Stator (Fixed) - only depends on calculatedDimensions
+            StatorView(
+                stator: slideRule.frontBottomStator,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .blue,
+                scaleHeight: calculatedDimensions.scaleHeight
+            )
+            .id("bottomStator")  // ✅ Stable identity for performance
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(padding)
+        // ✅ onGeometryChange - only updates calculatedDimensions when size actually changes
+        .onGeometryChange(for: Dimensions.self) { proxy in
+            // Extract ONLY the dimensions we need
+            let size = proxy.size
+            return calculateDimensions(
+                availableWidth: size.width,
+                availableHeight: size.height
+            )
+        } action: { newDimensions in
+            // ONLY called when dimensions actually change (not on every geometry event)
+            calculatedDimensions = newDimensions
+        }
+    }
+    
+    // ✅ Extract drag gesture for clarity
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { gesture in
+                // Calculate new offset with bounds
+                let newOffset = gesture.translation.width
+                sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+                                 calculatedDimensions.width)
+            }
     }
 }
 
@@ -372,3 +395,4 @@ struct ContentView: View {
     ContentView()
         .frame(width: 900)
 }
+

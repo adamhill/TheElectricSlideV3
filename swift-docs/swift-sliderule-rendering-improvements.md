@@ -14,7 +14,7 @@ The ContentView.swift rendering pipeline has significant performance issues, esp
 
 ## 📋 TODO List
 
-- [ ] **Optimization 1:** Use `onGeometryChange` instead of GeometryReader (HIGHEST IMPACT)
+- [x] **Optimization 1:** Use `onGeometryChange` instead of GeometryReader (HIGHEST IMPACT) ✅ COMPLETED
 - [x] **Optimization 2:** Use pre-computed tick marks from GeneratedScale (HIGH IMPACT) ✅ COMPLETED
 - [ ] **Optimization 3:** Add Equatable conformance to StatorView (MODERATE IMPACT)
 - [ ] **Optimization 4:** Add `.drawingGroup()` for complex Canvas rendering (MODERATE IMPACT)

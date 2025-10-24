@@ -5,7 +5,7 @@ import Foundation
 /// Priority 2: Comprehensive Exotic Scales Test Suite
 /// Tests specialized scales including hyperbolic, power, and ultra-fine precision LL scales
 ///
-/// NOTE: Test expectations updated to match PostScript source at reference/postscript-engine-for-sliderules.ps
+/// NOTE: Test expectations updated to match PostScript source at reference/postscript-engine-for-slide-rules.ps
 /// Previous tests had incorrect expectations that didn't match the actual scale implementations.
 @Suite("Exotic Scales - Comprehensive Coverage")
 struct StandardScalesExoticTests {

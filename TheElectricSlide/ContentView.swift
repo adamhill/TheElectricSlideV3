@@ -19,7 +19,7 @@ struct ScaleView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left
-            Text(scaleName)
+            Text(scaleDefinition.name)
                 .font(.caption2)
                 .foregroundColor(.black.opacity(0.7))
                 .frame(width: 20)
@@ -122,6 +122,12 @@ struct ScaleView: View {
             }
             .frame(width: width)
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
+            
+            // Formula label on the right
+            Text(scaleDefinition.formula)
+                .font(.caption2)
+                .foregroundColor(.black.opacity(0.7))
+                .frame(width: 40, alignment: .leading)
         }
     }
     
@@ -160,7 +166,7 @@ struct StatorView: View {
                     scaleDefinition: generatedScale.definition,
                     width: width,
                     height: scaleHeight,
-                    scaleName: generatedScale.definition.name
+                    scaleName: String(generatedScale.definition.name.characters)
                 )
             }
         }
@@ -202,7 +208,7 @@ struct SlideView: View {
                     scaleDefinition: generatedScale.definition,
                     width: width,
                     height: scaleHeight,
-                    scaleName: generatedScale.definition.name
+                    scaleName: String(generatedScale.definition.name.characters)
                 )
             }
         }
@@ -228,25 +234,17 @@ struct SlideView: View {
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
     
-    // Constants for sizing
-    private let statorWidth: CGFloat = 800  // Width of fixed stators
-    private let sliderWidth: CGFloat = 800  // Slider is same length as stators
-    
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
-    private let idealScaleHeight: CGFloat = 25 // Ideal height per scale (half of original 50)
+    private let idealScaleHeight: CGFloat = 25 // Ideal height per scale
     private let maxScaleHeight: CGFloat = 30   // Maximum height per scale
     
-    // Computed property for current scale height (using ideal as default)
-    private var scaleHeight: CGFloat {
-        idealScaleHeight
-    }
+    // Target aspect ratio (width:height) for slide rule
+    // Slide rules are typically very wide and relatively short (10:1 to 8:1)
+    private let targetAspectRatio: CGFloat = 10.0
     
-    // Maximum offset - allow slider to slide along the full length of the stators
-    // With equal lengths, slider can move the full width in either direction
-    private var maxOffset: CGFloat {
-        statorWidth
-    }
+    // Padding around the slide rule
+    private let padding: CGFloat = 40
     
     // Parse the slide rule definition using RuleDefinitionParser
     private var slideRule: SlideRule {
@@ -257,14 +255,15 @@ struct ContentView: View {
         )
         
         // Parse the rule definition: Multiple scales per component
-        // Top stator: K and A scales
-        // Slide: B, BI, CI, C scales  
-        // Bottom stator: D and L scales
+        // Top stator: L, DF scales
+        // Slide: CF-, CIF, DI, CI, C scales
+        // Bottom stator: D, A scales
+        // Note: scaleLength is a reference value; actual rendering width is responsive
         do {
             return try RuleDefinitionParser.parse(
                 "( L DF [ CF- CIF DI CI C ] D A)",
                 dimensions: dimensions,
-                scaleLength: statorWidth
+                scaleLength: 1000  // Reference length for scale calculations
             )
         } catch {
             // Fallback to a basic rule if parsing fails
@@ -272,49 +271,88 @@ struct ContentView: View {
         }
     }
     
+    // Calculate total number of scales
+    private var totalScaleCount: Int {
+        slideRule.frontTopStator.scales.count +
+        slideRule.frontSlide.scales.count +
+        slideRule.frontBottomStator.scales.count
+    }
+    
+    // Helper function to calculate responsive dimensions
+    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> (width: CGFloat, scaleHeight: CGFloat) {
+        let maxWidth = availableWidth - (padding * 2)
+        let maxHeight = availableHeight - (padding * 2)
+        
+        // Calculate scale height based on available height
+        let calculatedScaleHeight = min(
+            maxHeight / CGFloat(totalScaleCount),
+            maxScaleHeight
+        )
+        let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
+        
+        // Calculate total height needed for all scales
+        let totalHeight = scaleHeight * CGFloat(totalScaleCount)
+        
+        // Calculate width based on aspect ratio
+        let widthFromAspectRatio = totalHeight * targetAspectRatio
+        
+        // Use the smaller of the two to ensure it fits within window
+        let width = min(maxWidth, widthFromAspectRatio)
+        
+        return (width, scaleHeight)
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Top Stator (Fixed) - with multiple scales
-            StatorView(
-                stator: slideRule.frontTopStator,
-                width: statorWidth,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: scaleHeight
+        GeometryReader { geometry in
+            let dimensions = calculateDimensions(
+                availableWidth: geometry.size.width,
+                availableHeight: geometry.size.height
             )
+            let width = dimensions.width
+            let scaleHeight = dimensions.scaleHeight
             
-            // Slider (Movable) - with multiple scales
-            SlideView(
-                slide: slideRule.frontSlide,
-                width: sliderWidth,
-                backgroundColor: .white,
-                borderColor: .orange,
-                scaleHeight: scaleHeight
-            )
-            .offset(x: sliderOffset)
-            .gesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        // Calculate new offset with bounds
-                        let newOffset = gesture.translation.width
-                        sliderOffset = min(max(newOffset, -maxOffset), maxOffset)
-                    }
-            )
-            .animation(.interactiveSpring(), value: sliderOffset)
-            
-            // Bottom Stator (Fixed) - with multiple scales
-            StatorView(
-                stator: slideRule.frontBottomStator,
-                width: statorWidth,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: scaleHeight
-            )
+            VStack(spacing: 0) {
+                // Top Stator (Fixed) - with multiple scales
+                StatorView(
+                    stator: slideRule.frontTopStator,
+                    width: width,
+                    backgroundColor: .white,
+                    borderColor: .blue,
+                    scaleHeight: scaleHeight
+                )
+                
+                // Slider (Movable) - with multiple scales
+                SlideView(
+                    slide: slideRule.frontSlide,
+                    width: width,
+                    backgroundColor: .white,
+                    borderColor: .orange,
+                    scaleHeight: scaleHeight
+                )
+                .offset(x: sliderOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { gesture in
+                            // Calculate new offset with bounds
+                            let newOffset = gesture.translation.width
+                            sliderOffset = min(max(newOffset, -width), width)
+                        }
+                )
+                .animation(.interactiveSpring(), value: sliderOffset)
+                
+                // Bottom Stator (Fixed) - with multiple scales
+                StatorView(
+                    stator: slideRule.frontBottomStator,
+                    width: width,
+                    backgroundColor: .white,
+                    borderColor: .blue,
+                    scaleHeight: scaleHeight
+                )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // No clipping - allow slider to extend beyond stators like a physical slide rule
         }
-        .fixedSize(horizontal: true, vertical: true) // Don't expand beyond content size
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // Center in window
-        .padding()
-        // No clipping - allow slider to extend beyond stators like a physical slide rule
+        .padding(padding)
     }
 }
 

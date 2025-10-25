@@ -373,7 +373,7 @@ struct ContentView: View {
             .offset(x: sliderOffset)
             .gesture(dragGesture)
             .animation(.interactiveSpring(), value: sliderOffset)
-            
+            .id("slide")  // ✅ Stable identity for performance
             // Bottom Stator (Fixed) - only depends on calculatedDimensions
             StatorView(
                 stator: slideRule.frontBottomStator,

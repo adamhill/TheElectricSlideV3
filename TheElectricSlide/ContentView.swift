@@ -8,20 +8,31 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// NOTE:
+// `onGeometryChange(for:)` requires the value type to be usable across isolation domains.
+// A main-actor–isolated conformance to `Equatable` cannot satisfy a generic `Sendable` requirement.
+// By making the type's conformances `nonisolated` and using `@unchecked Sendable` for this trivial
+// value type (two `CGFloat`s), we assert it's safe to pass across tasks/actors.
+// This avoids the compiler error: "Main actor-isolated conformance ... cannot satisfy conformance
+// requirement for a 'Sendable' type parameter".
+nonisolated struct Dimensions: Equatable, @unchecked Sendable {
+    var width: CGFloat
+    var scaleHeight: CGFloat
+}
+
 // MARK: - ScaleView Component
 
 struct ScaleView: View {
-    let scaleDefinition: ScaleDefinition
+    let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
-    let scaleName: String
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left
-            Text(scaleDefinition.name)
+            Text(generatedScale.definition.name)
                 .font(.caption2)
-                .foregroundColor(.black.opacity(0.7))
+                .foregroundColor(.black)
                 .frame(width: 20)
             
             // Scale view
@@ -29,106 +40,120 @@ struct ScaleView: View {
                 ZStack(alignment: .topLeading) {
                     // Tick marks and labels
                     Canvas { context, size in
-                        let tickMarks = ScaleCalculator.generateTickMarks(
-                            for: scaleDefinition,
-                            algorithm: .modulo(config: ModuloTickConfig.default) )
-                        
-                        // Draw baseline if enabled
-                        if scaleDefinition.showBaseline {
-                            let baselinePath = Path { path in
-                                switch scaleDefinition.tickDirection {
-                                case .down:
-                                    path.move(to: CGPoint(x: 0, y: 0))
-                                    path.addLine(to: CGPoint(x: size.width, y: 0))
-                                case .up:
-                                    path.move(to: CGPoint(x: 0, y: size.height))
-                                    path.addLine(to: CGPoint(x: size.width, y: size.height))
-                                }
-                            }
-                            
-                            context.stroke(
-                                baselinePath,
-                                with: .color(.black),
-                                lineWidth: 2.0
-                            )
-                        }
-                        
-                        for tick in tickMarks {
-                            // Calculate horizontal position
-                            let xPos = tick.normalizedPosition * size.width
-                            
-                            // Calculate tick height based on relativeLength
-                            let tickHeight = tick.style.relativeLength * (size.height * 0.6)
-                            
-                            // Calculate tick start and end positions based on direction
-                            let (tickStartY, tickEndY): (CGFloat, CGFloat)
-                            switch scaleDefinition.tickDirection {
-                            case .down:
-                                tickStartY = 0
-                                tickEndY = tickHeight
-                            case .up:
-                                tickStartY = size.height
-                                tickEndY = size.height - tickHeight
-                            }
-                            
-                            // Draw tick mark (vertical line) with anti-aliasing disabled
-                            let tickPath = Path { path in
-                                path.move(to: CGPoint(x: xPos, y: tickStartY))
-                                path.addLine(to: CGPoint(x: xPos, y: tickEndY))
-                            }
-                            
-                            context.withCGContext { cgContext in
-                                cgContext.setShouldAntialias(false)
-                                context.stroke(
-                                    tickPath,
-                                    with: .color(.black),
-                                    lineWidth: tick.style.lineWidth / 1.5
-                                )
-                            }
-                            
-                            // Draw label if present
-                            if let labelText = tick.label {
-                                let fontSize = fontSizeForTick(tick.style.relativeLength)
-                                
-                                if fontSize > 0 {
-                                    let text = Text(labelText)
-                                        .font(.system(size: fontSize))
-                                        .foregroundColor(.black)
-                                    
-                                    let resolvedText = context.resolve(text)
-                                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
-                                    
-                                    // Position label based on tick direction
-                                    let labelY: CGFloat
-                                    switch scaleDefinition.tickDirection {
-                                    case .down:
-                                        // Labels below tick mark
-                                        labelY = tickHeight + 2
-                                    case .up:
-                                        // Labels above tick mark
-                                        labelY = size.height - tickHeight - textSize.height - 2
-                                    }
-                                    let labelX = xPos - textSize.width / 2
-                                    
-                                    context.draw(
-                                        resolvedText,
-                                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
-                                    )
-                                }
-                            }
-                        }
+                        // ✅ Use pre-computed tick marks from GeneratedScale
+                        drawScale(
+                            context: &context,
+                            size: size,
+                            tickMarks: generatedScale.tickMarks,
+                            definition: generatedScale.definition
+                        )
                     }
+                    .drawingGroup()  // ✅ Metal-accelerated rendering for complex Canvas
                 }
             }
             .frame(width: width)
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
             
             // Formula label on the right
-            Text(scaleDefinition.formula)
+            Text(generatedScale.definition.formula)
                 .font(.caption2)
-                .tracking((scaleDefinition.formulaTracking - 1.0) * 2.0)
-                .foregroundColor(.black.opacity(0.7))
+                .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
+                .foregroundColor(.black)
                 .frame(width: 40, alignment: .leading)
+        }
+    }
+    
+    /// Draw the scale with pre-computed tick marks
+    private func drawScale(
+        context: inout GraphicsContext,
+        size: CGSize,
+        tickMarks: [TickMark],
+        definition: ScaleDefinition
+    ) {
+        // Draw baseline if enabled
+        if definition.showBaseline {
+            let baselinePath = Path { path in
+                switch definition.tickDirection {
+                case .down:
+                    path.move(to: CGPoint(x: 0, y: 0))
+                    path.addLine(to: CGPoint(x: size.width, y: 0))
+                case .up:
+                    path.move(to: CGPoint(x: 0, y: size.height))
+                    path.addLine(to: CGPoint(x: size.width, y: size.height))
+                }
+            }
+            
+            context.stroke(
+                baselinePath,
+                with: .color(.black),
+                lineWidth: 2.0
+            )
+        }
+        
+        // Draw tick marks
+        for tick in tickMarks {
+            // Calculate horizontal position
+            let xPos = tick.normalizedPosition * size.width
+            
+            // Calculate tick height based on relativeLength
+            let tickHeight = tick.style.relativeLength * (size.height * 0.6)
+            
+            // Calculate tick start and end positions based on direction
+            let (tickStartY, tickEndY): (CGFloat, CGFloat)
+            switch definition.tickDirection {
+            case .down:
+                tickStartY = 0
+                tickEndY = tickHeight
+            case .up:
+                tickStartY = size.height
+                tickEndY = size.height - tickHeight
+            }
+            
+            // Draw tick mark (vertical line) with anti-aliasing disabled
+            let tickPath = Path { path in
+                path.move(to: CGPoint(x: xPos, y: tickStartY))
+                path.addLine(to: CGPoint(x: xPos, y: tickEndY))
+            }
+            
+            context.withCGContext { cgContext in
+                cgContext.setShouldAntialias(false)
+                context.stroke(
+                    tickPath,
+                    with: .color(.black),
+                    lineWidth: tick.style.lineWidth / 1.5
+                )
+            }
+            
+            // Draw label if present
+            if let labelText = tick.label {
+                let fontSize = fontSizeForTick(tick.style.relativeLength)
+                
+                if fontSize > 0 {
+                    let text = Text(labelText)
+                        .font(.system(size: fontSize))
+                        .foregroundColor(.black)
+                    
+                    let resolvedText = context.resolve(text)
+                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+                    
+                    // Position label based on tick direction
+                    let labelY: CGFloat
+                    switch definition.tickDirection {
+                    case .down:
+                        // Labels below tick mark
+                        labelY = tickHeight + 2
+                    case .up:
+                        // Labels above tick mark
+                        labelY = size.height - tickHeight - textSize.height - 2
+                    }
+                    let labelX = xPos - textSize.width / 2
+                    
+                    context.draw(
+                        resolvedText,
+                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+                    )
+                }
+            }
         }
     }
     
@@ -148,12 +173,21 @@ struct ScaleView: View {
 
 // MARK: - StatorView Component (renders multiple scales)
 
-struct StatorView: View {
+struct StatorView: View, Equatable {
     let stator: Stator
     let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    static func == (lhs: StatorView, rhs: StatorView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.stator.scales.count == rhs.stator.scales.count &&
+        lhs.backgroundColor == rhs.backgroundColor &&
+        lhs.borderColor == rhs.borderColor
+    }
     
     // Calculate total max height based on number of scales
     private var maxTotalHeight: CGFloat {
@@ -164,10 +198,9 @@ struct StatorView: View {
         VStack(spacing: 0) {
             ForEach(Array(stator.scales.enumerated()), id: \.offset) { index, generatedScale in
                 ScaleView(
-                    scaleDefinition: generatedScale.definition,
+                    generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight,
-                    scaleName: String(generatedScale.definition.name.characters)
+                    height: scaleHeight
                 )
             }
         }
@@ -190,12 +223,21 @@ struct StatorView: View {
 
 // MARK: - SlideView Component (renders multiple scales)
 
-struct SlideView: View {
+struct SlideView: View, Equatable {
     let slide: Slide
     let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    static func == (lhs: SlideView, rhs: SlideView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.slide.scales.count == rhs.slide.scales.count &&
+        lhs.backgroundColor == rhs.backgroundColor &&
+        lhs.borderColor == rhs.borderColor
+    }
     
     // Calculate total max height based on number of scales
     private var maxTotalHeight: CGFloat {
@@ -206,10 +248,9 @@ struct SlideView: View {
         VStack(spacing: 0) {
             ForEach(Array(slide.scales.enumerated()), id: \.offset) { index, generatedScale in
                 ScaleView(
-                    scaleDefinition: generatedScale.definition,
+                    generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight,
-                    scaleName: String(generatedScale.definition.name.characters)
+                    height: scaleHeight
                 )
             }
         }
@@ -234,6 +275,10 @@ struct SlideView: View {
 
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
+    @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
+    // ✅ State for calculated dimensions - only updates when window size changes
+
+    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
     
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
@@ -262,8 +307,8 @@ struct ContentView: View {
         // Note: scaleLength is a reference value; actual rendering width is responsive
         do {
             return try RuleDefinitionParser.parse(
-               // "( DF [ CF- CIF DI CI C ] D )",
-               "(DF [ CF CIF CI C ] D ST )",
+               
+               "( DF K A ST CF CIF [ CI C ] D S T L )",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )
@@ -281,7 +326,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> (width: CGFloat, scaleHeight: CGFloat) {
+    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
@@ -301,60 +346,75 @@ struct ContentView: View {
         // Use the smaller of the two to ensure it fits within window
         let width = min(maxWidth, widthFromAspectRatio)
         
-        return (width, scaleHeight)
+        return Dimensions(width: width, scaleHeight: scaleHeight)
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            let dimensions = calculateDimensions(
-                availableWidth: geometry.size.width,
-                availableHeight: geometry.size.height
+        VStack(spacing: 0) {
+            // Top Stator (Fixed) - only depends on calculatedDimensions
+            StatorView(
+                stator: slideRule.frontTopStator,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .blue,
+                scaleHeight: calculatedDimensions.scaleHeight
             )
-            let width = dimensions.width
-            let scaleHeight = dimensions.scaleHeight
+            .equatable()  // ✅ Use Equatable conformance to skip updates
+            .id("topStator")  // ✅ Stable identity for performance
             
-            VStack(spacing: 0) {
-                // Top Stator (Fixed) - with multiple scales
-                StatorView(
-                    stator: slideRule.frontTopStator,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .blue,
-                    scaleHeight: scaleHeight
-                )
-                
-                // Slider (Movable) - with multiple scales
-                SlideView(
-                    slide: slideRule.frontSlide,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .orange,
-                    scaleHeight: scaleHeight
-                )
-                .offset(x: sliderOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { gesture in
-                            // Calculate new offset with bounds
-                            let newOffset = gesture.translation.width
-                            sliderOffset = min(max(newOffset, -width), width)
-                        }
-                )
-                .animation(.interactiveSpring(), value: sliderOffset)
-                
-                // Bottom Stator (Fixed) - with multiple scales
-                StatorView(
-                    stator: slideRule.frontBottomStator,
-                    width: width,
-                    backgroundColor: .white,
-                    borderColor: .blue,
-                    scaleHeight: scaleHeight
-                )
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // No clipping - allow slider to extend beyond stators like a physical slide rule
+            // Slider (Movable) - depends on both calculatedDimensions and sliderOffset
+            SlideView(
+                slide: slideRule.frontSlide,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .orange,
+                scaleHeight: calculatedDimensions.scaleHeight
+            )
+            .equatable()  // ✅ Use Equatable conformance to skip updates
+            .offset(x: sliderOffset)
+            .gesture(dragGesture)
+            .animation(.interactiveSpring(), value: sliderOffset)
+            .id("slide")  // ✅ Stable identity for performance
+            // Bottom Stator (Fixed) - only depends on calculatedDimensions
+            StatorView(
+                stator: slideRule.frontBottomStator,
+                width: calculatedDimensions.width,
+                backgroundColor: .white,
+                borderColor: .blue,
+                scaleHeight: calculatedDimensions.scaleHeight
+            )
+            .equatable()  // ✅ Use Equatable conformance to skip updates
+            .id("bottomStator")  // ✅ Stable identity for performance
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(padding)
+        // ✅ onGeometryChange - only updates calculatedDimensions when size actually changes
+        .onGeometryChange(for: Dimensions.self) { proxy in
+            // Extract ONLY the dimensions we need
+            let size = proxy.size
+            return calculateDimensions(
+                availableWidth: size.width,
+                availableHeight: size.height
+            )
+        } action: { newDimensions in
+            // ONLY called when dimensions actually change (not on every geometry event)
+            calculatedDimensions = newDimensions
+        }
+    }
+    
+    // ✅ Extract drag gesture for clarity
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { gesture in
+                // ✅ Accumulate offset from base position with bounds
+                let newOffset = sliderBaseOffset + gesture.translation.width
+                sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+                                 calculatedDimensions.width)
+            }
+            .onEnded { _ in
+                // ✅ Commit current offset as new base for next gesture
+                sliderBaseOffset = sliderOffset
+            }
     }
 }
 
@@ -362,3 +422,4 @@ struct ContentView: View {
     ContentView()
         .frame(width: 900)
 }
+

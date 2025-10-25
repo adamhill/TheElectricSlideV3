@@ -182,8 +182,8 @@ public enum StandardScales {
         let ciScale = self.ciScale(length: length)
         
         return ScaleDefinition(
-            name: AttributedString("DI"),
-            formula: AttributedString("1/x"),
+            name: "DI",
+            formula: "1/x",
             function: ciScale.function,
             beginValue: ciScale.beginValue,
             endValue: ciScale.endValue,
@@ -349,8 +349,8 @@ public enum StandardScales {
         let cifScale = self.cifScale(length: length)
         
         return ScaleDefinition(
-            name: AttributedString("DIF"),
-            formula: AttributedString("1/πx"),
+            name: "DIF",
+            formula: "1/πx",
             function: cifScale.function,
             beginValue: cifScale.beginValue,
             endValue: cifScale.endValue,
@@ -370,7 +370,7 @@ public enum StandardScales {
     public static func aScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("A")
-            .withFormula(AttributedString.formulaWithUnicode("x", superscript: "2"))
+            .withFormula("x²")
             .withFunction(HalfLogFunction())
             .withRange(begin: 1, end: 100)
             .withLength(length)
@@ -395,7 +395,7 @@ public enum StandardScales {
     public static func kScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("K")
-            .withFormula(AttributedString.formulaWithUnicode("x", superscript: "3"))
+            .withFormula("x³")
             .withFunction(ThirdLogFunction())
             .withRange(begin: 1, end: 1000)
             .withLength(length)
@@ -427,7 +427,7 @@ public enum StandardScales {
     public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL1")
-            .withFormula(AttributedString.formula("e", superscript: "0.01x"))
+            .withFormula("e⁰·⁰¹ˣ")
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.01, end: 1.105)
             .withLength(length)
@@ -447,7 +447,7 @@ public enum StandardScales {
     public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL2")
-            .withFormula(AttributedString.formula("e", superscript: "0.1x"))
+            .withFormula("e⁰·¹ˣ")
             .withFunction(LogLnFunction(multiplier: 10.0))
             .withRange(begin: 1.105, end: 2.72)
             .withLength(length)
@@ -468,7 +468,7 @@ public enum StandardScales {
     public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("LL3")
-            .withFormula(AttributedString.formula("e", superscript: "x"))
+            .withFormula("eˣ")
             .withFunction(LogLnFunction(multiplier: 1.0))
             .withRange(begin: 2.74, end: 21000)
             .withLength(length)
@@ -644,8 +644,8 @@ public enum StandardScales {
         let aScale = self.aScale(length: length)
         
         return ScaleDefinition(
-            name: AttributedString("B"),
-            formula: AttributedString.formulaWithUnicode("x", superscript: "2"),
+            name: "B",
+            formula: "x²",
             function: aScale.function,
             beginValue: aScale.beginValue,
             endValue: aScale.endValue,
@@ -672,8 +672,8 @@ public enum StandardScales {
         let aiFunction = AIScaleFunction()
         
         return ScaleDefinition(
-            name: AttributedString("AI"),
-            formula: AttributedString.formulaWithUnicode("100/x", superscript: "2"),
+            name: "AI",
+            formula: "100/x²",
             function: aiFunction,
             beginValue: 100.0,  // Start at 100
             endValue: 1.0,      // End at 1 (descending)
@@ -697,8 +697,8 @@ public enum StandardScales {
         let aiScale = self.aiScale(length: length)
         
         return ScaleDefinition(
-            name: AttributedString("BI"),
-            formula: AttributedString.formulaWithUnicode("100/x", superscript: "2"),
+            name: "BI",
+            formula: "100/x²",
             function: aiScale.function,
             beginValue: aiScale.beginValue,
             endValue: aiScale.endValue,

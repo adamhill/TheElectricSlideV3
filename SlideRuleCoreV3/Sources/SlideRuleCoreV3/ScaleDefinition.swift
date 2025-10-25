@@ -5,18 +5,17 @@ import Foundation
 /// Complete configuration for a slide rule scale
 public struct ScaleDefinition: Sendable {
     /// Default placeholder formula: ℵ√-1 (ALEPH SYMBOL × sqrt(-1))
-    public static let defaultFormula: AttributedString = {
+    public static let defaultFormula: String = {
         let aleph = "\u{2135}"  // ℵ ALEPH SYMBOL
         let sqrt = "√"          // SQUARE ROOT SYMBOL
-        var str = AttributedString("\(aleph)√-1")
-        return str
+        return "\(aleph)√-1"
     }()
     
     /// Human-readable name/label for the scale (e.g., "C", "D", "LL3")
-    public let name: AttributedString
+    public let name: String
     
     /// Formula representation for this scale (displayed on right side)
-    public let formula: AttributedString
+    public let formula: String
     
     /// The mathematical function this scale represents
     public let function: any ScaleFunction
@@ -61,8 +60,8 @@ public struct ScaleDefinition: Sendable {
     public let formulaTracking: Double
     
     public init(
-        name: AttributedString,
-        formula: AttributedString = ScaleDefinition.defaultFormula,
+        name: String,
+        formula: String = ScaleDefinition.defaultFormula,
         function: any ScaleFunction,
         beginValue: ScaleValue,
         endValue: ScaleValue,
@@ -94,11 +93,6 @@ public struct ScaleDefinition: Sendable {
         self.formulaTracking = formulaTracking
     }
     
-    /// Convenience property to get name as String
-    public var nameString: String {
-        String(name.characters)
-    }
-    
     /// Whether this is a circular scale
     public var isCircular: Bool {
         layout.isCircular
@@ -128,8 +122,8 @@ public struct ScaleConstant: Sendable {
 /// Fluent API for building scale definitions
 @available(macOS 12, *)
 public struct ScaleBuilder {
-    private var name: AttributedString = AttributedString("")
-    private var formula: AttributedString = ScaleDefinition.defaultFormula
+    private var name: String = ""
+    private var formula: String = ScaleDefinition.defaultFormula
     private var function: (any ScaleFunction)?
     private var beginValue: ScaleValue = 1.0
     private var endValue: ScaleValue = 10.0
@@ -148,29 +142,14 @@ public struct ScaleBuilder {
     
     public func withName(_ name: String) -> ScaleBuilder {
         var copy = self
-        copy.name = AttributedString(name)
-        return copy
-    }
-    
-    public func withName(_ name: AttributedString) -> ScaleBuilder {
-        var copy = self
         copy.name = name
         return copy
     }
     
     /// Sets the formula display for this scale
-    /// - Parameter formula: The formula as a String (will be converted to AttributedString)
+    /// - Parameter formula: The formula as a String
     /// - Returns: Updated builder
     public func withFormula(_ formula: String) -> ScaleBuilder {
-        var copy = self
-        copy.formula = AttributedString(formula)
-        return copy
-    }
-    
-    /// Sets the formula display for this scale
-    /// - Parameter formula: The formula as an AttributedString
-    /// - Returns: Updated builder
-    public func withFormula(_ formula: AttributedString) -> ScaleBuilder {
         var copy = self
         copy.formula = formula
         return copy
@@ -343,66 +322,4 @@ public enum StandardLabelFormatter {
     }
 }
 
-// MARK: - AttributedString Formula Helpers
 
-extension AttributedString {
-    /// Creates a formula with superscript notation using Unicode superscript characters
-    /// Example: formula("e", superscript: "0.01x") creates e⁰·⁰¹ˣ with Unicode superscripts
-    public static func formula(_ base: String, superscript: String) -> AttributedString {
-        let unicodeSuperscripts: [Character: Character] = [
-            "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
-            "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
-            "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
-            "n": "ⁿ", "i": "ⁱ", "x": "ˣ", ".": "·"
-        ]
-        
-        let convertedSuperscript = String(superscript.compactMap { unicodeSuperscripts[$0] ?? $0 })
-        return AttributedString(base + convertedSuperscript)
-    }
-    
-    /// Creates a formula with subscript notation using Unicode subscript characters
-    /// Example: formula("H", subscript: "2") creates H₂ with Unicode subscripts
-    public static func formula(_ base: String, subscript sub: String) -> AttributedString {
-        let unicodeSubscripts: [Character: Character] = [
-            "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
-            "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
-            "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
-            "a": "ₐ", "e": "ₑ", "o": "ₒ", "x": "ₓ", "h": "ₕ",
-            "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ", "p": "ₚ",
-            "s": "ₛ", "t": "ₜ"
-        ]
-        
-        let convertedSubscript = String(sub.compactMap { unicodeSubscripts[$0] ?? $0 })
-        return AttributedString(base + convertedSubscript)
-    }
-    
-    /// Creates a formula with superscript notation using Unicode superscript characters
-    /// Example: formulaWithUnicode("x", superscript: "2") creates x² using Unicode ²
-    public static func formulaWithUnicode(_ base: String, superscript: String) -> AttributedString {
-        let unicodeSuperscripts: [Character: Character] = [
-            "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
-            "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
-            "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
-            "n": "ⁿ", "i": "ⁱ"
-        ]
-        
-        let convertedSuperscript = String(superscript.compactMap { unicodeSuperscripts[$0] ?? $0 })
-        return AttributedString(base + convertedSuperscript)
-    }
-    
-    /// Creates a formula with Unicode subscript characters
-    /// Example: formulaWithUnicode("H", subscript: "2") creates H₂ using Unicode ₂
-    public static func formulaWithUnicode(_ base: String, subscript sub: String) -> AttributedString {
-        let unicodeSubscripts: [Character: Character] = [
-            "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
-            "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
-            "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
-            "a": "ₐ", "e": "ₑ", "o": "ₒ", "x": "ₓ", "h": "ₕ",
-            "k": "ₖ", "l": "ₗ", "m": "ₘ", "n": "ₙ", "p": "ₚ",
-            "s": "ₛ", "t": "ₜ"
-        ]
-        
-        let convertedSubscript = String(sub.compactMap { unicodeSubscripts[$0] ?? $0 })
-        return AttributedString(base + convertedSubscript)
-    }
-}

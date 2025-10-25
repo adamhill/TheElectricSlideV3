@@ -306,8 +306,8 @@ struct ContentView: View {
         // Note: scaleLength is a reference value; actual rendering width is responsive
         do {
             return try RuleDefinitionParser.parse(
-               // "( DF [ CF- CIF DI CI C ] D )",
-               "(DF [ CF CIF CI C ] D ST )",
+               
+               "( DF K A[ CI C ] D ST )",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )

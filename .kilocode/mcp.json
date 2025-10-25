@@ -20,6 +20,20 @@
         "tavily-map"
       ]
     },
+    "XcodeBuildMCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "xcodebuildmcp@latest"
+      ],
+      "alwaysAllow": [
+        "build_device",
+        "clean",
+        "discover_projs",
+        "get_app_bundle_id",
+        "get_device_app_path"
+      ]
+    },
     "dash-api": {
       "command": "uvx",
       "args": [

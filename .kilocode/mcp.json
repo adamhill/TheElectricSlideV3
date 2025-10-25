@@ -26,12 +26,17 @@
         "-y",
         "xcodebuildmcp@latest"
       ],
+      "env": {
+        "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
+      },
       "alwaysAllow": [
         "build_device",
         "clean",
         "discover_projs",
         "get_app_bundle_id",
-        "get_device_app_path"
+        "get_device_app_path",
+        "discover_tools",
+        "build_run_macos"
       ]
     },
     "dash-api": {

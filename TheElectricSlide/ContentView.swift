@@ -275,6 +275,7 @@ struct SlideView: View, Equatable {
 
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
+    @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
@@ -307,7 +308,7 @@ struct ContentView: View {
         do {
             return try RuleDefinitionParser.parse(
                
-               "( DF K A[ CI C ] D ST )",
+               "( DF K A ST CF CIF [ CI C ] D S T L )",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )
@@ -405,10 +406,14 @@ struct ContentView: View {
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { gesture in
-                // Calculate new offset with bounds
-                let newOffset = gesture.translation.width
+                // ✅ Accumulate offset from base position with bounds
+                let newOffset = sliderBaseOffset + gesture.translation.width
                 sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
                                  calculatedDimensions.width)
+            }
+            .onEnded { _ in
+                // ✅ Commit current offset as new base for next gesture
+                sliderBaseOffset = sliderOffset
             }
     }
 }

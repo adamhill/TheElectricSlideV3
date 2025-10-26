@@ -124,36 +124,229 @@ struct ScaleView: View {
                 )
             }
             
-            // Draw label if present
-            if let labelText = tick.label {
-                let fontSize = fontSizeForTick(tick.style.relativeLength)
-                
-                if fontSize > 0 {
-                    let text = Text(labelText)
-                        .font(.system(size: fontSize))
-                        .foregroundColor(.black)
-                    
-                    let resolvedText = context.resolve(text)
-                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
-                    
-                    // Position label based on tick direction
-                    let labelY: CGFloat
-                    switch definition.tickDirection {
-                    case .down:
-                        // Labels below tick mark
-                        labelY = tickHeight + 2
-                    case .up:
-                        // Labels above tick mark
-                        labelY = size.height - tickHeight - textSize.height - 2
-                    }
-                    let labelX = xPos - textSize.width / 2
-                    
-                    context.draw(
-                        resolvedText,
-                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
-                    )
-                }
+            // Draw labels (supports dual labeling from PostScript plabelR/plabelL)
+            if !tick.labels.isEmpty {
+                drawLabels(
+                    context: &context,
+                    labels: tick.labels,
+                    xPos: xPos,
+                    tickHeight: tickHeight,
+                    tickDirection: definition.tickDirection,
+                    size: size,
+                    tickRelativeLength: tick.style.relativeLength
+                )
+            } else if let labelText = tick.label {
+                // Backward compatibility: simple label rendering
+                drawSimpleLabel(
+                    context: &context,
+                    text: labelText,
+                    xPos: xPos,
+                    tickHeight: tickHeight,
+                    tickDirection: definition.tickDirection,
+                    size: size,
+                    tickRelativeLength: tick.style.relativeLength
+                )
             }
+        }
+    }
+    
+    /// Draw multiple labels with full PostScript-style configuration
+    private func drawLabels(
+        context: inout GraphicsContext,
+        labels: [SlideRuleCoreV3.LabelConfig],
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize,
+        tickRelativeLength: Double
+    ) {
+        for labelConfig in labels {
+            let baseFontSize = fontSizeForTick(tickRelativeLength)
+            guard baseFontSize > 0 else { continue }
+            
+            let fontSize = baseFontSize * labelConfig.fontSizeMultiplier
+            
+            // Use regular font (not italic), we'll apply transform for slant
+            let font = Font.system(size: fontSize)
+            
+            let text = Text(labelConfig.text)
+                .font(font)
+                .foregroundColor(colorFromLabelColor(labelConfig.color))
+            
+            let resolvedText = context.resolve(text)
+            let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+            
+            // Calculate position based on label position and tick direction
+            let (labelX, labelY) = calculateLabelPosition(
+                position: labelConfig.position,
+                xPos: xPos,
+                tickHeight: tickHeight,
+                textSize: textSize,
+                tickDirection: tickDirection,
+                size: size
+            )
+            
+            // Apply skew transform matching PostScript NumFontRi/NumFontLi
+            // PostScript: [ 1 0 tan(20°) 1 0 0 ] for right italic
+            //            [ 1 0 -tan(20°) 1 0 0 ] for left italic
+            // tan(20°) ≈ 0.364
+            let skewAmount: CGFloat
+            switch labelConfig.position {
+            case .right:
+                skewAmount = -tan(20.0 * .pi / 180.0)  // Left-leaning (away from tick on right)
+            case .left:
+                skewAmount = tan(20.0 * .pi / 180.0) // Right-leaning (away from tick on left)
+            default:
+                skewAmount = 0     // No slant for centered labels
+            }
+            
+            // Create skew transform matching PostScript font matrix
+            // Matrix positions: [a b c d tx ty] where c creates horizontal skew
+            var transform = CGAffineTransform.identity
+            transform.c = skewAmount  // Horizontal skew (x' = x + c*y)
+            
+            // Draw with transform
+            var transformedContext = context
+            transformedContext.transform = transform
+            transformedContext.draw(
+                resolvedText,
+                at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+            )
+        }
+    }
+    
+    /// Draw simple label (backward compatibility)
+    private func drawSimpleLabel(
+        context: inout GraphicsContext,
+        text: String,
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize,
+        tickRelativeLength: Double
+    ) {
+        let fontSize = fontSizeForTick(tickRelativeLength)
+        guard fontSize > 0 else { return }
+        
+        let label = Text(text)
+            .font(.system(size: fontSize))
+            .foregroundColor(.black)
+        
+        let resolvedText = context.resolve(label)
+        let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+        
+        // Position label based on tick direction
+        let labelY: CGFloat
+        switch tickDirection {
+        case .down:
+            // Labels below tick mark
+            labelY = tickHeight + 2
+        case .up:
+            // Labels above tick mark
+            labelY = size.height - tickHeight - textSize.height - 2
+        }
+        let labelX = xPos - textSize.width / 2
+        
+        context.draw(
+            resolvedText,
+            at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+        )
+    }
+    
+    /// Calculate label position based on PostScript positioning rules
+    private func calculateLabelPosition(
+        position: SlideRuleCoreV3.LabelPosition,
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        textSize: CGSize,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize
+    ) -> (x: CGFloat, y: CGFloat) {
+        let labelX: CGFloat
+        let labelY: CGFloat
+        
+        switch position {
+        case .centered:
+            // Default: center on tick
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight + 2
+            case .up:
+                labelY = size.height - tickHeight - textSize.height - 2
+            }
+            
+        case .top:
+            // PostScript /Ntop: above tick (inverted for .down direction)
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = -textSize.height - 2  // Above the baseline
+            case .up:
+                labelY = size.height - tickHeight - textSize.height - 2
+            }
+            
+        case .bottom:
+            // Below tick
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight + 2
+            case .up:
+                labelY = size.height + 2  // Below baseline
+            }
+            
+        case .left:
+            // PostScript /Nleft: to the left of tick
+            // Position so bottom corner barely doesn't touch tick, leaning away
+            labelX = xPos - textSize.width - 7 // Small gap from tick
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight - textSize.height +  1  // Bottom corner near tick end
+            case .up:
+                labelY = size.height - tickHeight - 2 // Bottom corner near tick end
+            }
+            
+        case .right:
+            // PostScript /Nright: to the right of tick
+            // Position so bottom corner barely doesn't touch tick, leaning away
+            labelX = xPos + 7// Small gap from tick
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight - textSize.height + 1  // Bottom corner near tick end
+            case .up:
+                labelY = size.height - tickHeight - 2  // Bottom corner near tick end
+            }
+        }
+        
+        return (labelX, labelY)
+    }
+    
+    /// Convert LabelColor to SwiftUI Color
+    private func colorFromLabelColor(_ labelColor: SlideRuleCoreV3.LabelColor) -> Color {
+        Color(
+            red: labelColor.red,
+            green: labelColor.green,
+            blue: labelColor.blue,
+            opacity: labelColor.alpha
+        )
+    }
+    
+    /// Get font with specified style (PostScript NumFontRi, NumFontLi support)
+    private func fontForStyle(_ style: SlideRuleCoreV3.LabelFontStyle, size: CGFloat) -> Font {
+        switch style {
+        case .regular:
+            return .system(size: size)
+        case .italic:
+            return .system(size: size).italic()
+        case .leftItalic:
+            // SwiftUI doesn't support left italic, use regular italic
+            // For true left italic, would need custom font rendering
+            return .system(size: size).italic()
+        case .bold:
+            return .system(size: size).bold()
+        case .boldItalic:
+            return .system(size: size).bold().italic()
         }
     }
     

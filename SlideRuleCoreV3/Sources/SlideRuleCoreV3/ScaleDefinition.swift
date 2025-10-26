@@ -362,6 +362,52 @@ public enum StandardLabelFormatter {
             return String(Int(value.rounded()))
         }
     }
+    
+    // MARK: - Dual Label Formatters (PostScript plabelR/plabelL support)
+    
+    /// S scale dual labeling: sine (right italic) and cosine (left italic)
+    /// PostScript reference: /plabelR and /plabelL in S scale definition
+    /// Right label shows angle, left label shows complementary angle (90° - angle)
+    public static func sScaleDual(value: ScaleValue) -> [LabelConfig] {
+        let angle = value
+        let complementary = 90.0 - value
+        
+        return [
+            // Right label: sine angle in italic (PostScript: NumFontRi)
+            LabelConfig(
+                text: String(Int(angle.rounded())),
+                position: .right,
+                fontStyle: .italic,
+                color: .black,
+                fontSizeMultiplier: 1.5
+            ),
+            // Left label: cosine (complementary) in italic red (PostScript: NumFontLi)
+            LabelConfig(
+                text: String(Int(complementary.rounded())),
+                position: .left,
+                fontStyle: .italic,
+                color: .red,
+                fontSizeMultiplier: 1.5
+            )
+        ]
+    }
+    
+    /// Create a single-label configuration with specified position and style
+    public static func singleLabel(
+        _ formatter: @escaping @Sendable (ScaleValue) -> String,
+        position: LabelPosition = .centered,
+        fontStyle: LabelFontStyle = .regular,
+        color: LabelColor = .black
+    ) -> @Sendable (ScaleValue) -> [LabelConfig] {
+        return { value in
+            [LabelConfig(
+                text: formatter(value),
+                position: position,
+                fontStyle: fontStyle,
+                color: color
+            )]
+        }
+    }
 }
 
 

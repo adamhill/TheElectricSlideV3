@@ -190,6 +190,82 @@ public enum ScaleLayout: Sendable, Equatable {
     }
 }
 
+// MARK: - Label Configuration
+
+/// Position of a label relative to its tick mark
+/// Corresponds to PostScript /Nright, /Nleft, /Ntop, /Nbottom positioning functions
+public enum LabelPosition: Sendable, Equatable, Hashable {
+    case top        // Above tick (PostScript: /Ntop)
+    case bottom     // Below tick
+    case left       // Left of tick (PostScript: /Nleft)
+    case right      // Right of tick (PostScript: /Nright)
+    case centered   // Centered on tick (default)
+}
+
+/// Font style modifiers for labels
+/// Corresponds to PostScript font selections like NumFontRi (right italic), NumFontLi (left italic)
+public enum LabelFontStyle: Sendable, Equatable, Hashable {
+    case regular
+    case italic         // PostScript: NumFontRi (20° right slant)
+    case leftItalic     // PostScript: NumFontLi (20° left slant)
+    case bold
+    case boldItalic
+}
+
+/// Color specification for labels
+public struct LabelColor: Sendable, Equatable, Hashable {
+    public let red: Double
+    public let green: Double
+    public let blue: Double
+    public let alpha: Double
+    
+    public init(red: Double, green: Double, blue: Double, alpha: Double = 1.0) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+    }
+    
+    /// Standard colors
+    public static let black = LabelColor(red: 0, green: 0, blue: 0)
+    public static let red = LabelColor(red: 1, green: 0, blue: 0)
+    public static let blue = LabelColor(red: 0, green: 0, blue: 1)
+    public static let green = LabelColor(red: 0, green: 0.5, blue: 0)
+}
+
+/// Configuration for a single label on a tick mark
+/// Supports PostScript's dual labeling system (plabelR, plabelL)
+public struct LabelConfig: Sendable, Equatable, Hashable {
+    /// The text to display
+    public let text: String
+    
+    /// Position relative to tick mark
+    public let position: LabelPosition
+    
+    /// Font style
+    public let fontStyle: LabelFontStyle
+    
+    /// Color
+    public let color: LabelColor
+    
+    /// Font size multiplier (relative to base size determined by tick length)
+    public let fontSizeMultiplier: Double
+    
+    public init(
+        text: String,
+        position: LabelPosition = .centered,
+        fontStyle: LabelFontStyle = .regular,
+        color: LabelColor = .black,
+        fontSizeMultiplier: Double = 1.0
+    ) {
+        self.text = text
+        self.position = position
+        self.fontStyle = fontStyle
+        self.color = color
+        self.fontSizeMultiplier = fontSizeMultiplier
+    }
+}
+
 // MARK: - Tick Mark Types
 
 /// Defines the type and visual properties of a tick mark
@@ -234,8 +310,13 @@ public struct TickMark: Sendable {
     /// The visual style of this tick
     public let style: TickStyle
     
-    /// Optional label text (if different from the value)
+    /// Optional simple label text (backward compatibility)
+    /// Deprecated: Use `labels` array for full dual-labeling support
     public let label: String?
+    
+    /// Multiple labels with full configuration (PostScript dual labeling)
+    /// Supports plabelR/plabelL with position, style, and color
+    public let labels: [LabelConfig]
     
     public init(
         value: ScaleValue,
@@ -249,6 +330,24 @@ public struct TickMark: Sendable {
         self.angularPosition = angularPosition
         self.style = style
         self.label = label
+        // Convert simple label to LabelConfig for consistency
+        self.labels = label.map { [LabelConfig(text: $0)] } ?? []
+    }
+    
+    /// Initialize with multiple configured labels (dual labeling support)
+    public init(
+        value: ScaleValue,
+        normalizedPosition: NormalizedPosition,
+        angularPosition: AngularPosition? = nil,
+        style: TickStyle,
+        labels: [LabelConfig]
+    ) {
+        self.value = value
+        self.normalizedPosition = normalizedPosition
+        self.angularPosition = angularPosition
+        self.style = style
+        self.label = labels.first?.text  // For backward compatibility
+        self.labels = labels
     }
 }
 
@@ -281,18 +380,23 @@ public struct ScaleSubsection: Sendable {
     /// Which tick levels should have labels
     public let labelLevels: Set<Int>
     
-    /// Optional custom label formatter for this subsection
+    /// Optional custom label formatter for this subsection (returns single string)
     public let labelFormatter: (@Sendable (ScaleValue) -> String)?
+    
+    /// Optional dual label formatter (returns multiple LabelConfig for complex labeling)
+    public let dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])?
     
     public init(
         startValue: ScaleValue,
         tickIntervals: [Double],
         labelLevels: Set<Int> = [0],
-        labelFormatter: (@Sendable (ScaleValue) -> String)? = nil
+        labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
+        dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])? = nil
     ) {
         self.startValue = startValue
         self.tickIntervals = tickIntervals
         self.labelLevels = labelLevels
         self.labelFormatter = labelFormatter
+        self.dualLabelFormatter = dualLabelFormatter
     }
 }

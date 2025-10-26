@@ -16,38 +16,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "312"
             endingLineNumber = "312"
-            landmarkName = "slideRule"
-            landmarkType = "24">
-            <Locations>
-               <Location
-                  uuid = "615BFD4E-5C9A-4AF4-9F21-E2B24E309098 - 103bb3c1af71d30d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "TheElectricSlide.ContentView.slideRule.getter : SlideRuleCoreV3.SlideRule"
-                  moduleName = "TheElectricSlide.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide/ContentView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "315"
-                  endingLineNumber = "315">
-               </Location>
-               <Location
-                  uuid = "615BFD4E-5C9A-4AF4-9F21-E2B24E309098 - 103bb3c1af71d30d"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "TheElectricSlide.ContentView.slideRule.getter : SlideRuleCoreV3.SlideRule"
-                  moduleName = "TheElectricSlide.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide/ContentView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "315"
-                  endingLineNumber = "315">
-               </Location>
-            </Locations>
+            landmarkName = "calculateLabelPosition(position:xPos:tickHeight:textSize:tickDirection:size:)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

@@ -866,42 +866,20 @@ extension StandardScales {
     
     // MARK: - LL3 Scale (Base Scale)
     
-    /// LL3 scale: Base log-log scale for e^x where 0 ≤ x ≤ ln(22,000)
+    /// LL3 scale: Base log-log scale with exact PostScript subsections
     ///
-    /// **Description:** Primary log-log scale representing e^x for large powers
-    /// **Formula:** log₁₀(ln(x)) where x represents e^(D scale value)
-    /// **Range:** 2.72 (e¹) to 22,026 (e¹⁰)
-    /// **Used for:** arbitrary-powers, nth-roots, exponential-calculations, compound-interest
+    /// **PostScript Reference:** Lines 1419-1442 in postscript-engine-for-sliderules.ps
+    /// **Formula:** {ln log} → log₁₀(ln(x)) where x = e^y
+    /// **Range:** 2.74 (≈e^1.0) to 21,000 (≈e^10)
+    /// **Physical Applications:** Power calculations, exponential growth, compound interest
     ///
-    /// **Physical Applications:**
-    /// - Nuclear decay: Half-life calculations using exponential decay
-    /// - Finance: Compound interest A = Pe^(rt)
-    /// - Population growth: N(t) = N₀e^(kt)
-    /// - RC circuits: Voltage decay V(t) = V₀e^(-t/RC)
-    /// - Radioactive dating: Age determination from decay ratios
-    /// - Chemical kinetics: Reaction rate equations
+    /// **COMPLETE SUBSECTION STRATEGY:**
+    /// This implementation includes ALL 17 PostScript subsections for perfect fidelity.
+    /// Some subsections provide only tick marks (no labels) for visual guidance.
     ///
-    /// **Example 1:** Calculate 8.87^3.48
-    /// 1. Locate 8.87 on LL3 scale
-    /// 2. Set left C index to cursor
-    /// 3. Move cursor to 3.48 on C scale
-    /// 4. Read 697 on LL3 scale
-    /// 5. Demonstrates arbitrary power calculation
-    ///
-    /// **Example 2:** Calculate 5th root of 100 (100^0.2)
-    /// 1. Locate 100 on LL3
-    /// 2. Set right C index to cursor
-    /// 3. Move cursor to 2 on C (for 1/5 = 0.2)
-    /// 4. Read 2.51 on LL3
-    /// 5. Shows root extraction using reciprocal powers
-    ///
-    /// **Example 3:** Compound interest: $1000 at 5% for 10 years
-    /// 1. Calculate e^(0.05 × 10) = e^0.5
-    /// 2. Find e^0.5 ≈ 1.65 on LL2 (using D scale = 0.5)
-    /// 3. Multiply by principal: 1000 × 1.65 = $1650
-    /// 4. Demonstrates exponential growth
-    ///
-    /// **POSTSCRIPT REFERENCES:** Line 935 in postscript-engine-for-sliderules.ps
+    /// **POSTSCRIPT LINE REFERENCES:**
+    /// - Scale definition: Line 1419
+    /// - Subsections 1-17: Lines 1426-1442
     public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
         // Formula: log₁₀(ln(x))
         // This maps e^x to position on the scale
@@ -918,16 +896,198 @@ extension StandardScales {
         return ScaleBuilder()
             .withName("LL3")
             .withFunction(ll3Function)
-            .withRange(begin: 2.74, end: 22026.0)  // e¹ to e¹⁰
+            .withRange(begin: 2.74, end: 21000.0)  // e¹ to e¹⁰
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                ScaleSubsection(startValue: 2.74, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0]),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10.0, 5.0, 1.0, 0.5], labelLevels: [0]),
-                ScaleSubsection(startValue: 100.0, tickIntervals: [100.0, 50.0, 10.0, 5.0], labelLevels: [0]),
-                ScaleSubsection(startValue: 1000.0, tickIntervals: [1000.0, 500.0, 100.0, 50.0], labelLevels: [0])
+                // PostScript subsection 1: 2.6-4 (line 1426)
+                // Very fine divisions for e^1 region where LL3 begins
+                // Intervals: [1, .5, .1, .02]
+                // CRITICAL: Most precise region, essential for small exponentials
+                ScaleSubsection(
+                    startValue: 2.6,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.02],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
+                ),
+                
+                // PostScript subsection 2: 4-6 (line 1427)
+                // Slightly coarser as we move away from e
+                // Intervals: [1, .5, .1, .05]
+                ScaleSubsection(
+                    startValue: 4.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 3: 6-10 (line 1428)
+                // Transition to decades
+                // Intervals: [1, null, .5, .1]
+                // LABEL STRATEGY: Show 6, 7, 8, 9, 10
+                ScaleSubsection(
+                    startValue: 6.0,
+                    tickIntervals: [1.0, 0.5, 0.1],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 4: 10-15 (line 1429)
+                // Lower decades with 5-unit primary intervals
+                // Intervals: [5, null, 1, .2]
+                // LABEL STRATEGY: Show 10, 15
+                ScaleSubsection(
+                    startValue: 10.0,
+                    tickIntervals: [5.0, 1.0, 0.2],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 5: 15-20 (line 1430)
+                // Mid-decade refinement
+                // Intervals: [5, null, 1, .5]
+                // LABEL STRATEGY: Show 15, 20
+                ScaleSubsection(
+                    startValue: 15.0,
+                    tickIntervals: [5.0, 1.0, 0.5],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 6: 20-30 (line 1431)
+                // Decades with half-decade markers
+                // Intervals: [10, 5, 1, .5]
+                // LABEL STRATEGY: Show 20, 30 (and possibly 25 from secondary)
+                ScaleSubsection(
+                    startValue: 20.0,
+                    tickIntervals: [10.0, 5.0, 1.0, 0.5],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 7: 30-50 (line 1432)
+                // Wider spacing as function becomes linear
+                // Intervals: [10, null, 5, 1]
+                // LABEL STRATEGY: Show 30, 40, 50
+                ScaleSubsection(
+                    startValue: 30.0,
+                    tickIntervals: [10.0, 5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 8: 50-100 (line 1433)
+                // Transition to hundreds
+                // Intervals: [50, null, 10, 2]
+                // LABEL STRATEGY: Show 50, 100
+                ScaleSubsection(
+                    startValue: 50.0,
+                    tickIntervals: [50.0, 10.0, 2.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 9: 100-200 (line 1434)
+                // Hundreds with rich subdivisions
+                // Intervals: [100, 50, 10, 5]
+                // LABEL STRATEGY: Show 100, 200
+                ScaleSubsection(
+                    startValue: 100.0,
+                    tickIntervals: [100.0, 50.0, 10.0, 5.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 10: 200-500 (line 1435)
+                // Mid-hundreds
+                // Intervals: [200, 100, 50, 10]
+                // LABEL STRATEGY: Show 200, 400 (from primary), possibly 300 (from secondary)
+                ScaleSubsection(
+                    startValue: 200.0,
+                    tickIntervals: [200.0, 100.0, 50.0, 10.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 11: 500-1000 (line 1436)
+                // Upper hundreds
+                // Intervals: [500, 100, 50]
+                // LABEL STRATEGY: Show 500, 1000
+                ScaleSubsection(
+                    startValue: 500.0,
+                    tickIntervals: [500.0, 100.0, 50.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 12: 1000-2000 (line 1437)
+                // Thousands
+                // Intervals: [1000, 500, 100]
+                // LABEL STRATEGY: Show 1000, 2000
+                ScaleSubsection(
+                    startValue: 1000.0,
+                    tickIntervals: [1000.0, 500.0, 100.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 13: 2000-3000 (line 1438)
+                // Mid-thousands without primary labels
+                // Intervals: [null, null, 1000, 200]
+                // PURPOSE: Provides tick marks only, no labels at 2000 level
+                // NOTE: Labels at 2000 come from subsection 12, at 3000 from subsection 14
+                ScaleSubsection(
+                    startValue: 2000.0,
+                    tickIntervals: [1000.0, 200.0],
+                    labelLevels: [],  // No labels - boundary markers from adjacent subsections
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 14: 3000-5000 (line 1439)
+                // Upper thousands
+                // Intervals: [null, null, 1000, 500]
+                // PURPOSE: Similar to subsection 13 - tick marks with boundary labels from neighbors
+                ScaleSubsection(
+                    startValue: 3000.0,
+                    tickIntervals: [1000.0, 500.0],
+                    labelLevels: [],  // No labels
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 15: 5000-10000 (line 1440)
+                // Five-thousand interval
+                // Intervals: [5000, null, null, 1000]
+                // LABEL STRATEGY: No labels in PostScript ([]) - boundary labels from neighbors
+                ScaleSubsection(
+                    startValue: 5000.0,
+                    tickIntervals: [5000.0, 1000.0],
+                    labelLevels: [],  // No labels per PostScript
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 16: 10000-20000 (line 1441)
+                // Ten-thousand interval
+                // Intervals: [10000, null, null, 2000]
+                // LABEL STRATEGY: Show 10000, 20000 (plabel applies)
+                ScaleSubsection(
+                    startValue: 10000.0,
+                    tickIntervals: [10000.0, 2000.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                
+                // PostScript subsection 17: 20000+ (line 1442)
+                // Endpoint region
+                // Intervals: [10000, null, null, 2000]
+                // PURPOSE: Provides tick marks approaching 21000 endpoint
+                // NOTE: No labels in PostScript ([])
+                ScaleSubsection(
+                    startValue: 20000.0,
+                    tickIntervals: [10000.0, 2000.0],
+                    labelLevels: [],  // No labels
+                    labelFormatter: StandardLabelFormatter.integer
+                )
             ])
-            .withLabelFormatter(StandardLabelFormatter.integer)
             .withConstants([
                 ScaleConstant(
                     value: 2.71828,

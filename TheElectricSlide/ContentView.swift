@@ -576,6 +576,7 @@ struct ContentView: View {
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
+    @State private var cursorState = CursorState()
     
     // ✅ Helper to create a blank spacer scale for balancing
     private func createSpacerScale(length: Double) -> GeneratedScale {
@@ -856,6 +857,36 @@ struct ContentView: View {
         return Dimensions(width: width, scaleHeight: scaleHeight)
     }
     
+    /// Calculate total vertical height for all scales on a given side
+    /// - Parameter side: The rule side to calculate height for
+    /// - Returns: Total height in points
+    private func totalScaleHeight(for side: RuleSide) -> CGFloat {
+        let stator: Stator
+        let slide: Slide
+        let bottomStator: Stator
+        
+        switch side {
+        case .front:
+            stator = balancedFrontTopStator
+            slide = balancedFrontSlide
+            bottomStator = balancedFrontBottomStator
+        case .back:
+            guard let backTop = balancedBackTopStator,
+                  let backSlide = balancedBackSlide,
+                  let backBottom = balancedBackBottomStator else {
+                return 0
+            }
+            stator = backTop
+            slide = backSlide
+            bottomStator = backBottom
+        }
+        
+        let scaleCount = stator.scales.count +
+                         slide.scales.count +
+                         bottomStator.scales.count
+        return CGFloat(scaleCount) * calculatedDimensions.scaleHeight
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // View Mode Picker
@@ -892,6 +923,14 @@ struct ContentView: View {
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .overlay {
+                        CursorOverlay(
+                            cursorState: cursorState,
+                            width: calculatedDimensions.width,
+                            height: totalScaleHeight(for: .front),
+                            side: .front
+                        )
+                    }
                 }
                 
                 // Back side - show if mode is .back or .both (and back side exists)
@@ -912,6 +951,14 @@ struct ContentView: View {
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .overlay {
+                        CursorOverlay(
+                            cursorState: cursorState,
+                            width: calculatedDimensions.width,
+                            height: totalScaleHeight(for: .back),
+                            side: .back
+                        )
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -929,6 +976,10 @@ struct ContentView: View {
             // ONLY called when dimensions actually change (not on every geometry event)
             calculatedDimensions = newDimensions
         }
+        .onAppear {
+            // Connect cursor state to slide rule data
+            cursorState.setSlideRuleProvider(self)
+        }
     }
     
     // ✅ Drag gesture handlers - single implementation for both sides
@@ -940,6 +991,41 @@ struct ContentView: View {
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
         sliderBaseOffset = sliderOffset
+    }
+}
+
+// MARK: - SlideRuleProvider Conformance
+
+extension ContentView: SlideRuleProvider {
+    func getFrontScaleData() -> (topStator: Stator, slide: Slide, bottomStator: Stator)? {
+        // Only return data if front side is visible
+        guard viewMode == .front || viewMode == .both else {
+            return nil
+        }
+        return (
+            topStator: balancedFrontTopStator,
+            slide: balancedFrontSlide,
+            bottomStator: balancedFrontBottomStator
+        )
+    }
+    
+    func getBackScaleData() -> (topStator: Stator, slide: Slide, bottomStator: Stator)? {
+        // Only return data if back side is visible
+        guard viewMode == .back || viewMode == .both,
+              let backTop = balancedBackTopStator,
+              let backSlide = balancedBackSlide,
+              let backBottom = balancedBackBottomStator else {
+            return nil
+        }
+        return (backTop, backSlide, backBottom)
+    }
+    
+    func getSlideOffset() -> CGFloat {
+        sliderOffset
+    }
+    
+    func getScaleWidth() -> CGFloat {
+        calculatedDimensions.width
     }
 }
 

@@ -2,7 +2,11 @@
   "mcpServers": {
     "sosumi": {
       "type": "streamable-http",
-      "url": "https://sosumi.ai/mcp"
+      "url": "https://sosumi.ai/mcp",
+      "alwaysAllow": [
+        "searchAppleDocumentation",
+        "fetchAppleDocumentation"
+      ]
     },
     "tavily": {
       "command": "npx",

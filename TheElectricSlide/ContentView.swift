@@ -20,6 +20,31 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     var scaleHeight: CGFloat
 }
 
+// MARK: - View Mode
+
+enum ViewMode: String, CaseIterable, Identifiable {
+    case front = "Front"
+    case back = "Back"
+    case both = "Both"
+    
+    var id: String { rawValue }
+}
+
+// MARK: - Rule Side
+
+enum RuleSide: String, Sendable {
+    case front = "Front (Side A)"
+    case back = "Back (Side B)"
+    
+    var displayName: String { rawValue }
+    var borderColor: Color {
+        switch self {
+        case .front: return .blue
+        case .back: return .green
+        }
+    }
+}
+
 // MARK: - ScaleView Component
 
 struct ScaleView: View {
@@ -464,11 +489,90 @@ struct SlideView: View, Equatable {
     }
 }
 
+// MARK: - SideView Component (renders complete side: top stator, slide, bottom stator)
+
+struct SideView: View, Equatable {
+    let side: RuleSide
+    let topStator: Stator
+    let slide: Slide
+    let bottomStator: Stator
+    let width: CGFloat
+    let scaleHeight: CGFloat
+    let sliderOffset: CGFloat
+    let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
+    let onDragChanged: (DragGesture.Value) -> Void
+    let onDragEnded: (DragGesture.Value) -> Void
+    
+    // ✅ Equatable conformance - only compare properties affecting rendering (not closures)
+    static func == (lhs: SideView, rhs: SideView) -> Bool {
+        lhs.side == rhs.side &&
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.sliderOffset == rhs.sliderOffset &&
+        lhs.showLabel == rhs.showLabel &&
+        lhs.topStator.scales.count == rhs.topStator.scales.count &&
+        lhs.slide.scales.count == rhs.slide.scales.count &&
+        lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Optional side label
+            if showLabel {
+                Text(side.displayName)
+                    .font(.headline)
+                    .padding(.bottom, 4)
+            }
+            
+            // Top Stator (Fixed)
+            StatorView(
+                stator: topStator,
+                width: width,
+                backgroundColor: .white,
+                borderColor: side.borderColor,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .id("\(side.rawValue)-topStator")
+            
+            // Slide (Movable)
+            SlideView(
+                slide: slide,
+                width: width,
+                backgroundColor: .white,
+                borderColor: .orange,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .offset(x: sliderOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged(onDragChanged)
+                    .onEnded(onDragEnded)
+            )
+            .animation(.interactiveSpring(), value: sliderOffset)
+            .id("\(side.rawValue)-slide")
+            
+            // Bottom Stator (Fixed)
+            StatorView(
+                stator: bottomStator,
+                width: width,
+                backgroundColor: .white,
+                borderColor: side.borderColor,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .id("\(side.rawValue)-bottomStator")
+        }
+    }
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
+    @State private var viewMode: ViewMode = .both  // View mode selector
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
@@ -511,11 +615,28 @@ struct ContentView: View {
         }
     }
     
-    // Calculate total number of scales
+    // Calculate total number of scales based on view mode
     private var totalScaleCount: Int {
-        slideRule.frontTopStator.scales.count +
-        slideRule.frontSlide.scales.count +
-        slideRule.frontBottomStator.scales.count
+        var count = 0
+        
+        // Front side scales
+        if viewMode == .front || viewMode == .both {
+            count += slideRule.frontTopStator.scales.count +
+                     slideRule.frontSlide.scales.count +
+                     slideRule.frontBottomStator.scales.count
+        }
+        
+        // Back side scales (if available)
+        if (viewMode == .back || viewMode == .both),
+           let backTop = slideRule.backTopStator,
+           let backSlide = slideRule.backSlide,
+           let backBottom = slideRule.backBottomStator {
+            count += backTop.scales.count +
+                     backSlide.scales.count +
+                     backBottom.scales.count
+        }
+        
+        return count
     }
     
     // Helper function to calculate responsive dimensions
@@ -544,43 +665,65 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top Stator (Fixed) - only depends on calculatedDimensions
-            StatorView(
-                stator: slideRule.frontTopStator,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .id("topStator")  // ✅ Stable identity for performance
+            // View Mode Picker
+            HStack {
+                Spacer()
+                Picker("View Mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                // Disable back/both if no back side available
+                .disabled(slideRule.backTopStator == nil && (viewMode == .back || viewMode == .both))
+                Spacer()
+            }
             
-            // Slider (Movable) - depends on both calculatedDimensions and sliderOffset
-            SlideView(
-                slide: slideRule.frontSlide,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .orange,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .offset(x: sliderOffset)
-            .gesture(dragGesture)
-            .animation(.interactiveSpring(), value: sliderOffset)
-            .id("slide")  // ✅ Stable identity for performance
-            // Bottom Stator (Fixed) - only depends on calculatedDimensions
-            StatorView(
-                stator: slideRule.frontBottomStator,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .id("bottomStator")  // ✅ Stable identity for performance
+            // Main slide rule content
+            VStack(spacing: 20) {
+                // Front side - show if mode is .front or .both
+                if viewMode == .front || viewMode == .both {
+                    SideView(
+                        side: .front,
+                        topStator: slideRule.frontTopStator,
+                        slide: slideRule.frontSlide,
+                        bottomStator: slideRule.frontBottomStator,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                }
+                
+                // Back side - show if mode is .back or .both (and back side exists)
+                if (viewMode == .back || viewMode == .both),
+                   let backTop = slideRule.backTopStator,
+                   let backSlide = slideRule.backSlide,
+                   let backBottom = slideRule.backBottomStator {
+                    SideView(
+                        side: .back,
+                        topStator: backTop,
+                        slide: backSlide,
+                        bottomStator: backBottom,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(padding)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(padding)
         // ✅ onGeometryChange - only updates calculatedDimensions when size actually changes
         .onGeometryChange(for: Dimensions.self) { proxy in
             // Extract ONLY the dimensions we need
@@ -595,19 +738,15 @@ struct ContentView: View {
         }
     }
     
-    // ✅ Extract drag gesture for clarity
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .onChanged { gesture in
-                // ✅ Accumulate offset from base position with bounds
-                let newOffset = sliderBaseOffset + gesture.translation.width
-                sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
-                                 calculatedDimensions.width)
-            }
-            .onEnded { _ in
-                // ✅ Commit current offset as new base for next gesture
-                sliderBaseOffset = sliderOffset
-            }
+    // ✅ Drag gesture handlers - single implementation for both sides
+    private func handleDragChanged(_ gesture: DragGesture.Value) {
+        let newOffset = sliderBaseOffset + gesture.translation.width
+        sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+                          calculatedDimensions.width)
+    }
+    
+    private func handleDragEnded(_ gesture: DragGesture.Value) {
+        sliderBaseOffset = sliderOffset
     }
 }
 

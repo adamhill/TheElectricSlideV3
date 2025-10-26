@@ -577,6 +577,24 @@ struct ContentView: View {
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
     
+    // ✅ Helper to create a blank spacer scale for balancing
+    private func createSpacerScale(length: Double) -> GeneratedScale {
+        let spacerDefinition = ScaleDefinition(
+            name: "",
+            formula: "",
+            function: LinearFunction(),
+            beginValue: 1.0,
+            endValue: 10.0,
+            scaleLengthInPoints: length,
+            layout: .linear,
+            tickDirection: .up,
+            subsections: [],
+            showBaseline: false,
+            formulaTracking: 1.0
+        )
+        return GeneratedScale(definition: spacerDefinition)
+    }
+    
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
     private let idealScaleHeight: CGFloat = 25 // Ideal height per scale
@@ -605,7 +623,7 @@ struct ContentView: View {
         do {
             return try RuleDefinitionParser.parse(
               // "(C [K] A)",
-              "(LL01 K A [ B | T ST S ] D L- LL1- LL2- LL3- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
+              "(LL01 K A [ B | T ST S ] D L- LL1- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )
@@ -613,6 +631,157 @@ struct ContentView: View {
             // Fallback to a basic rule if parsing fails
             fatalError("Failed to parse slide rule definition: \(error)")
         }
+    }
+    
+    // ✅ Balanced stators and slides - adds spacers to match scale counts
+    private var balancedFrontTopStator: Stator {
+        guard viewMode == .both,
+              let backTop = slideRule.backTopStator else {
+            return slideRule.frontTopStator
+        }
+        
+        let frontCount = slideRule.frontTopStator.scales.count
+        let backCount = backTop.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontTopStator.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: slideRule.frontTopStator.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontTopStator.heightInPoints,
+                showBorder: slideRule.frontTopStator.showBorder
+            )
+        }
+        return slideRule.frontTopStator
+    }
+    
+    private var balancedFrontSlide: Slide {
+        guard viewMode == .both,
+              let backSlide = slideRule.backSlide else {
+            return slideRule.frontSlide
+        }
+        
+        let frontCount = slideRule.frontSlide.scales.count
+        let backCount = backSlide.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontSlide.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Slide(
+                name: slideRule.frontSlide.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontSlide.heightInPoints,
+                showBorder: slideRule.frontSlide.showBorder
+            )
+        }
+        return slideRule.frontSlide
+    }
+    
+    private var balancedFrontBottomStator: Stator {
+        guard viewMode == .both,
+              let backBottom = slideRule.backBottomStator else {
+            return slideRule.frontBottomStator
+        }
+        
+        let frontCount = slideRule.frontBottomStator.scales.count
+        let backCount = backBottom.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontBottomStator.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: slideRule.frontBottomStator.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontBottomStator.heightInPoints,
+                showBorder: slideRule.frontBottomStator.showBorder
+            )
+        }
+        return slideRule.frontBottomStator
+    }
+    
+    private var balancedBackTopStator: Stator? {
+        guard viewMode == .both,
+              let backTop = slideRule.backTopStator else {
+            return slideRule.backTopStator
+        }
+        
+        let frontCount = slideRule.frontTopStator.scales.count
+        let backCount = backTop.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backTop.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: backTop.name,
+                scales: balancedScales,
+                heightInPoints: backTop.heightInPoints,
+                showBorder: backTop.showBorder
+            )
+        }
+        return backTop
+    }
+    
+    private var balancedBackSlide: Slide? {
+        guard viewMode == .both,
+              let backSlide = slideRule.backSlide else {
+            return slideRule.backSlide
+        }
+        
+        let frontCount = slideRule.frontSlide.scales.count
+        let backCount = backSlide.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backSlide.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Slide(
+                name: backSlide.name,
+                scales: balancedScales,
+                heightInPoints: backSlide.heightInPoints,
+                showBorder: backSlide.showBorder
+            )
+        }
+        return backSlide
+    }
+    
+    private var balancedBackBottomStator: Stator? {
+        guard viewMode == .both,
+              let backBottom = slideRule.backBottomStator else {
+            return slideRule.backBottomStator
+        }
+        
+        let frontCount = slideRule.frontBottomStator.scales.count
+        let backCount = backBottom.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backBottom.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: backBottom.name,
+                scales: balancedScales,
+                heightInPoints: backBottom.heightInPoints,
+                showBorder: backBottom.showBorder
+            )
+        }
+        return backBottom
     }
     
     // Calculate total number of scales based on view mode
@@ -639,20 +808,44 @@ struct ContentView: View {
         return count
     }
     
+    // Calculate number of "gaps" between sides for spacing
+    private var sideGapCount: Int {
+        // If showing both sides, we have 1 gap between them (20pt spacing)
+        if viewMode == .both && slideRule.backTopStator != nil {
+            return 1
+        }
+        return 0
+    }
+    
+    // Vertical spacing between sides when showing both
+    private let sideSpacing: CGFloat = 20
+    
+    // Estimate total vertical space needed for labels (when showing both sides)
+    private var labelHeight: CGFloat {
+        if viewMode == .both && slideRule.backTopStator != nil {
+            return 30  // ~15pt per label × 2 labels
+        }
+        return 0
+    }
+    
     // Helper function to calculate responsive dimensions
     private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
+        // Account for spacing between sides and labels
+        let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
+        let availableHeightForScales = maxHeight - totalSpacingHeight
+        
         // Calculate scale height based on available height
         let calculatedScaleHeight = min(
-            maxHeight / CGFloat(totalScaleCount),
+            availableHeightForScales / CGFloat(totalScaleCount),
             maxScaleHeight
         )
         let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
         
         // Calculate total height needed for all scales
-        let totalHeight = scaleHeight * CGFloat(totalScaleCount)
+        let totalHeight = scaleHeight * CGFloat(totalScaleCount) + totalSpacingHeight
         
         // Calculate width based on aspect ratio
         let widthFromAspectRatio = totalHeight * targetAspectRatio
@@ -688,9 +881,9 @@ struct ContentView: View {
                 if viewMode == .front || viewMode == .both {
                     SideView(
                         side: .front,
-                        topStator: slideRule.frontTopStator,
-                        slide: slideRule.frontSlide,
-                        bottomStator: slideRule.frontBottomStator,
+                        topStator: balancedFrontTopStator,
+                        slide: balancedFrontSlide,
+                        bottomStator: balancedFrontBottomStator,
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
@@ -703,9 +896,9 @@ struct ContentView: View {
                 
                 // Back side - show if mode is .back or .both (and back side exists)
                 if (viewMode == .back || viewMode == .both),
-                   let backTop = slideRule.backTopStator,
-                   let backSlide = slideRule.backSlide,
-                   let backBottom = slideRule.backBottomStator {
+                   let backTop = balancedBackTopStator,
+                   let backSlide = balancedBackSlide,
+                   let backBottom = balancedBackBottomStator {
                     SideView(
                         side: .back,
                         topStator: backTop,

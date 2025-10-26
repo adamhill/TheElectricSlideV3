@@ -29,11 +29,11 @@ struct ScaleView: View {
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            // Scale name label on the left
+            // Scale name label on the left (right-aligned with minimum width)
             Text(generatedScale.definition.name)
                 .font(.caption2)
                 .foregroundColor(.black)
-                .frame(width: 20)
+                .frame(minWidth: 28, alignment: .trailing)
             
             // Scale view
             GeometryReader { geometry in

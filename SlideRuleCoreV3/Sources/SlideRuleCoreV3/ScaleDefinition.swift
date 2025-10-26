@@ -285,6 +285,11 @@ public enum StandardLabelFormatter {
         String(format: "%.3f", value)
     }
     
+    /// Four decimal places
+    public static let fourDecimals: @Sendable (ScaleValue) -> String = { value in
+        String(format: "%.4f", value)
+    }
+    
     /// Scientific notation
     public static let scientific: @Sendable (ScaleValue) -> String = { value in
         String(format: "%.2e", value)
@@ -319,6 +324,89 @@ public enum StandardLabelFormatter {
             return "1"
         }
         return String(format: "e^%.2f", power)
+    }
+    
+    // MARK: - K Scale Formatter (Compact Decade Display)
+    
+    /// K scale formatter: shows actual value at power-of-10 boundaries, compact form elsewhere
+    /// Examples: 10→"10", 20→"2", 100→"100", 200→"2", 1000→"1000"
+    /// Uses ClosedRange to properly detect the power-of-10 boundaries
+    public static let kScale: @Sendable (ScaleValue) -> String = { value in
+        // Define all power-of-10 boundaries
+        let tenBoundary: ClosedRange<Double> = 9.5...10.5
+        let hundredBoundary: ClosedRange<Double> = 99.5...100.5
+        let thousandBoundary: ClosedRange<Double> = 995.0...1005.0
+        
+        // Check boundaries and show actual values
+        if thousandBoundary.contains(value) {
+            return "1000"
+        }
+        if hundredBoundary.contains(value) {
+            return "100"
+        }
+        if tenBoundary.contains(value) {
+            return "10"
+        }
+        
+        // For non-boundary values, use appropriate division
+        if value >= 100.0 {
+            // 100-1000 range: divide by 100 (200→"2", 300→"3", etc.)
+            let divided = value / 100.0
+            return String(Int(divided.rounded()))
+        } else if value >= 10.0 {
+            // 10-100 range: divide by 10 (20→"2", 30→"3", etc.)
+            let divided = value / 10.0
+            return String(Int(divided.rounded()))
+        } else {
+            // 1-10 range: show as integer
+            return String(Int(value.rounded()))
+        }
+    }
+    
+    // MARK: - Dual Label Formatters (PostScript plabelR/plabelL support)
+    
+    /// S scale dual labeling: sine (right italic) and cosine (left italic)
+    /// PostScript reference: /plabelR and /plabelL in S scale definition
+    /// Right label shows angle, left label shows complementary angle (90° - angle)
+    public static func sScaleDual(value: ScaleValue) -> [LabelConfig] {
+        let angle = value
+        let complementary = 90.0 - value
+        
+        return [
+            // Right label: sine angle in italic (PostScript: NumFontRi)
+            LabelConfig(
+                text: String(Int(angle.rounded())),
+                position: .right,
+                fontStyle: .italic,
+                color: .black,
+                fontSizeMultiplier: 1.5
+            ),
+            // Left label: cosine (complementary) in italic red (PostScript: NumFontLi)
+            LabelConfig(
+                text: String(Int(complementary.rounded())),
+                position: .left,
+                fontStyle: .italic,
+                color: .red,
+                fontSizeMultiplier: 1.5
+            )
+        ]
+    }
+    
+    /// Create a single-label configuration with specified position and style
+    public static func singleLabel(
+        _ formatter: @escaping @Sendable (ScaleValue) -> String,
+        position: LabelPosition = .centered,
+        fontStyle: LabelFontStyle = .regular,
+        color: LabelColor = .black
+    ) -> @Sendable (ScaleValue) -> [LabelConfig] {
+        return { value in
+            [LabelConfig(
+                text: formatter(value),
+                position: position,
+                fontStyle: fontStyle,
+                color: color
+            )]
+        }
     }
 }
 

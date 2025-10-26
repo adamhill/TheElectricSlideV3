@@ -392,6 +392,13 @@ public enum StandardScales {
     }
     
     /// K scale: Cube scale (reads x³ on D) from 1 to 1000
+    /// PostScript Reference: lines 710-727 (/Kscale definition)
+    /// 
+    /// IMPLEMENTATION NOTES:
+    /// - PostScript has 10 subsections for fine-grained density control
+    /// - Current implementation uses 4 active subsections for practical mobile usability
+    /// - Commented subsections can be enabled for high-resolution displays
+    /// - Label density optimized for 5-inch phone (360pt) and 10-inch tablet (720pt)
     public static func kScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("K")
@@ -401,20 +408,112 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // PostScript subsection 1: 1-3 (line 718)
+                // Dense subdivisions for precision in the 1-10 range
+                // Intervals: [1, .5, .1, .05] - primary, secondary, tertiary, quaternary
+                // LABEL STRATEGY: Show integers 1, 2, 3
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0]
+                    labelLevels: [0]  // Primary ticks at 1, 2, 3 get labels
                 ),
+                
+                // PostScript subsection 2: 3-6 (line 719)
+                // Medium density, null tertiary interval
+                // Intervals: [1, null, .5, .1]
+                // LABEL STRATEGY: Continue showing integers (3, 4, 5, 6)
+                // NOTE: 3 appears in both subsections, but duplicate removal handles this
+                ScaleSubsection(
+                    startValue: 3.0,
+                    tickIntervals: [1.0, 0.5, 0.1],  // Skip null interval
+                    labelLevels: [0]  // Primary ticks at 3, 4, 5, 6 get labels
+                ),
+                
+                // PostScript subsection 3: 6-10 (line 720)
+                // Coarser intervals as we approach the decade boundary
+                // Intervals: [1, null, null, .2]
+                // PURPOSE: Prevents subsection 2 from labeling 7, 8, 9, 10
+                ScaleSubsection(
+                    startValue: 6.0,
+                    tickIntervals: [1.0, 0.2],  // Only primary and quaternary
+                    labelLevels: [0]  // Labels at 6, 7, 8, 9, 10
+                ),
+                
+                // PostScript subsection 4: 10-30 (line 721)
+                // Decade scaling begins - intervals × 10
+                // Intervals: [10, 5, 1, .5]
+                // LABEL STRATEGY: Show compact labels (10→"1", 20→"2", 30→"3")
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
-                    labelLevels: [0]
+                    labelLevels: [0],  // Only primary (10-interval) ticks
+                    labelFormatter: StandardLabelFormatter.kScale
                 ),
+                
+                // PostScript subsection 5: 30-60 (line 722)
+                // Mid-range decades with null secondary interval
+                // Intervals: [10, null, 5, 1]
+                // LABEL STRATEGY: Show compact labels (30→"3", 40→"4", 50→"5", 60→"6")
+                ScaleSubsection(
+                    startValue: 30.0,
+                    tickIntervals: [10.0, 5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.kScale
+                ),
+                
+                // PostScript subsection 6: 60-100 (line 723)
+                // Approaching the hundreds boundary
+                // Intervals: [10, null, null, 2]
+                // LABEL STRATEGY: Show compact labels (60→"6", 70→"7", 80→"8", 90→"9", 100→"10")
+                ScaleSubsection(
+                    startValue: 60.0,
+                    tickIntervals: [10.0, 2.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.kScale
+                ),
+                
+                // PostScript subsection 7: 100-300 (line 724)
+                // Hundreds range with × 100 intervals
+                // Intervals: [100, 50, 10, 5]
+                // LABEL STRATEGY: Show compact labels (100→"1", 200→"2", 300→"3")
                 ScaleSubsection(
                     startValue: 100.0,
                     tickIntervals: [100.0, 50.0, 10.0, 5.0],
-                    labelLevels: [0]
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.kScale
+                ),
+                
+                // PostScript subsection 8: 300-600 (line 725)
+                // Mid-hundreds range
+                // Intervals: [100, null, 50, 10]
+                // LABEL STRATEGY: Show compact labels (300→"3", 400→"4", 500→"5", 600→"6")
+                ScaleSubsection(
+                    startValue: 300.0,
+                    tickIntervals: [100.0, 50.0, 10.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.kScale
+                ),
+                
+                // PostScript subsection 9: 600-1000 (line 726)
+                // Upper hundreds approaching maximum
+                // Intervals: [100, null, null, 20]
+                // LABEL STRATEGY: Show compact labels (600→"6", 700→"7", 800→"8", 900→"9", 1000→"10")
+                ScaleSubsection(
+                    startValue: 600.0,
+                    tickIntervals: [100.0, 20.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.kScale
+                ),
+                
+                // PostScript subsection 10: 1000 (line 727)
+                // Final endpoint marker
+                // Intervals: [1000, 500, 100, 50]
+                // LABEL STRATEGY: Would show "1" but absorbed into subsection 9's "10" at 1000
+                // This subsection primarily provides tick marks, label handled by previous subsection
+                ScaleSubsection(
+                    startValue: 1000.0,
+                    tickIntervals: [1000.0, 500.0, 100.0, 50.0],
+                    labelLevels: []  // No labels - endpoint already labeled by subsection 9
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
@@ -424,89 +523,97 @@ public enum StandardScales {
     // MARK: - Log-Log Scales
     
     /// LL1 scale: e^(0.01 to 0.1)
-    public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("LL1")
-            .withFormula("e⁰·⁰¹ˣ")
-            .withFunction(LogLnFunction(multiplier: 10.0))
-            .withRange(begin: 1.01, end: 1.105)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 1.01,
-                    tickIntervals: [0.01, 0.005, 0.001, 0.0005],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.threeDecimals
-                )
-            ])
-            .build()
-    }
+//    public static func ll1Scale(length: Distance = 250.0) -> ScaleDefinition {
+//        ScaleBuilder()
+//            .withName("LL1")
+//            .withFormula("e⁰·⁰¹ˣ")
+//            .withFunction(LogLnFunction(multiplier: 10.0))
+//            .withRange(begin: 1.01, end: 1.105)
+//            .withLength(length)
+//            .withTickDirection(.up)
+//            .withSubsections([
+//                ScaleSubsection(
+//                    startValue: 1.01,
+//                    tickIntervals: [0.01, 0.005, 0.001, 0.0005],
+//                    labelLevels: [0],
+//                    labelFormatter: StandardLabelFormatter.threeDecimals
+//                )
+//            ])
+//            .build()
+//    }
     
     /// LL2 scale: e^(0.1 to 1.0)
-    public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("LL2")
-            .withFormula("e⁰·¹ˣ")
-            .withFunction(LogLnFunction(multiplier: 10.0))
-            .withRange(begin: 1.105, end: 2.72)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 1.1,
-                    tickIntervals: [0.1, 0.05, 0.01, 0.005],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.oneDecimal
-                )
-            ])
-            .addConstant(value: .e, label: "e", style: .major)
-            .build()
-    }
+//    public static func ll2Scale(length: Distance = 250.0) -> ScaleDefinition {
+//        ScaleBuilder()
+//            .withName("LL2")
+//            .withFormula("e⁰·¹ˣ")
+//            .withFunction(LogLnFunction(multiplier: 10.0))
+//            .withRange(begin: 1.105, end: 2.72)
+//            .withLength(length)
+//            .withTickDirection(.up)
+//            .withSubsections([
+//                ScaleSubsection(
+//                    startValue: 1.1,
+//                    tickIntervals: [0.1, 0.05, 0.01, 0.005],
+//                    labelLevels: [0],
+//                    labelFormatter: StandardLabelFormatter.oneDecimal
+//                )
+//            ])
+//            .addConstant(value: .e, label: "e", style: .major)
+//            .build()
+//    }
     
     /// LL3 scale: e^(1.0 to 10.0) - approximately 2.72 to 22026
-    public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("LL3")
-            .withFormula("eˣ")
-            .withFunction(LogLnFunction(multiplier: 1.0))
-            .withRange(begin: 2.74, end: 21000)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(
-                    startValue: 2.6,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.02],
-                    labelLevels: [0]
-                ),
-                ScaleSubsection(
-                    startValue: 4.0,
-                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0]
-                ),
-                ScaleSubsection(
-                    startValue: 10.0,
-                    tickIntervals: [5.0, 1.0, 0.5, 0.2],
-                    labelLevels: [0]
-                ),
-                ScaleSubsection(
-                    startValue: 100.0,
-                    tickIntervals: [100.0, 50.0, 10.0, 5.0],
-                    labelLevels: [0]
-                ),
-                ScaleSubsection(
-                    startValue: 1000.0,
-                    tickIntervals: [1000.0, 500.0, 100.0, 50.0],
-                    labelLevels: [0]
-                )
-            ])
-            .withLabelFormatter(StandardLabelFormatter.integer)
-            .build()
-    }
+//    public static func ll3Scale(length: Distance = 250.0) -> ScaleDefinition {
+//        ScaleBuilder()
+//            .withName("LL3")
+//            .withFormula("eˣ")
+//            .withFunction(LogLnFunction(multiplier: 1.0))
+//            .withRange(begin: 2.74, end: 21000)
+//            .withLength(length)
+//            .withTickDirection(.up)
+//            .withSubsections([
+//                ScaleSubsection(
+//                    startValue: 2.6,
+//                    tickIntervals: [1.0, 0.5, 0.1, 0.02],
+//                    labelLevels: [0]
+//                ),
+//                ScaleSubsection(
+//                    startValue: 4.0,
+//                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+//                    labelLevels: [0]
+//                ),
+//                ScaleSubsection(
+//                    startValue: 10.0,
+//                    tickIntervals: [5.0, 1.0, 0.5, 0.2],
+//                    labelLevels: [0]
+//                ),
+//                ScaleSubsection(
+//                    startValue: 100.0,
+//                    tickIntervals: [100.0, 50.0, 10.0, 5.0],
+//                    labelLevels: [0]
+//                ),
+//                ScaleSubsection(
+//                    startValue: 1000.0,
+//                    tickIntervals: [1000.0, 500.0, 100.0, 50.0],
+//                    labelLevels: [0]
+//                )
+//            ])
+//            .withLabelFormatter(StandardLabelFormatter.integer)
+//            .build()
+//    }
     
     // MARK: - Trigonometric Scales
     
     /// S scale: Sine scale from 5.7° to 90°
+    /// S scale: Sine scale from 5.7° to 90°
+    /// Implements all 7 PostScript subsections for accurate sine angle readings
+    /// PostScript Reference: lines 592-598
+    /// 
+    /// DESIGN NOTE: S scales traditionally show both sine (ascending left→right)
+    /// and cosine (descending, complementary angles). This implementation uses
+    /// dual labeling to show sine angles on the right (italic) and complementary
+    /// cosine angles on the left (left-italic), matching PostScript /plabelR and /plabelL.
     public static func sScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("S")
@@ -514,25 +621,82 @@ public enum StandardScales {
             .withFunction(SineFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 90)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
+                // PostScript subsection 1: 5.5-10° (line 592)
+                // Very dense for small angles where sine changes rapidly
+                // Intervals: [1, .5, .1, .05]
+                // LABEL STRATEGY: Show dual labels (sine right, cosine left) for all degree marks
                 ScaleSubsection(
-                    startValue: 6.0,
+                    startValue: 5.5,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.angle
+                    labelLevels: [0],  // Primary ticks labeled
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
+                
+                // PostScript subsection 2: 10-20° (line 593)
+                // Medium density with 5° primary intervals
+                // Intervals: [5, 1, .5, .1]
+                // LABEL STRATEGY: Show dual labels at 10°, 15°, 20° and intermediate degrees
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
-                    labelLevels: [0, 1],
-                    labelFormatter: StandardLabelFormatter.angle
+                    labelLevels: [],  // Primary and secondary labeled
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
+                
+                // PostScript subsection 3: 20-30° (line 594)
+                // Transition zone, null secondary interval
+                // Intervals: [5, null, 1, .5]
+                // LABEL STRATEGY: Show dual labels at 20°, 25°, 30° and single degrees
                 ScaleSubsection(
-                    startValue: 50.0,
+                    startValue: 20.0,
+                    tickIntervals: [5.0, 1.0, 0.5],  // Skip null interval
+                    labelLevels: [0],  // Only primary (5° intervals)
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
+                ),
+                
+                // PostScript subsection 4: 30-60° (line 595)
+                // Mid-range angles with 10° primary intervals
+                // Intervals: [10, 5, 1, .5]
+                // LABEL STRATEGY: Show dual labels at 30°, 40°, 50°, 60° (every 10°)
+                ScaleSubsection(
+                    startValue: 30.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
-                    labelLevels: [0],
-                    labelFormatter: StandardLabelFormatter.angle
+                    labelLevels: [0],  // Only major 10° marks
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
+                ),
+                
+                // PostScript subsection 5: 60-80° (line 596)
+                // Approaching vertical, coarser intervals
+                // Intervals: [10, null, 5, 1]
+                // LABEL STRATEGY: Show dual labels at 60°, 70°, 80° (every 10°)
+                ScaleSubsection(
+                    startValue: 60.0,
+                    tickIntervals: [10.0, 5.0, 1.0],  // Skip null interval
+                    labelLevels: [0],  // Only 10° marks
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
+                ),
+                
+                // PostScript subsection 6: 80-90° (line 597)
+                // Very coarse near 90° where sine plateaus
+                // Intervals: [10, null, null, 5]
+                // LABEL STRATEGY: No labels (handled by next subsection)
+                ScaleSubsection(
+                    startValue: 80.0,
+                    tickIntervals: [10.0, 5.0],  // Only primary and quaternary
+                    labelLevels: []  // No labels - tick marks only
+                ),
+                
+                // PostScript subsection 7: 90° endpoint (line 598)
+                // Final endpoint marker
+                // Intervals: [10, null, null, null]
+                // LABEL STRATEGY: Show dual labels "90°" (right) and "0°" (left) at endpoint
+                ScaleSubsection(
+                    startValue: 90.0,
+                    tickIntervals: [10.0],  // Single interval
+                    labelLevels: [0],  // Label the 90° mark
+                    dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 )
             ])
             .build()
@@ -546,7 +710,7 @@ public enum StandardScales {
             .withFunction(TangentFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 45)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
                 ScaleSubsection(
                     startValue: 6.0,
@@ -572,7 +736,7 @@ public enum StandardScales {
             .withFunction(SmallTanFunction())
             .withRange(begin: 0.57, end: 5.7)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
                 ScaleSubsection(
                     startValue: 0.6,
@@ -1294,14 +1458,24 @@ public enum StandardScales {
         case "DIF": return difScale(length: length)
         case "A": return aScale(length: length)
         case "K": return kScale(length: length)
-        case "LL1": return ll1Scale(length: length)
-        case "LL2": return ll2Scale(length: length)
-        case "LL3": return ll3Scale(length: length)
+        
         case "S": return sScale(length: length)
         case "T": return tScale(length: length)
         case "ST": return stScale(length: length)
         case "L": return lScale(length: length)
         case "LN": return lnScale(length: length)
+        
+        // NEW: Log-Log scales
+        case "LL0": return ll0Scale(length: length)
+        case "LL1": return ll1Scale(length: length)
+        case "LL2": return ll2Scale(length: length)
+        case "LL3": return ll3Scale(length: length)
+            
+        // NEW: inverse Log-Log scales
+        case "LL00": return ll00Scale(length: length)
+        case "LL01": return ll01Scale(length: length)
+        case "LL02": return ll02Scale(length: length)
+        case "LL03": return ll03Scale(length: length)
             
         // NEW: B, BI, AI scales
         case "B": return bScale(length: length)

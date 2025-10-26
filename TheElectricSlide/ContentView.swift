@@ -20,6 +20,31 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     var scaleHeight: CGFloat
 }
 
+// MARK: - View Mode
+
+enum ViewMode: String, CaseIterable, Identifiable {
+    case front = "Front"
+    case back = "Back"
+    case both = "Both"
+    
+    var id: String { rawValue }
+}
+
+// MARK: - Rule Side
+
+enum RuleSide: String, Sendable {
+    case front = "Front (Side A)"
+    case back = "Back (Side B)"
+    
+    var displayName: String { rawValue }
+    var borderColor: Color {
+        switch self {
+        case .front: return .blue
+        case .back: return .green
+        }
+    }
+}
+
 // MARK: - ScaleView Component
 
 struct ScaleView: View {
@@ -29,11 +54,11 @@ struct ScaleView: View {
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            // Scale name label on the left
+            // Scale name label on the left (right-aligned with minimum width)
             Text(generatedScale.definition.name)
                 .font(.caption2)
                 .foregroundColor(.black)
-                .frame(width: 20)
+                .frame(minWidth: 28, alignment: .trailing)
             
             // Scale view
             GeometryReader { geometry in
@@ -124,36 +149,229 @@ struct ScaleView: View {
                 )
             }
             
-            // Draw label if present
-            if let labelText = tick.label {
-                let fontSize = fontSizeForTick(tick.style.relativeLength)
-                
-                if fontSize > 0 {
-                    let text = Text(labelText)
-                        .font(.system(size: fontSize))
-                        .foregroundColor(.black)
-                    
-                    let resolvedText = context.resolve(text)
-                    let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
-                    
-                    // Position label based on tick direction
-                    let labelY: CGFloat
-                    switch definition.tickDirection {
-                    case .down:
-                        // Labels below tick mark
-                        labelY = tickHeight + 2
-                    case .up:
-                        // Labels above tick mark
-                        labelY = size.height - tickHeight - textSize.height - 2
-                    }
-                    let labelX = xPos - textSize.width / 2
-                    
-                    context.draw(
-                        resolvedText,
-                        at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
-                    )
-                }
+            // Draw labels (supports dual labeling from PostScript plabelR/plabelL)
+            if !tick.labels.isEmpty {
+                drawLabels(
+                    context: &context,
+                    labels: tick.labels,
+                    xPos: xPos,
+                    tickHeight: tickHeight,
+                    tickDirection: definition.tickDirection,
+                    size: size,
+                    tickRelativeLength: tick.style.relativeLength
+                )
+            } else if let labelText = tick.label {
+                // Backward compatibility: simple label rendering
+                drawSimpleLabel(
+                    context: &context,
+                    text: labelText,
+                    xPos: xPos,
+                    tickHeight: tickHeight,
+                    tickDirection: definition.tickDirection,
+                    size: size,
+                    tickRelativeLength: tick.style.relativeLength
+                )
             }
+        }
+    }
+    
+    /// Draw multiple labels with full PostScript-style configuration
+    private func drawLabels(
+        context: inout GraphicsContext,
+        labels: [SlideRuleCoreV3.LabelConfig],
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize,
+        tickRelativeLength: Double
+    ) {
+        for labelConfig in labels {
+            let baseFontSize = fontSizeForTick(tickRelativeLength)
+            guard baseFontSize > 0 else { continue }
+            
+            let fontSize = baseFontSize * labelConfig.fontSizeMultiplier
+            
+            // Use regular font (not italic), we'll apply transform for slant
+            let font = Font.system(size: fontSize)
+            
+            let text = Text(labelConfig.text)
+                .font(font)
+                .foregroundColor(colorFromLabelColor(labelConfig.color))
+            
+            let resolvedText = context.resolve(text)
+            let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+            
+            // Calculate position based on label position and tick direction
+            let (labelX, labelY) = calculateLabelPosition(
+                position: labelConfig.position,
+                xPos: xPos,
+                tickHeight: tickHeight,
+                textSize: textSize,
+                tickDirection: tickDirection,
+                size: size
+            )
+            
+            // Apply skew transform matching PostScript NumFontRi/NumFontLi
+            // PostScript: [ 1 0 tan(20°) 1 0 0 ] for right italic
+            //            [ 1 0 -tan(20°) 1 0 0 ] for left italic
+            // tan(20°) ≈ 0.364
+            let skewAmount: CGFloat
+            switch labelConfig.position {
+            case .right:
+                skewAmount = -tan(20.0 * .pi / 180.0)  // Left-leaning (away from tick on right)
+            case .left:
+                skewAmount = tan(20.0 * .pi / 180.0) // Right-leaning (away from tick on left)
+            default:
+                skewAmount = 0     // No slant for centered labels
+            }
+            
+            // Create skew transform matching PostScript font matrix
+            // Matrix positions: [a b c d tx ty] where c creates horizontal skew
+            var transform = CGAffineTransform.identity
+            transform.c = skewAmount  // Horizontal skew (x' = x + c*y)
+            
+            // Draw with transform
+            var transformedContext = context
+            transformedContext.transform = transform
+            transformedContext.draw(
+                resolvedText,
+                at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+            )
+        }
+    }
+    
+    /// Draw simple label (backward compatibility)
+    private func drawSimpleLabel(
+        context: inout GraphicsContext,
+        text: String,
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize,
+        tickRelativeLength: Double
+    ) {
+        let fontSize = fontSizeForTick(tickRelativeLength)
+        guard fontSize > 0 else { return }
+        
+        let label = Text(text)
+            .font(.system(size: fontSize))
+            .foregroundColor(.black)
+        
+        let resolvedText = context.resolve(label)
+        let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+        
+        // Position label based on tick direction
+        let labelY: CGFloat
+        switch tickDirection {
+        case .down:
+            // Labels below tick mark
+            labelY = tickHeight + 2
+        case .up:
+            // Labels above tick mark
+            labelY = size.height - tickHeight - textSize.height - 2
+        }
+        let labelX = xPos - textSize.width / 2
+        
+        context.draw(
+            resolvedText,
+            at: CGPoint(x: labelX + textSize.width / 2, y: labelY + textSize.height / 2)
+        )
+    }
+    
+    /// Calculate label position based on PostScript positioning rules
+    private func calculateLabelPosition(
+        position: SlideRuleCoreV3.LabelPosition,
+        xPos: CGFloat,
+        tickHeight: CGFloat,
+        textSize: CGSize,
+        tickDirection: SlideRuleCoreV3.TickDirection,
+        size: CGSize
+    ) -> (x: CGFloat, y: CGFloat) {
+        let labelX: CGFloat
+        let labelY: CGFloat
+        
+        switch position {
+        case .centered:
+            // Default: center on tick
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight + 2
+            case .up:
+                labelY = size.height - tickHeight - textSize.height - 2
+            }
+            
+        case .top:
+            // PostScript /Ntop: above tick (inverted for .down direction)
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = -textSize.height - 2  // Above the baseline
+            case .up:
+                labelY = size.height - tickHeight - textSize.height - 2
+            }
+            
+        case .bottom:
+            // Below tick
+            labelX = xPos - textSize.width / 2
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight + 2
+            case .up:
+                labelY = size.height + 2  // Below baseline
+            }
+            
+        case .left:
+            // PostScript /Nleft: to the left of tick
+            // Position so bottom corner barely doesn't touch tick, leaning away
+            labelX = xPos - textSize.width - 7 // Small gap from tick
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight - textSize.height +  1  // Bottom corner near tick end
+            case .up:
+                labelY = size.height - tickHeight - 2 // Bottom corner near tick end
+            }
+            
+        case .right:
+            // PostScript /Nright: to the right of tick
+            // Position so bottom corner barely doesn't touch tick, leaning away
+            labelX = xPos + 7// Small gap from tick
+            switch tickDirection {
+            case .down:
+                labelY = tickHeight - textSize.height + 1  // Bottom corner near tick end
+            case .up:
+                labelY = size.height - tickHeight - 2  // Bottom corner near tick end
+            }
+        }
+        
+        return (labelX, labelY)
+    }
+    
+    /// Convert LabelColor to SwiftUI Color
+    private func colorFromLabelColor(_ labelColor: SlideRuleCoreV3.LabelColor) -> Color {
+        Color(
+            red: labelColor.red,
+            green: labelColor.green,
+            blue: labelColor.blue,
+            opacity: labelColor.alpha
+        )
+    }
+    
+    /// Get font with specified style (PostScript NumFontRi, NumFontLi support)
+    private func fontForStyle(_ style: SlideRuleCoreV3.LabelFontStyle, size: CGFloat) -> Font {
+        switch style {
+        case .regular:
+            return .system(size: size)
+        case .italic:
+            return .system(size: size).italic()
+        case .leftItalic:
+            // SwiftUI doesn't support left italic, use regular italic
+            // For true left italic, would need custom font rendering
+            return .system(size: size).italic()
+        case .bold:
+            return .system(size: size).bold()
+        case .boldItalic:
+            return .system(size: size).bold().italic()
         }
     }
     
@@ -271,14 +489,111 @@ struct SlideView: View, Equatable {
     }
 }
 
+// MARK: - SideView Component (renders complete side: top stator, slide, bottom stator)
+
+struct SideView: View, Equatable {
+    let side: RuleSide
+    let topStator: Stator
+    let slide: Slide
+    let bottomStator: Stator
+    let width: CGFloat
+    let scaleHeight: CGFloat
+    let sliderOffset: CGFloat
+    let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
+    let onDragChanged: (DragGesture.Value) -> Void
+    let onDragEnded: (DragGesture.Value) -> Void
+    
+    // ✅ Equatable conformance - only compare properties affecting rendering (not closures)
+    static func == (lhs: SideView, rhs: SideView) -> Bool {
+        lhs.side == rhs.side &&
+        lhs.width == rhs.width &&
+        lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.sliderOffset == rhs.sliderOffset &&
+        lhs.showLabel == rhs.showLabel &&
+        lhs.topStator.scales.count == rhs.topStator.scales.count &&
+        lhs.slide.scales.count == rhs.slide.scales.count &&
+        lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Optional side label
+            if showLabel {
+                Text(side.displayName)
+                    .font(.headline)
+                    .padding(.bottom, 4)
+            }
+            
+            // Top Stator (Fixed)
+            StatorView(
+                stator: topStator,
+                width: width,
+                backgroundColor: .white,
+                borderColor: side.borderColor,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .id("\(side.rawValue)-topStator")
+            
+            // Slide (Movable)
+            SlideView(
+                slide: slide,
+                width: width,
+                backgroundColor: .white,
+                borderColor: .orange,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .offset(x: sliderOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged(onDragChanged)
+                    .onEnded(onDragEnded)
+            )
+            .animation(.interactiveSpring(), value: sliderOffset)
+            .id("\(side.rawValue)-slide")
+            
+            // Bottom Stator (Fixed)
+            StatorView(
+                stator: bottomStator,
+                width: width,
+                backgroundColor: .white,
+                borderColor: side.borderColor,
+                scaleHeight: scaleHeight
+            )
+            .equatable()
+            .id("\(side.rawValue)-bottomStator")
+        }
+    }
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
+    @State private var viewMode: ViewMode = .both  // View mode selector
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
+    
+    // ✅ Helper to create a blank spacer scale for balancing
+    private func createSpacerScale(length: Double) -> GeneratedScale {
+        let spacerDefinition = ScaleDefinition(
+            name: "",
+            formula: "",
+            function: LinearFunction(),
+            beginValue: 1.0,
+            endValue: 10.0,
+            scaleLengthInPoints: length,
+            layout: .linear,
+            tickDirection: .up,
+            subsections: [],
+            showBaseline: false,
+            formulaTracking: 1.0
+        )
+        return GeneratedScale(definition: spacerDefinition)
+    }
     
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
@@ -307,8 +622,8 @@ struct ContentView: View {
         // Note: scaleLength is a reference value; actual rendering width is responsive
         do {
             return try RuleDefinitionParser.parse(
-               
-               "( DF K A ST CF CIF [ CI C ] D S T L )",
+              // "(C [K] A)",
+              "(LL01 K A [ B | T ST S ] D L- LL1- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )
@@ -318,11 +633,199 @@ struct ContentView: View {
         }
     }
     
-    // Calculate total number of scales
+    // ✅ Balanced stators and slides - adds spacers to match scale counts
+    private var balancedFrontTopStator: Stator {
+        guard viewMode == .both,
+              let backTop = slideRule.backTopStator else {
+            return slideRule.frontTopStator
+        }
+        
+        let frontCount = slideRule.frontTopStator.scales.count
+        let backCount = backTop.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontTopStator.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: slideRule.frontTopStator.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontTopStator.heightInPoints,
+                showBorder: slideRule.frontTopStator.showBorder
+            )
+        }
+        return slideRule.frontTopStator
+    }
+    
+    private var balancedFrontSlide: Slide {
+        guard viewMode == .both,
+              let backSlide = slideRule.backSlide else {
+            return slideRule.frontSlide
+        }
+        
+        let frontCount = slideRule.frontSlide.scales.count
+        let backCount = backSlide.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontSlide.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Slide(
+                name: slideRule.frontSlide.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontSlide.heightInPoints,
+                showBorder: slideRule.frontSlide.showBorder
+            )
+        }
+        return slideRule.frontSlide
+    }
+    
+    private var balancedFrontBottomStator: Stator {
+        guard viewMode == .both,
+              let backBottom = slideRule.backBottomStator else {
+            return slideRule.frontBottomStator
+        }
+        
+        let frontCount = slideRule.frontBottomStator.scales.count
+        let backCount = backBottom.scales.count
+        
+        if frontCount < backCount {
+            let spacersNeeded = backCount - frontCount
+            var balancedScales = slideRule.frontBottomStator.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: slideRule.frontBottomStator.name,
+                scales: balancedScales,
+                heightInPoints: slideRule.frontBottomStator.heightInPoints,
+                showBorder: slideRule.frontBottomStator.showBorder
+            )
+        }
+        return slideRule.frontBottomStator
+    }
+    
+    private var balancedBackTopStator: Stator? {
+        guard viewMode == .both,
+              let backTop = slideRule.backTopStator else {
+            return slideRule.backTopStator
+        }
+        
+        let frontCount = slideRule.frontTopStator.scales.count
+        let backCount = backTop.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backTop.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: backTop.name,
+                scales: balancedScales,
+                heightInPoints: backTop.heightInPoints,
+                showBorder: backTop.showBorder
+            )
+        }
+        return backTop
+    }
+    
+    private var balancedBackSlide: Slide? {
+        guard viewMode == .both,
+              let backSlide = slideRule.backSlide else {
+            return slideRule.backSlide
+        }
+        
+        let frontCount = slideRule.frontSlide.scales.count
+        let backCount = backSlide.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backSlide.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Slide(
+                name: backSlide.name,
+                scales: balancedScales,
+                heightInPoints: backSlide.heightInPoints,
+                showBorder: backSlide.showBorder
+            )
+        }
+        return backSlide
+    }
+    
+    private var balancedBackBottomStator: Stator? {
+        guard viewMode == .both,
+              let backBottom = slideRule.backBottomStator else {
+            return slideRule.backBottomStator
+        }
+        
+        let frontCount = slideRule.frontBottomStator.scales.count
+        let backCount = backBottom.scales.count
+        
+        if backCount < frontCount {
+            let spacersNeeded = frontCount - backCount
+            var balancedScales = backBottom.scales
+            for _ in 0..<spacersNeeded {
+                balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
+            }
+            return Stator(
+                name: backBottom.name,
+                scales: balancedScales,
+                heightInPoints: backBottom.heightInPoints,
+                showBorder: backBottom.showBorder
+            )
+        }
+        return backBottom
+    }
+    
+    // Calculate total number of scales based on view mode
     private var totalScaleCount: Int {
-        slideRule.frontTopStator.scales.count +
-        slideRule.frontSlide.scales.count +
-        slideRule.frontBottomStator.scales.count
+        var count = 0
+        
+        // Front side scales
+        if viewMode == .front || viewMode == .both {
+            count += slideRule.frontTopStator.scales.count +
+                     slideRule.frontSlide.scales.count +
+                     slideRule.frontBottomStator.scales.count
+        }
+        
+        // Back side scales (if available)
+        if (viewMode == .back || viewMode == .both),
+           let backTop = slideRule.backTopStator,
+           let backSlide = slideRule.backSlide,
+           let backBottom = slideRule.backBottomStator {
+            count += backTop.scales.count +
+                     backSlide.scales.count +
+                     backBottom.scales.count
+        }
+        
+        return count
+    }
+    
+    // Calculate number of "gaps" between sides for spacing
+    private var sideGapCount: Int {
+        // If showing both sides, we have 1 gap between them (20pt spacing)
+        if viewMode == .both && slideRule.backTopStator != nil {
+            return 1
+        }
+        return 0
+    }
+    
+    // Vertical spacing between sides when showing both
+    private let sideSpacing: CGFloat = 20
+    
+    // Estimate total vertical space needed for labels (when showing both sides)
+    private var labelHeight: CGFloat {
+        if viewMode == .both && slideRule.backTopStator != nil {
+            return 30  // ~15pt per label × 2 labels
+        }
+        return 0
     }
     
     // Helper function to calculate responsive dimensions
@@ -330,15 +833,19 @@ struct ContentView: View {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
+        // Account for spacing between sides and labels
+        let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
+        let availableHeightForScales = maxHeight - totalSpacingHeight
+        
         // Calculate scale height based on available height
         let calculatedScaleHeight = min(
-            maxHeight / CGFloat(totalScaleCount),
+            availableHeightForScales / CGFloat(totalScaleCount),
             maxScaleHeight
         )
         let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
         
         // Calculate total height needed for all scales
-        let totalHeight = scaleHeight * CGFloat(totalScaleCount)
+        let totalHeight = scaleHeight * CGFloat(totalScaleCount) + totalSpacingHeight
         
         // Calculate width based on aspect ratio
         let widthFromAspectRatio = totalHeight * targetAspectRatio
@@ -351,43 +858,65 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top Stator (Fixed) - only depends on calculatedDimensions
-            StatorView(
-                stator: slideRule.frontTopStator,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .id("topStator")  // ✅ Stable identity for performance
+            // View Mode Picker
+            HStack {
+                Spacer()
+                Picker("View Mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                // Disable back/both if no back side available
+                .disabled(slideRule.backTopStator == nil && (viewMode == .back || viewMode == .both))
+                Spacer()
+            }
             
-            // Slider (Movable) - depends on both calculatedDimensions and sliderOffset
-            SlideView(
-                slide: slideRule.frontSlide,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .orange,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .offset(x: sliderOffset)
-            .gesture(dragGesture)
-            .animation(.interactiveSpring(), value: sliderOffset)
-            .id("slide")  // ✅ Stable identity for performance
-            // Bottom Stator (Fixed) - only depends on calculatedDimensions
-            StatorView(
-                stator: slideRule.frontBottomStator,
-                width: calculatedDimensions.width,
-                backgroundColor: .white,
-                borderColor: .blue,
-                scaleHeight: calculatedDimensions.scaleHeight
-            )
-            .equatable()  // ✅ Use Equatable conformance to skip updates
-            .id("bottomStator")  // ✅ Stable identity for performance
+            // Main slide rule content
+            VStack(spacing: 20) {
+                // Front side - show if mode is .front or .both
+                if viewMode == .front || viewMode == .both {
+                    SideView(
+                        side: .front,
+                        topStator: balancedFrontTopStator,
+                        slide: balancedFrontSlide,
+                        bottomStator: balancedFrontBottomStator,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                }
+                
+                // Back side - show if mode is .back or .both (and back side exists)
+                if (viewMode == .back || viewMode == .both),
+                   let backTop = balancedBackTopStator,
+                   let backSlide = balancedBackSlide,
+                   let backBottom = balancedBackBottomStator {
+                    SideView(
+                        side: .back,
+                        topStator: backTop,
+                        slide: backSlide,
+                        bottomStator: backBottom,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(padding)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(padding)
         // ✅ onGeometryChange - only updates calculatedDimensions when size actually changes
         .onGeometryChange(for: Dimensions.self) { proxy in
             // Extract ONLY the dimensions we need
@@ -402,19 +931,15 @@ struct ContentView: View {
         }
     }
     
-    // ✅ Extract drag gesture for clarity
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .onChanged { gesture in
-                // ✅ Accumulate offset from base position with bounds
-                let newOffset = sliderBaseOffset + gesture.translation.width
-                sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
-                                 calculatedDimensions.width)
-            }
-            .onEnded { _ in
-                // ✅ Commit current offset as new base for next gesture
-                sliderBaseOffset = sliderOffset
-            }
+    // ✅ Drag gesture handlers - single implementation for both sides
+    private func handleDragChanged(_ gesture: DragGesture.Value) {
+        let newOffset = sliderBaseOffset + gesture.translation.width
+        sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+                          calculatedDimensions.width)
+    }
+    
+    private func handleDragEnded(_ gesture: DragGesture.Value) {
+        sliderBaseOffset = sliderOffset
     }
 }
 

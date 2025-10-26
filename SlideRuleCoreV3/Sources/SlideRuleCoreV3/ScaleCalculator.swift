@@ -103,7 +103,8 @@ public struct ScaleCalculator: Sendable {
     }
     
     /// Global algorithm preference (can be overridden per scale)
-    nonisolated(unsafe) public static var defaultAlgorithm: TickGenerationAlgorithm = .legacy
+    /// Using modulo algorithm by default for PostScript fidelity (single-pass, correct tick levels)
+    nonisolated(unsafe) public static var defaultAlgorithm: TickGenerationAlgorithm = .modulo(config: .default)
     
     // MARK: - Position Calculation
     
@@ -360,24 +361,43 @@ public struct ScaleCalculator: Sendable {
                         let position = normalizedPosition(for: cv, on: definition)
                         let angularPos = definition.isCircular ? position * 360.0 : nil
                         
-                        // Format the label
-                        let label: String? = if shouldLabel {
-                            formatLabel(
-                                value: cv,
-                                subsectionFormatter: subsection.labelFormatter,
-                                scaleFormatter: definition.labelFormatter
-                            )
+                        // Format the label (support both single and dual label formatters)
+                        let tick: TickMark
+                        if shouldLabel {
+                            if let dualFormatter = subsection.dualLabelFormatter {
+                                // Use dual label formatter
+                                let labels = dualFormatter(cv)
+                                tick = TickMark(
+                                    value: cv,
+                                    normalizedPosition: position,
+                                    angularPosition: angularPos,
+                                    style: style,
+                                    labels: labels
+                                )
+                            } else {
+                                // Use single label formatter
+                                let label = formatLabel(
+                                    value: cv,
+                                    subsectionFormatter: subsection.labelFormatter,
+                                    scaleFormatter: definition.labelFormatter
+                                )
+                                tick = TickMark(
+                                    value: cv,
+                                    normalizedPosition: position,
+                                    angularPosition: angularPos,
+                                    style: style,
+                                    label: label
+                                )
+                            }
                         } else {
-                            nil
+                            tick = TickMark(
+                                value: cv,
+                                normalizedPosition: position,
+                                angularPosition: angularPos,
+                                style: style,
+                                label: nil
+                            )
                         }
-                        
-                        let tick = TickMark(
-                            value: cv,
-                            normalizedPosition: position,
-                            angularPosition: angularPos,
-                            style: style,
-                            label: label
-                        )
                         ticks.append(tick)
                     }
                     
@@ -596,23 +616,42 @@ public struct ScaleCalculator: Sendable {
         // Determine if should have label
         let shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
         
-        let label: String? = if shouldLabel {
-            formatLabel(
-                value: value,
-                subsectionFormatter:subsection.labelFormatter,
-                scaleFormatter: definition.labelFormatter
-            )
+        // Support both single and dual label formatters
+        if shouldLabel {
+            if let dualFormatter = subsection.dualLabelFormatter {
+                // Use dual label formatter
+                let labels = dualFormatter(value)
+                return TickMark(
+                    value: value,
+                    normalizedPosition: position,
+                    angularPosition: angularPos,
+                    style: style,
+                    labels: labels
+                )
+            } else {
+                // Use single label formatter
+                let label = formatLabel(
+                    value: value,
+                    subsectionFormatter: subsection.labelFormatter,
+                    scaleFormatter: definition.labelFormatter
+                )
+                return TickMark(
+                    value: value,
+                    normalizedPosition: position,
+                    angularPosition: angularPos,
+                    style: style,
+                    label: label
+                )
+            }
         } else {
-            nil
+            return TickMark(
+                value: value,
+                normalizedPosition: position,
+                angularPosition: angularPos,
+                style: style,
+                label: nil
+            )
         }
-        
-        return TickMark(
-            value: value,
-            normalizedPosition: position,
-            angularPosition: angularPos,
-            style: style,
-            label: label
-        )
     }
     
     /// Check if tick should be skipped on circular scales

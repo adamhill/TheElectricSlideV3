@@ -7,8 +7,121 @@ import Foundation
 ///
 /// NOTE: Test expectations updated to match PostScript source at reference/postscript-engine-for-slide-rules.ps
 /// Previous tests had incorrect expectations that didn't match the actual scale implementations.
-@Suite("Exotic Scales - Comprehensive Coverage")
+import Testing
+import Foundation
+@testable import SlideRuleCoreV3
+
+@Suite("Exotic Scale Generation Tests")
 struct StandardScalesExoticTests {
+    
+    // MARK: - LL3 Scale Complete Subsection Tests
+    
+    @Suite("LL3 Scale - Complete 17 Subsections")
+    struct LL3ScaleSubsectionTests {
+        
+        @Test("LL3 scale has all 17 PostScript subsections")
+        func ll3ScaleHasAllSubsections() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            
+            #expect(ll3.subsections.count == 17, "LL3 must have 17 subsections per PostScript")
+            
+            // Verify subsection boundaries match PostScript
+            let expectedStarts: [Double] = [
+                2.6, 4.0, 6.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0,
+                200.0, 500.0, 1000.0, 2000.0, 3000.0, 5000.0, 10000.0, 20000.0
+            ]
+            
+            for (index, expectedStart) in expectedStarts.enumerated() {
+                #expect(ll3.subsections[index].startValue == expectedStart,
+                       "Subsection \(index + 1) should start at \(expectedStart)")
+            }
+        }
+        
+        @Test("LL3 scale subsections 13-15 and 17 have no labels")
+        func ll3NoLabelSubsections() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            
+            // Subsections 13 (index 12), 14 (index 13), 15 (index 14), 17 (index 16)
+            let noLabelIndices = [12, 13, 14, 16]
+            
+            for index in noLabelIndices {
+                #expect(ll3.subsections[index].labelLevels.isEmpty,
+                       "Subsection \(index + 1) should have no labels per PostScript")
+            }
+        }
+        
+        @Test("LL3 scale generates reasonable label count for mobile")
+        func ll3LabelCount() {
+            let ll3 = StandardScales.ll3Scale(length: 360.0)  // Phone size
+            let ticks = ScaleCalculator.generateTickMarks(for: ll3)
+            
+            let labeledTicks = ticks.filter { $0.label != nil }
+            
+            // With 17 subsections but only 13 showing labels, expect ~15-25 labels
+            #expect(labeledTicks.count >= 15 && labeledTicks.count <= 30,
+                   "LL3 should have 15-30 labels (found: \(labeledTicks.count))")
+            
+            print("✅ LL3 scale: \(labeledTicks.count) labels across range 2.74-21000")
+        }
+        
+        @Test("LL3 scale first subsection has fine 0.02 intervals")
+        func ll3FirstSubsectionPrecision() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            let firstSubsection = ll3.subsections[0]
+            
+            #expect(firstSubsection.startValue == 2.6)
+            #expect(firstSubsection.tickIntervals.contains(0.02),
+                   "First subsection should have 0.02 interval for e^1 precision")
+        }
+        
+        @Test("LL3 scale has correct PostScript interval patterns")
+        func ll3IntervalPatterns() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            
+            // Verify key interval patterns from PostScript
+            
+            // Subsection 1 (2.6-4): [1, .5, .1, .02]
+            #expect(ll3.subsections[0].tickIntervals == [1.0, 0.5, 0.1, 0.02])
+            
+            // Subsection 6 (20-30): [10, 5, 1, .5]
+            #expect(ll3.subsections[5].tickIntervals == [10.0, 5.0, 1.0, 0.5])
+            
+            // Subsection 11 (500-1000): [500, 100, 50]
+            #expect(ll3.subsections[10].tickIntervals == [500.0, 100.0, 50.0])
+            
+            // Subsection 16 (10000-20000): [10000, 2000] (nulls removed)
+            #expect(ll3.subsections[15].tickIntervals == [10000.0, 2000.0])
+        }
+        
+        @Test("LL3 scale labeled subsections use integer formatter")
+        func ll3LabelFormatters() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            
+            // First subsection (2.6-4) uses one decimal
+            let firstLabel = ll3.subsections[0].labelFormatter(3.5)
+            #expect(firstLabel.contains("."), "First subsection should show decimals")
+            
+            // Later subsections use integer formatter
+            let laterLabel = ll3.subsections[8].labelFormatter(150.0)  // Subsection 9: 100-200
+            #expect(!laterLabel.contains("."), "Later subsections should show integers only")
+        }
+        
+        @Test("LL3 scale generates ticks across full range without gaps")
+        func ll3CoverageAcrossRange() {
+            let ll3 = StandardScales.ll3Scale(length: 250.0)
+            let ticks = ScaleCalculator.generateTickMarks(for: ll3)
+            
+            // Verify we have ticks near the boundaries
+            let values = ticks.map { $0.value }
+            
+            #expect(values.min()! >= 2.6 && values.min()! <= 3.0,
+                   "Should have ticks near start (2.74)")
+            #expect(values.max()! >= 20000 && values.max()! <= 21000,
+                   "Should have ticks near end (21000)")
+            
+            print("✅ LL3 tick range: \(values.min()!) to \(values.max()!)")
+        }
+    }
     
     // MARK: - Hyperbolic Scale Implementations
     

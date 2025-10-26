@@ -103,7 +103,8 @@ public struct ScaleCalculator: Sendable {
     }
     
     /// Global algorithm preference (can be overridden per scale)
-    nonisolated(unsafe) public static var defaultAlgorithm: TickGenerationAlgorithm = .legacy
+    /// Using modulo algorithm by default for PostScript fidelity (single-pass, correct tick levels)
+    nonisolated(unsafe) public static var defaultAlgorithm: TickGenerationAlgorithm = .modulo(config: .default)
     
     // MARK: - Position Calculation
     

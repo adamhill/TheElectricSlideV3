@@ -308,7 +308,7 @@ struct ContentView: View {
         do {
             return try RuleDefinitionParser.parse(
               // "(C [K] A)",
-              "(LL01 A K S [ B L K C ] D LL3- LL2- LL1- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
+              "(LL01 K A [ B | T ST S ] D L- LL1- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
                 dimensions: dimensions,
                 scaleLength: 1000  // Reference length for scale calculations
             )

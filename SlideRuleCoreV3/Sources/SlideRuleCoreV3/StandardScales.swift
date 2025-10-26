@@ -606,6 +606,13 @@ public enum StandardScales {
     // MARK: - Trigonometric Scales
     
     /// S scale: Sine scale from 5.7° to 90°
+    /// S scale: Sine scale from 5.7° to 90°
+    /// Implements all 7 PostScript subsections for accurate sine angle readings
+    /// PostScript Reference: lines 592-598
+    /// 
+    /// DESIGN NOTE: S scales traditionally show both sine (ascending left→right)
+    /// and cosine (descending, complementary angles). Current implementation shows
+    /// sine only. Dual labeling can be added in future by using two label formatters.
     public static func sScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("S")
@@ -613,24 +620,82 @@ public enum StandardScales {
             .withFunction(SineFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 90)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
+                // PostScript subsection 1: 5.5-10° (line 592)
+                // Very dense for small angles where sine changes rapidly
+                // Intervals: [1, .5, .1, .05]
+                // LABEL STRATEGY: Show all degree marks (6°, 7°, 8°, 9°)
                 ScaleSubsection(
-                    startValue: 6.0,
+                    startValue: 5.5,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0],
+                    labelLevels: [0],  // Primary ticks labeled
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                
+                // PostScript subsection 2: 10-20° (line 593)
+                // Medium density with 5° primary intervals
+                // Intervals: [5, 1, .5, .1]
+                // LABEL STRATEGY: Show 10°, 15°, 20° and intermediate degrees
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
-                    labelLevels: [0, 1],
+                    labelLevels: [0, 1],  // Primary and secondary labeled
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                
+                // PostScript subsection 3: 20-30° (line 594)
+                // Transition zone, null secondary interval
+                // Intervals: [5, null, 1, .5]
+                // LABEL STRATEGY: Show 20°, 25°, 30° and single degrees
                 ScaleSubsection(
-                    startValue: 50.0,
+                    startValue: 20.0,
+                    tickIntervals: [5.0, 1.0, 0.5],  // Skip null interval
+                    labelLevels: [0],  // Only primary (5° intervals)
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                
+                // PostScript subsection 4: 30-60° (line 595)
+                // Mid-range angles with 10° primary intervals
+                // Intervals: [10, 5, 1, .5]
+                // LABEL STRATEGY: Show 30°, 40°, 50°, 60° (every 10°)
+                ScaleSubsection(
+                    startValue: 30.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
-                    labelLevels: [0],
+                    labelLevels: [0],  // Only major 10° marks
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                
+                // PostScript subsection 5: 60-80° (line 596)
+                // Approaching vertical, coarser intervals
+                // Intervals: [10, null, 5, 1]
+                // LABEL STRATEGY: Show 60°, 70°, 80° (every 10°)
+                ScaleSubsection(
+                    startValue: 60.0,
+                    tickIntervals: [10.0, 5.0, 1.0],  // Skip null interval
+                    labelLevels: [0],  // Only 10° marks
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                
+                // PostScript subsection 6: 80-90° (line 597)
+                // Very coarse near 90° where sine plateaus
+                // Intervals: [10, null, null, 5]
+                // LABEL STRATEGY: No labels (handled by next subsection)
+                ScaleSubsection(
+                    startValue: 80.0,
+                    tickIntervals: [10.0, 5.0],  // Only primary and quaternary
+                    labelLevels: [],  // No labels - tick marks only
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                
+                // PostScript subsection 7: 90° endpoint (line 598)
+                // Final endpoint marker
+                // Intervals: [10, null, null, null]
+                // LABEL STRATEGY: Show "90°" at endpoint
+                ScaleSubsection(
+                    startValue: 90.0,
+                    tickIntervals: [10.0],  // Single interval
+                    labelLevels: [0],  // Label the 90° mark
                     labelFormatter: StandardLabelFormatter.angle
                 )
             ])
@@ -645,7 +710,7 @@ public enum StandardScales {
             .withFunction(TangentFunction(multiplier: 10.0))
             .withRange(begin: 5.7, end: 45)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
                 ScaleSubsection(
                     startValue: 6.0,
@@ -671,7 +736,7 @@ public enum StandardScales {
             .withFunction(SmallTanFunction())
             .withRange(begin: 0.57, end: 5.7)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
             .withSubsections([
                 ScaleSubsection(
                     startValue: 0.6,

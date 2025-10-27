@@ -16,6 +16,15 @@ struct CursorReadingsDisplayView: View {
     /// Which side this display is for (for styling/labeling if needed)
     let side: RuleSide
     
+    /// Cross-platform background color for the readings container
+    private var backgroundColor: Color {
+        #if os(macOS)
+        return Color(nsColor: NSColor.controlBackgroundColor)
+        #else
+        return Color(uiColor: UIColor.secondarySystemBackground)
+        #endif
+    }
+    
     var body: some View {
         if readings.isEmpty {
             // Gracefully handle empty readings - show minimal placeholder
@@ -35,7 +44,7 @@ struct CursorReadingsDisplayView: View {
                 .padding(.vertical, 4)
             }
             .frame(height: 56)
-            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+            .background(backgroundColor.opacity(0.5))
             .cornerRadius(4)
         }
     }

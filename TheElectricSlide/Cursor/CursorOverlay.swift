@@ -42,6 +42,8 @@ struct CursorOverlay: View {
     /// Right offset for formula label area
     private let rightFormulaOffset: CGFloat = 40
     
+    /// Cursor width (must match CursorView width)
+    private let cursorWidth: CGFloat = 108
     
     // MARK: - Body
     
@@ -53,13 +55,15 @@ struct CursorOverlay: View {
             
             // Use offset instead of HStack for smoother updates
             CursorView(height: height)
-                .frame(width: 108, height: height)
+                .frame(width: cursorWidth, height: height)
                 .modifier(CursorPositionModifier(offset: currentOffset))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
                             // Update shared drag offset during gesture
+                            // Note: Readings are NOT updated here for performance (would recalculate 20+ values per frame)
+                            // Readings update only on drag end via setPosition()
                             withTransaction(Transaction(animation: nil)) {
                                 cursorState.activeDragOffset = gesture.translation.width
                             }
@@ -92,6 +96,8 @@ struct CursorOverlay: View {
         let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
         
         // Update immediately without animation to prevent vibration
+        // Note: Position stored is for the LEFT EDGE of cursor
+        // Reading calculations must add half cursor width to get hairline position
         cursorState.setPosition(clampedPosition, for: side)
     }
 }

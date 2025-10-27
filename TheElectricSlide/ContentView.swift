@@ -910,26 +910,37 @@ struct ContentView: View {
             VStack(spacing: 20) {
                 // Front side - show if mode is .front or .both
                 if viewMode == .front || viewMode == .both {
-                    SideView(
-                        side: .front,
-                        topStator: balancedFrontTopStator,
-                        slide: balancedFrontSlide,
-                        bottomStator: balancedFrontBottomStator,
-                        width: calculatedDimensions.width,
-                        scaleHeight: calculatedDimensions.scaleHeight,
-                        sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded
-                    )
-                    .equatable()
-                    .overlay {
-                        CursorOverlay(
-                            cursorState: cursorState,
+                    VStack(spacing: 4) {
+                        // Cursor readings display above slide rule
+                        if cursorState.isEnabled {
+                            CursorReadingsDisplayView(
+                                readings: cursorState.currentReadings?.frontReadings ?? [],
+                                side: .front
+                            )
+                            .frame(maxWidth: calculatedDimensions.width)
+                        }
+                        
+                        SideView(
+                            side: .front,
+                            topStator: balancedFrontTopStator,
+                            slide: balancedFrontSlide,
+                            bottomStator: balancedFrontBottomStator,
                             width: calculatedDimensions.width,
-                            height: totalScaleHeight(for: .front),
-                            side: .front
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            sliderOffset: sliderOffset,
+                            showLabel: viewMode == .both,
+                            onDragChanged: handleDragChanged,
+                            onDragEnded: handleDragEnded
                         )
+                        .equatable()
+                        .overlay {
+                            CursorOverlay(
+                                cursorState: cursorState,
+                                width: calculatedDimensions.width,
+                                height: totalScaleHeight(for: .front),
+                                side: .front
+                            )
+                        }
                     }
                 }
                 
@@ -938,26 +949,37 @@ struct ContentView: View {
                    let backTop = balancedBackTopStator,
                    let backSlide = balancedBackSlide,
                    let backBottom = balancedBackBottomStator {
-                    SideView(
-                        side: .back,
-                        topStator: backTop,
-                        slide: backSlide,
-                        bottomStator: backBottom,
-                        width: calculatedDimensions.width,
-                        scaleHeight: calculatedDimensions.scaleHeight,
-                        sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded
-                    )
-                    .equatable()
-                    .overlay {
-                        CursorOverlay(
-                            cursorState: cursorState,
+                    VStack(spacing: 4) {
+                        // Cursor readings display above slide rule
+                        if cursorState.isEnabled {
+                            CursorReadingsDisplayView(
+                                readings: cursorState.currentReadings?.backReadings ?? [],
+                                side: .back
+                            )
+                            .frame(maxWidth: calculatedDimensions.width)
+                        }
+                        
+                        SideView(
+                            side: .back,
+                            topStator: backTop,
+                            slide: backSlide,
+                            bottomStator: backBottom,
                             width: calculatedDimensions.width,
-                            height: totalScaleHeight(for: .back),
-                            side: .back
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            sliderOffset: sliderOffset,
+                            showLabel: viewMode == .both,
+                            onDragChanged: handleDragChanged,
+                            onDragEnded: handleDragEnded
                         )
+                        .equatable()
+                        .overlay {
+                            CursorOverlay(
+                                cursorState: cursorState,
+                                width: calculatedDimensions.width,
+                                height: totalScaleHeight(for: .back),
+                                side: .back
+                            )
+                        }
                     }
                 }
             }
@@ -979,6 +1001,13 @@ struct ContentView: View {
         .onAppear {
             // Connect cursor state to slide rule data
             cursorState.setSlideRuleProvider(self)
+            // Enable cursor readings
+            cursorState.enableReadings = true
+        }
+        .onChange(of: sliderOffset) { oldValue, newValue in
+            // Update cursor readings when slide moves
+            // This ensures slide scale values update in real-time
+            cursorState.updateReadings()
         }
     }
     

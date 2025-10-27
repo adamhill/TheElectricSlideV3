@@ -10,9 +10,15 @@ import SlideRuleCoreV3
 
 @Observable
 final class CursorState {
+    // MARK: - Constants
+    
+    /// Cursor width in points (must match CursorView)
+    private let cursorWidth: CGFloat = 108
+    
     // MARK: - Core State Properties
     
     /// Normalized cursor position (0.0 = left edge, 1.0 = right edge)
+    /// NOTE: This is the LEFT EDGE position. Add half cursor width to get hairline center.
     var normalizedPosition: Double = 0.5
     
     /// Current cursor behavior mode
@@ -117,13 +123,23 @@ final class CursorState {
     /// Update readings based on current cursor position
     /// Called automatically when position changes (if enableReadings is true)
     func updateReadings() {
+        updateReadings(at: normalizedPosition)
+    }
+    
+    /// Update readings for a specific position (used during drag)
+    /// - Parameter position: The position to calculate readings for (0.0-1.0)
+    func updateReadings(at position: Double) {
         guard enableReadings,
               let provider = slideRuleProvider else {
             currentReadings = nil
             return
         }
         
-        let position = normalizedPosition
+        // Adjust position to hairline center (position is left edge of cursor)
+        let scaleWidth = provider.getScaleWidth()
+        let halfCursorWidthNormalized = (cursorWidth / 2.0) / scaleWidth
+        let hairlinePosition = position + halfCursorWidthNormalized
+        
         var frontReadings: [ScaleReading] = []
         var backReadings: [ScaleReading] = []
         
@@ -133,9 +149,9 @@ final class CursorState {
                 topStator: frontData.topStator,
                 slide: frontData.slide,
                 bottomStator: frontData.bottomStator,
-                position: position,
+                position: hairlinePosition,
                 slideOffset: provider.getSlideOffset(),
-                scaleWidth: provider.getScaleWidth(),
+                scaleWidth: scaleWidth,
                 side: .front
             )
         }
@@ -146,16 +162,16 @@ final class CursorState {
                 topStator: backData.topStator,
                 slide: backData.slide,
                 bottomStator: backData.bottomStator,
-                position: position,
+                position: hairlinePosition,
                 slideOffset: provider.getSlideOffset(),
-                scaleWidth: provider.getScaleWidth(),
+                scaleWidth: scaleWidth,
                 side: .back
             )
         }
         
-        // Create readings snapshot
+        // Create readings snapshot (store hairline position, not left edge)
         currentReadings = CursorReadings(
-            cursorPosition: position,
+            cursorPosition: hairlinePosition,
             timestamp: Date(),
             frontReadings: frontReadings,
             backReadings: backReadings
@@ -164,7 +180,7 @@ final class CursorState {
         // Debug: Print sample readings for verification
         #if DEBUG
         if let readings = currentReadings {
-            print("📍 Cursor at position: \(String(format: "%.3f", readings.cursorPosition))")
+            print("📍 Cursor hairline at position: \(String(format: "%.3f", readings.cursorPosition))")
             if let cReading = readings.reading(forScale: "C", side: .front) {
                 print("  C scale: \(cReading.displayValue) (value: \(String(format: "%.4f", cReading.value)))")
             }
@@ -186,8 +202,10 @@ final class CursorState {
         side: RuleSide
     ) -> [ScaleReading] {
         var readings: [ScaleReading] = []
+        var overallPosition = 0  // Track overall position across all components
         
         // Read top stator scales (fixed, no offset needed)
+        var componentPosition = 0
         for scale in topStator.scales {
             guard !scale.definition.name.isEmpty else { continue }  // Skip spacers
             
@@ -195,9 +213,13 @@ final class CursorState {
                 at: position,
                 for: scale,
                 component: .statorTop,
-                side: side
+                side: side,
+                componentPosition: componentPosition,
+                overallPosition: overallPosition
             )
             readings.append(reading)
+            componentPosition += 1
+            overallPosition += 1
         }
         
         // Read slide scales (account for slide offset)
@@ -205,6 +227,7 @@ final class CursorState {
         let slidePosition = position - slideOffsetNormalized
         let clampedSlidePosition = min(max(slidePosition, 0.0), 1.0)
         
+        componentPosition = 0  // Reset for slide component
         for scale in slide.scales {
             guard !scale.definition.name.isEmpty else { continue }
             
@@ -212,12 +235,17 @@ final class CursorState {
                 at: clampedSlidePosition,
                 for: scale,
                 component: .slide,
-                side: side
+                side: side,
+                componentPosition: componentPosition,
+                overallPosition: overallPosition
             )
             readings.append(reading)
+            componentPosition += 1
+            overallPosition += 1
         }
         
         // Read bottom stator scales (fixed, no offset needed)
+        componentPosition = 0  // Reset for bottom stator component
         for scale in bottomStator.scales {
             guard !scale.definition.name.isEmpty else { continue }
             
@@ -225,9 +253,13 @@ final class CursorState {
                 at: position,
                 for: scale,
                 component: .statorBottom,
-                side: side
+                side: side,
+                componentPosition: componentPosition,
+                overallPosition: overallPosition
             )
             readings.append(reading)
+            componentPosition += 1
+            overallPosition += 1
         }
         
         return readings

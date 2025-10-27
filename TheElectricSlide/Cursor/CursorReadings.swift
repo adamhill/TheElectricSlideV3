@@ -35,6 +35,12 @@ struct ScaleReading: Sendable, Identifiable {
     /// Original scale definition (for reference)
     let scaleDefinition: ScaleDefinition
     
+    /// Position within component (0, 1, 2...)
+    let componentPosition: Int
+    
+    /// Overall position on rule face (top to bottom)
+    let overallPosition: Int
+    
     enum ComponentType: String, Sendable {
         case statorTop = "Top Stator"
         case slide = "Slide"
@@ -52,25 +58,66 @@ struct CursorReadings: Sendable {
     /// Timestamp of reading capture
     let timestamp: Date
     
-    /// All scale readings from front side
+    /// All scale readings from front side (stored for backward compatibility)
     let frontReadings: [ScaleReading]
     
-    /// All scale readings from back side
+    /// All scale readings from back side (stored for backward compatibility)
     let backReadings: [ScaleReading]
     
-    /// All readings in a flat array for iteration
-    var allReadings: [ScaleReading] {
-        frontReadings + backReadings
+    /// All readings sorted by overall position (ordered array for iteration)
+    let allReadings: [ScaleReading]
+    
+    /// Readings from top stator component only
+    let statorTopReadings: [ScaleReading]
+    
+    /// Readings from slide component only
+    let slideReadings: [ScaleReading]
+    
+    /// Readings from bottom stator component only
+    let statorBottomReadings: [ScaleReading]
+    
+    /// Initialize with readings arrays, automatically building ordered and filtered arrays
+    /// - Parameters:
+    ///   - cursorPosition: Normalized cursor position (0.0-1.0)
+    ///   - timestamp: Time when readings were captured
+    ///   - frontReadings: Readings from front side
+    ///   - backReadings: Readings from back side
+    init(
+        cursorPosition: Double,
+        timestamp: Date,
+        frontReadings: [ScaleReading],
+        backReadings: [ScaleReading]
+    ) {
+        self.cursorPosition = cursorPosition
+        self.timestamp = timestamp
+        self.frontReadings = frontReadings
+        self.backReadings = backReadings
+        
+        // Build ordered array sorted by overall position
+        let combined = frontReadings + backReadings
+        self.allReadings = combined.sorted { $0.overallPosition < $1.overallPosition }
+        
+        // Build component-filtered arrays
+        self.statorTopReadings = combined.filter { $0.component == .statorTop }
+        self.slideReadings = combined.filter { $0.component == .slide }
+        self.statorBottomReadings = combined.filter { $0.component == .statorBottom }
     }
     
     /// Get readings grouped by component type
     /// - Parameter component: The component type to filter by
     /// - Returns: Array of readings for that component
     func readings(for component: ScaleReading.ComponentType) -> [ScaleReading] {
-        allReadings.filter { $0.component == component }
+        switch component {
+        case .statorTop:
+            return statorTopReadings
+        case .slide:
+            return slideReadings
+        case .statorBottom:
+            return statorBottomReadings
+        }
     }
     
-    /// Find reading for a specific scale name on a specific side
+    /// Find reading for a specific scale name on a specific side (efficient lookup)
     /// - Parameters:
     ///   - name: Scale name to find (e.g., "C", "D")
     ///   - side: Which side to search
@@ -108,12 +155,16 @@ extension CursorState {
     ///   - scale: The generated scale to query
     ///   - component: Component type (for metadata)
     ///   - side: Rule side (for metadata)
+    ///   - componentPosition: Position within component (0, 1, 2...)
+    ///   - overallPosition: Overall position on rule face
     /// - Returns: ScaleReading with calculated value
     func calculateReading(
         at cursorPosition: Double,
         for scale: GeneratedScale,
         component: ScaleReading.ComponentType,
-        side: RuleSide
+        side: RuleSide,
+        componentPosition: Int,
+        overallPosition: Int
     ) -> ScaleReading {
         // Use ScaleCalculator to get value (O(1) operation)
         let value = ScaleCalculator.value(
@@ -134,11 +185,13 @@ extension CursorState {
             displayValue: displayValue,
             side: side,
             component: component,
-            scaleDefinition: scale.definition
+            scaleDefinition: scale.definition,
+            componentPosition: componentPosition,
+            overallPosition: overallPosition
         )
     }
     
-    /// Format value using scale's label formatter or smart default
+    /// Format value for cursor reading display
     /// - Parameters:
     ///   - value: The value to format
     ///   - definition: The scale definition (may have custom formatter)
@@ -152,29 +205,48 @@ extension CursorState {
             return "—"  // Em dash for undefined/infinite
         }
         
-        // Use scale's custom formatter if available
+        // Use scale-specific formatter if available (for K, S, T, L, LL scales)
         if let formatter = definition.labelFormatter {
             return formatter(value)
         }
         
-        // Otherwise use smart default formatting
+        // Fall back to smart default formatting
         return formatSmartDefault(value)
     }
     
     /// Smart default formatting based on value magnitude
+    /// - Provides magnitude-based precision
+    /// - Integer display for whole numbers
+    /// - Adaptive decimal places
     private func formatSmartDefault(_ value: Double) -> String {
-        if abs(value) < 0.01 {
-            return String(format: "%.4f", value)
-        } else if abs(value) < 1 {
+        let absValue = abs(value)
+        
+        // For very small values, use scientific notation
+        if absValue > 0 && absValue < 0.001 {
+            return String(format: "%.2e", value)
+        }
+        
+        // For values close to integers, show as integers
+        if abs(value - round(value)) < 0.001 {
+            return String(format: "%.0f", value)
+        }
+        
+        // For small values, more decimal places
+        if absValue < 1.0 {
             return String(format: "%.3f", value)
-        } else if abs(value) < 10 {
+        }
+        
+        // For medium values, 2 decimal places
+        if absValue < 100.0 {
             return String(format: "%.2f", value)
-        } else if abs(value) < 100 {
-            return String(format: "%.1f", value)
-        } else if abs(value - value.rounded()) < 0.01 {
-            return String(Int(value.rounded()))
-        } else {
+        }
+        
+        // For large values, 1 decimal place
+        if absValue < 1000.0 {
             return String(format: "%.1f", value)
         }
+        
+        // For very large values, no decimals
+        return String(format: "%.0f", value)
     }
 }

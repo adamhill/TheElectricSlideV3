@@ -5,7 +5,8 @@
 Real-time capture of scale values at cursor position. Updates automatically as cursor moves.
 
 **Current Status**: ✅ Core cursor dragging working smoothly (60fps, no vibration)
-**Reading Feature**: 🚧 Implemented, awaiting integration testing
+**Reading Feature**: ✅ Fully implemented with hairline center positioning and slide offset tracking
+**Known Issues**: None - readings update correctly for both cursor and slide movement
 
 ---
 
@@ -17,6 +18,11 @@ Real-time capture of scale values at cursor position. Updates automatically as c
 - **During drag**: Visual position = `normalizedPosition * width + activeDragOffset`
 - **On drag end**: Commit `activeDragOffset` to `normalizedPosition`, reset offset to 0
 - **Why**: Separates real-time visual feedback from committed state, prevents animation conflicts
+
+**Critical Detail**: Position Storage vs Hairline
+- **Stored position** (`normalizedPosition`): LEFT EDGE of 108pt-wide cursor
+- **Reading position**: LEFT EDGE + 54pt (cursor center = hairline)
+- **Calculation**: `hairlinePosition = position + (cursorWidth/2) / scaleWidth`
 
 ### Custom ViewModifier for Smooth Dragging
 
@@ -107,21 +113,23 @@ protocol SlideRuleProvider: AnyObject {
 - [ ] Add calculation helpers in CursorState extension
 
 ### Step 2: Extend CursorState.swift
-- [ ] Add property: `var currentReadings: CursorReadings?`
-- [ ] Add property: `var enableReadings: Bool = true`
-- [ ] Add property: `private weak var slideRuleProvider: SlideRuleProvider?`
-- [ ] Add method: `func setSlideRuleProvider(_ provider: SlideRuleProvider)`
-- [ ] Add method: `func updateReadings()`
-- [ ] Add method: `private func queryScales(...) -> [ScaleReading]`
-- [ ] Modify `setPosition()` to call `updateReadings()` if enabled
+- [x] Add constant: `private let cursorWidth: CGFloat = 108`
+- [x] Add property: `var currentReadings: CursorReadings?`
+- [x] Add property: `var enableReadings: Bool = true`
+- [x] Add property: `private var slideRuleProvider: SlideRuleProvider?`
+- [x] Add method: `func setSlideRuleProvider(_ provider: SlideRuleProvider)`
+- [x] Add method: `func updateReadings()` - includes hairline offset calculation
+- [x] Add method: `private func queryScales(...) -> [ScaleReading]`
+- [x] Modify `setPosition()` to call `updateReadings()` if enabled
 
 ### Step 3: Extend ContentView.swift
-- [ ] Add extension: `extension ContentView: SlideRuleProvider`
-- [ ] Implement `getFrontScaleData()`
-- [ ] Implement `getBackScaleData()`
-- [ ] Implement `getSlideOffset()`
-- [ ] Implement `getScaleWidth()`
-- [ ] Add `.onAppear { cursorState.setSlideRuleProvider(self) }`
+- [x] Add extension: `extension ContentView: SlideRuleProvider`
+- [x] Implement `getFrontScaleData()`
+- [x] Implement `getBackScaleData()`
+- [x] Implement `getSlideOffset()` - returns `sliderOffset`
+- [x] Implement `getScaleWidth()` - returns `calculatedDimensions.width`
+- [x] Add `.onAppear { cursorState.setSlideRuleProvider(self) }`
+- [x] Add `.onChange(of: sliderOffset) { cursorState.updateReadings() }` - triggers updates when slide moves
 
 ### Step 4: Test Reading Accuracy
 - [ ] Test C scale at known positions (0.0→1.0, 0.301→2.0, 0.5→3.162, 1.0→10.0)
@@ -206,6 +214,20 @@ let clampedSlidePos = min(max(slidePos, 0.0), 1.0)
 let reading = calculateReading(at: clampedSlidePos, for: slideScale, ...)  // CORRECT
 ```
 
+### ❌ Don't Use Left Edge Position for Readings
+```swift
+// DON'T use cursor position directly (it's the left edge!)
+let reading = calculateReading(at: normalizedPosition, ...)  // WRONG - off by 54pt
+```
+
+### ✅ Calculate Hairline Center Position
+```swift
+// DO adjust for hairline center
+let halfCursorWidthNormalized = (cursorWidth / 2.0) / scaleWidth
+let hairlinePosition = normalizedPosition + halfCursorWidthNormalized
+let reading = calculateReading(at: hairlinePosition, ...)  // CORRECT
+```
+
 ### ❌ Don't Process Spacer Scales
 ```swift
 // DON'T calculate readings for empty scales
@@ -220,6 +242,23 @@ for scale in stator.scales {
 for scale in stator.scales {
     guard !scale.definition.name.isEmpty else { continue }  // Skip spacers
     let reading = calculateReading(...)
+}
+```
+
+### ❌ Don't Forget Slide Movement Updates
+```swift
+// DON'T only update on cursor drag
+func setPosition(...) {
+    normalizedPosition = position
+    updateReadings()  // Only updates when cursor moves - misses slide movement!
+}
+```
+
+### ✅ Track Slide Offset Changes
+```swift
+// DO observe slide offset in ContentView
+.onChange(of: sliderOffset) { oldValue, newValue in
+    cursorState.updateReadings()  // Update when slide moves too!
 }
 ```
 
@@ -301,11 +340,18 @@ let ciValue = ScaleCalculator.value(at: pos, on: ciScale) // CI: ~0.316 (recipro
 2. Verify `setSlideRuleProvider()` called
 3. Confirm provider methods return non-nil
 4. Ensure `setPosition()` calls `updateReadings()`
+5. **Verify slide offset tracking**: Check `.onChange(of: sliderOffset)` triggers updates
+
+### Readings Off by ~54pt (Half Cursor Width)
+1. **Verify hairline calculation**: Must add `(cursorWidth/2) / scaleWidth` to position
+2. Check `updateReadings(at:)` uses `hairlinePosition`, not raw `position`
+3. Confirm cursor width constant matches `CursorView` (108pt)
 
 ### Slide Readings Wrong
 1. Verify offset normalization: `slideOffset / scaleWidth`
 2. Check position clamping: `min(max(pos, 0.0), 1.0)`
-3. Confirm offset subtracted from cursor position
+3. Confirm offset subtracted from **hairline** position (not left edge)
+4. **Check slide movement tracking**: Verify `.onChange(of: sliderOffset)` exists
 
 ### Performance Issues
 1. Profile with Instruments Time Profiler

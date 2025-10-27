@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import SlideRuleCoreV3
 
 // NOTE:
@@ -570,6 +571,9 @@ struct SideView: View, Equatable {
 // MARK: - ContentView
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var currentRuleQuery: [CurrentSlideRule]
+    
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
@@ -577,6 +581,13 @@ struct ContentView: View {
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
     @State private var cursorState = CursorState()
+    
+    // Current slide rule selection (persisted via SwiftData)
+    @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
+    @State private var selectedRuleId: UUID? // Track ID separately for onChange
+    
+    // Parsed slide rule from definition - published state to trigger re-renders
+    @State private var currentSlideRule: SlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
     
     // ✅ Helper to create a blank spacer scale for balancing
     private func createSpacerScale(length: Double) -> GeneratedScale {
@@ -608,30 +619,9 @@ struct ContentView: View {
     // Padding around the slide rule
     private let padding: CGFloat = 40
     
-    // Parse the slide rule definition using RuleDefinitionParser
+    // Access current slide rule (now a @State variable, not computed)
     private var slideRule: SlideRule {
-        let dimensions = RuleDefinitionParser.Dimensions(
-            topStatorMM: 14,
-            slideMM: 13,
-            bottomStatorMM: 14
-        )
-        
-        // Parse the rule definition: Multiple scales per component
-        // Top stator: L, DF scales
-        // Slide: CF-, CIF, DI, CI, C scales
-        // Bottom stator: D, A scales
-        // Note: scaleLength is a reference value; actual rendering width is responsive
-        do {
-            return try RuleDefinitionParser.parse(
-              // "(C [K] A)",
-              "(LL01 K A [ B | T ST S ] D L- LL1- : LL02 LL03 DF [ CF CIF | CI C ] D LL3- LL2-)",
-                dimensions: dimensions,
-                scaleLength: 1000  // Reference length for scale calculations
-            )
-        } catch {
-            // Fallback to a basic rule if parsing fails
-            fatalError("Failed to parse slide rule definition: \(error)")
-        }
+        currentSlideRule
     }
     
     // ✅ Balanced stators and slides - adds spacers to match scale counts
@@ -830,6 +820,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
+    @MainActor
     private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
@@ -889,6 +880,11 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Slide Rule Picker
+            SlideRulePicker(currentRule: $selectedRuleDefinition)
+            
+            Divider()
+            
             // View Mode Picker
             HStack {
                 Spacer()
@@ -951,8 +947,7 @@ struct ContentView: View {
                    let backBottom = balancedBackBottomStator {
                     VStack(spacing: 4) {
                         // Cursor readings display above slide rule
-                        if cursorState.isEnabled {
-                            CursorReadingsDisplayView(
+                        if cursorState.isEnabled {                            CursorReadingsDisplayView(
                                 readings: cursorState.currentReadings?.backReadings ?? [],
                                 side: .back
                             )
@@ -1003,11 +998,33 @@ struct ContentView: View {
             cursorState.setSlideRuleProvider(self)
             // Enable cursor readings
             cursorState.enableReadings = true
+            
+            // Initialize current rule from persistence
+            loadCurrentRule()
         }
         .onChange(of: sliderOffset) { oldValue, newValue in
             // Update cursor readings when slide moves
             // This ensures slide scale values update in real-time
             cursorState.updateReadings()
+        }
+        .onChange(of: selectedRuleDefinition) { oldValue, newValue in
+            print("🔄 selectedRuleDefinition changed (object)")
+            // Update ID tracker
+            selectedRuleId = newValue?.id
+        }
+        .onChange(of: selectedRuleId) { oldValue, newValue in
+            print("🔄 Rule selection changed: \(oldValue?.uuidString ?? "nil") -> \(newValue?.uuidString ?? "nil")")
+            print("   New rule: \(selectedRuleDefinition?.name ?? "nil")")
+            
+            // Parse new slide rule when selection changes
+            parseAndUpdateSlideRule()
+            
+            // Reset slider position when switching rules
+            sliderOffset = 0
+            sliderBaseOffset = 0
+            
+            // Persist selection
+            saveCurrentRule()
         }
     }
     
@@ -1020,6 +1037,51 @@ struct ContentView: View {
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
         sliderBaseOffset = sliderOffset
+    }
+    
+    // MARK: - Persistence Helpers
+    
+    private func loadCurrentRule() {
+        if let currentRule = currentRuleQuery.first {
+            selectedRuleDefinition = currentRule.selectedRule
+            selectedRuleId = currentRule.selectedRule?.id
+        }
+        // Parse initial slide rule
+        parseAndUpdateSlideRule()
+    }
+    
+    private func saveCurrentRule() {
+        if let current = currentRuleQuery.first {
+            current.updateSelection(selectedRuleDefinition!)
+        } else {
+            let newCurrent = CurrentSlideRule(selectedRule: selectedRuleDefinition)
+            modelContext.insert(newCurrent)
+        }
+        
+        try? modelContext.save()
+    }
+    
+    private func parseAndUpdateSlideRule() {
+        guard let definition = selectedRuleDefinition else {
+            // Use default rule
+            print("⚠️ No definition selected, using default")
+            currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
+            return
+        }
+        
+        print("🔧 Parsing slide rule: \(definition.name)")
+        print("   Definition: \(definition.definitionString)")
+        
+        do {
+            let parsed = try definition.parseSlideRule(scaleLength: 1000)
+            currentSlideRule = parsed
+            print("✅ Successfully loaded slide rule: \(definition.name)")
+            print("   Front scales: \(parsed.frontTopStator.scales.count) + \(parsed.frontSlide.scales.count) + \(parsed.frontBottomStator.scales.count)")
+        } catch {
+            print("❌ Failed to parse slide rule '\(definition.name)': \(error)")
+            // Fallback to basic rule
+            currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
+        }
     }
 }
 

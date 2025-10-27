@@ -12,7 +12,7 @@ struct TheElectricSlideApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             CurrentSlideRule.self,
-            
+            SlideRuleDefinitionModel.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

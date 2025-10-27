@@ -1050,8 +1050,12 @@ struct ContentView: View {
     }
     
     private func saveCurrentRule() {
+        guard let selectedRuleDefinition = selectedRuleDefinition else {
+            print("⚠️ Cannot save: selectedRuleDefinition is nil")
+            return
+        }
         if let current = currentRuleQuery.first {
-            current.updateSelection(selectedRuleDefinition!)
+            current.updateSelection(selectedRuleDefinition)
         } else {
             let newCurrent = CurrentSlideRule(selectedRule: selectedRuleDefinition)
             modelContext.insert(newCurrent)

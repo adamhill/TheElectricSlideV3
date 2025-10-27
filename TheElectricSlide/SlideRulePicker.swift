@@ -43,7 +43,15 @@ struct SlideRulePicker: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(Color(nsColor: .controlBackgroundColor))
+            .background(
+                {
+                    #if os(macOS)
+                    Color(nsColor: NSColor.controlBackgroundColor)
+                    #else
+                    Color(uiColor: .secondarySystemBackground)
+                    #endif
+                }()
+            )
             .cornerRadius(8)
             
             // Expandable rule list
@@ -151,7 +159,13 @@ struct SlideRuleButton: View {
             .padding(.horizontal, 12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                    .fill(isSelected ? Color.accentColor : {
+                        #if os(macOS)
+                        Color(nsColor: NSColor.controlBackgroundColor)
+                        #else
+                        Color(uiColor: .secondarySystemBackground)
+                        #endif
+                    }())
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)

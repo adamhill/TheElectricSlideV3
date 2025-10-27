@@ -820,7 +820,6 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    @MainActor
     private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)

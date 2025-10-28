@@ -501,8 +501,11 @@ struct SideView: View, Equatable {
     let scaleHeight: CGFloat
     let sliderOffset: CGFloat
     let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
+    let onDragChanged: (DragGesture.Value) -> Void
+    let onDragEnded: (DragGesture.Value) -> Void
     
     // ✅ Equatable conformance - only compare properties affecting rendering
+    // Note: Closures are not compared in Equatable - they're just passed through
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
         lhs.width == rhs.width &&
@@ -544,6 +547,11 @@ struct SideView: View, Equatable {
             )
             .equatable()
             .offset(x: sliderOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged(onDragChanged)
+                    .onEnded(onDragEnded)
+            )
             .animation(.interactiveSpring(), value: sliderOffset)
             .id("\(side.rawValue)-slide")
             
@@ -946,6 +954,7 @@ struct ContentView: View {
                                 readings: cursorState.currentReadings?.frontReadings ?? [],
                                 side: .front
                             )
+                            .equatable()
                             .frame(maxWidth: calculatedDimensions.width)
                         }
                         
@@ -957,14 +966,11 @@ struct ContentView: View {
                             width: calculatedDimensions.width,
                             scaleHeight: calculatedDimensions.scaleHeight,
                             sliderOffset: sliderOffset,
-                            showLabel: viewMode == .both
+                            showLabel: viewMode == .both,
+                            onDragChanged: handleDragChanged,
+                            onDragEnded: handleDragEnded
                         )
                         .equatable()
-                        .gesture(
-                            DragGesture()
-                                .onChanged(handleDragChanged)
-                                .onEnded(handleDragEnded)
-                        )
                         .overlay {
                             CursorOverlay(
                                 cursorState: cursorState,
@@ -983,10 +989,12 @@ struct ContentView: View {
                    let backBottom = balancedBackBottomStator {
                     VStack(spacing: 4) {
                         // Cursor readings display above slide rule
-                        if cursorState.isEnabled {                            CursorReadingsDisplayView(
+                        if cursorState.isEnabled {
+                            CursorReadingsDisplayView(
                                 readings: cursorState.currentReadings?.backReadings ?? [],
                                 side: .back
                             )
+                            .equatable()
                             .frame(maxWidth: calculatedDimensions.width)
                         }
                         
@@ -998,14 +1006,11 @@ struct ContentView: View {
                             width: calculatedDimensions.width,
                             scaleHeight: calculatedDimensions.scaleHeight,
                             sliderOffset: sliderOffset,
-                            showLabel: viewMode == .both
+                            showLabel: viewMode == .both,
+                            onDragChanged: handleDragChanged,
+                            onDragEnded: handleDragEnded
                         )
                         .equatable()
-                        .gesture(
-                            DragGesture()
-                                .onChanged(handleDragChanged)
-                                .onEnded(handleDragEnded)
-                        )
                         .overlay {
                             CursorOverlay(
                                 cursorState: cursorState,

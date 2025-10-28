@@ -568,6 +568,150 @@ struct SideView: View, Equatable {
         }
     }
 }
+// MARK: - StaticHeaderSection
+
+struct StaticHeaderSection: View, Equatable {
+    @Binding var selectedRule: SlideRuleDefinitionModel?
+    @Binding var viewMode: ViewMode
+    let hasBackSide: Bool
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            SlideRulePicker(currentRule: $selectedRule)
+            
+            Divider()
+            
+            // View Mode Picker
+            HStack {
+                Spacer()
+                Picker("View Mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .disabled(!hasBackSide && (viewMode == .back || viewMode == .both))
+                Spacer()
+            }
+        }
+    }
+    
+    static func == (lhs: StaticHeaderSection, rhs: StaticHeaderSection) -> Bool {
+        // Only compare values that affect rendering
+        lhs.selectedRule?.id == rhs.selectedRule?.id &&
+        lhs.viewMode == rhs.viewMode &&
+        lhs.hasBackSide == rhs.hasBackSide
+    }
+}
+
+// MARK: - DynamicSlideRuleContent
+
+struct DynamicSlideRuleContent: View {
+    // Dependencies from ContentView
+    let viewMode: ViewMode
+    let balancedFrontTopStator: Stator
+    let balancedFrontSlide: Slide
+    let balancedFrontBottomStator: Stator
+    let balancedBackTopStator: Stator?
+    let balancedBackSlide: Slide?
+    let balancedBackBottomStator: Stator?
+    let calculatedDimensions: Dimensions
+    @Binding var sliderOffset: CGFloat
+    let cursorState: CursorState
+    let handleDragChanged: (DragGesture.Value) -> Void
+    let handleDragEnded: (DragGesture.Value) -> Void
+    let totalScaleHeight: (RuleSide) -> CGFloat
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Front side - show if mode is .front or .both
+            if viewMode == .front || viewMode == .both {
+                VStack(spacing: 4) {
+                    // Cursor readings display above slide rule
+                    if cursorState.isEnabled {
+                        CursorReadingsDisplayView(
+                            readings: cursorState.currentReadings?.frontReadings ?? [],
+                            side: .front
+                        )
+                        .equatable()
+                        .frame(maxWidth: calculatedDimensions.width)
+                    }
+                    
+                    SideView(
+                        side: .front,
+                        topStator: balancedFrontTopStator,
+                        slide: balancedFrontSlide,
+                        bottomStator: balancedFrontBottomStator,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                    .overlay {
+                        CursorOverlay(
+                            cursorState: cursorState,
+                            width: calculatedDimensions.width,
+                            height: totalScaleHeight(.front),
+                            side: .front
+                        )
+                    }
+                }
+            }
+            
+            // Back side - show if mode is .back or .both (and back side exists)
+            if (viewMode == .back || viewMode == .both),
+               let backTop = balancedBackTopStator,
+               let backSlide = balancedBackSlide,
+               let backBottom = balancedBackBottomStator {
+                VStack(spacing: 4) {
+                    // Cursor readings display above slide rule
+                    if cursorState.isEnabled {
+                        CursorReadingsDisplayView(
+                            readings: cursorState.currentReadings?.backReadings ?? [],
+                            side: .back
+                        )
+                        .equatable()
+                        .frame(maxWidth: calculatedDimensions.width)
+                    }
+                    
+                    SideView(
+                        side: .back,
+                        topStator: backTop,
+                        slide: backSlide,
+                        bottomStator: backBottom,
+                        width: calculatedDimensions.width,
+                        scaleHeight: calculatedDimensions.scaleHeight,
+                        sliderOffset: sliderOffset,
+                        showLabel: viewMode == .both,
+                        onDragChanged: handleDragChanged,
+                        onDragEnded: handleDragEnded
+                    )
+                    .equatable()
+                    .overlay {
+                        CursorOverlay(
+                            cursorState: cursorState,
+                            width: calculatedDimensions.width,
+                            height: totalScaleHeight(.back),
+                            side: .back
+                        )
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
+        .onChange(of: sliderOffset) {
+            cursorState.updateReadings()
+        }
+    }
+}
+
 
 // MARK: - ContentView
 
@@ -883,147 +1027,61 @@ struct ContentView: View {
     }
     
     var body: some View {
-        mainContent
-            .onGeometryChange(for: Dimensions.self) { proxy in
-                let size = proxy.size
-                return calculateDimensions(
-                    availableWidth: size.width,
-                    availableHeight: size.height
-                )
-            } action: { newDimensions in
-                calculatedDimensions = newDimensions
-            }
-            .onAppear {
-                cursorState.setSlideRuleProvider(self)
-                cursorState.enableReadings = true
-                loadCurrentRule()
-                updateBalancedComponents()
-            }
-            .onChange(of: sliderOffset) { _, _ in
-                cursorState.updateReadings()
-            }
-            .onChange(of: viewMode) { _, _ in
-                updateBalancedComponents()
-            }
-            .onChange(of: selectedRuleDefinition) { oldValue, newValue in
-                print("🔄 selectedRuleDefinition changed (object)")
-                selectedRuleId = newValue?.id
-            }
-            .onChange(of: selectedRuleId) { oldValue, newValue in
-                print("🔄 Rule selection changed: \(oldValue?.uuidString ?? "nil") -> \(newValue?.uuidString ?? "nil")")
-                print("   New rule: \(selectedRuleDefinition?.name ?? "nil")")
-                parseAndUpdateSlideRule()
-                sliderOffset = 0
-                sliderBaseOffset = 0
-                saveCurrentRule()
-            }
-    }
-    
-    private var mainContent: some View {
         VStack(spacing: 0) {
-            // Slide Rule Picker
-            SlideRulePicker(currentRule: $selectedRuleDefinition)
+            // Static header - isolated from sliderOffset changes
+            StaticHeaderSection(
+                selectedRule: $selectedRuleDefinition,
+                viewMode: $viewMode,
+                hasBackSide: currentSlideRule.backTopStator != nil
+            )
+            .equatable()
             
-            Divider()
-            
-            // View Mode Picker
-            HStack {
-                Spacer()
-                Picker("View Mode", selection: $viewMode) {
-                    ForEach(ViewMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                .padding(.horizontal)
-                .padding(.top, 8)
-                // Disable back/both if no back side available
-                .disabled(slideRule.backTopStator == nil && (viewMode == .back || viewMode == .both))
-                Spacer()
-            }
-            
-            // Main slide rule content
-            VStack(spacing: 20) {
-                // Front side - show if mode is .front or .both
-                if viewMode == .front || viewMode == .both {
-                    VStack(spacing: 4) {
-                        // Cursor readings display above slide rule
-                        if cursorState.isEnabled {
-                            CursorReadingsDisplayView(
-                                readings: cursorState.currentReadings?.frontReadings ?? [],
-                                side: .front
-                            )
-                            .equatable()
-                            .frame(maxWidth: calculatedDimensions.width)
-                        }
-                        
-                        SideView(
-                            side: .front,
-                            topStator: balancedFrontTopStator,
-                            slide: balancedFrontSlide,
-                            bottomStator: balancedFrontBottomStator,
-                            width: calculatedDimensions.width,
-                            scaleHeight: calculatedDimensions.scaleHeight,
-                            sliderOffset: sliderOffset,
-                            showLabel: viewMode == .both,
-                            onDragChanged: handleDragChanged,
-                            onDragEnded: handleDragEnded
-                        )
-                        .equatable()
-                        .overlay {
-                            CursorOverlay(
-                                cursorState: cursorState,
-                                width: calculatedDimensions.width,
-                                height: totalScaleHeight(for: .front),
-                                side: .front
-                            )
-                        }
-                    }
-                }
-                
-                // Back side - show if mode is .back or .both (and back side exists)
-                if (viewMode == .back || viewMode == .both),
-                   let backTop = balancedBackTopStator,
-                   let backSlide = balancedBackSlide,
-                   let backBottom = balancedBackBottomStator {
-                    VStack(spacing: 4) {
-                        // Cursor readings display above slide rule
-                        if cursorState.isEnabled {
-                            CursorReadingsDisplayView(
-                                readings: cursorState.currentReadings?.backReadings ?? [],
-                                side: .back
-                            )
-                            .equatable()
-                            .frame(maxWidth: calculatedDimensions.width)
-                        }
-                        
-                        SideView(
-                            side: .back,
-                            topStator: backTop,
-                            slide: backSlide,
-                            bottomStator: backBottom,
-                            width: calculatedDimensions.width,
-                            scaleHeight: calculatedDimensions.scaleHeight,
-                            sliderOffset: sliderOffset,
-                            showLabel: viewMode == .both,
-                            onDragChanged: handleDragChanged,
-                            onDragEnded: handleDragEnded
-                        )
-                        .equatable()
-                        .overlay {
-                            CursorOverlay(
-                                cursorState: cursorState,
-                                width: calculatedDimensions.width,
-                                height: totalScaleHeight(for: .back),
-                                side: .back
-                            )
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(padding)
+            // Dynamic content - responds to sliderOffset
+            DynamicSlideRuleContent(
+                viewMode: viewMode,
+                balancedFrontTopStator: balancedFrontTopStator,
+                balancedFrontSlide: balancedFrontSlide,
+                balancedFrontBottomStator: balancedFrontBottomStator,
+                balancedBackTopStator: balancedBackTopStator,
+                balancedBackSlide: balancedBackSlide,
+                balancedBackBottomStator: balancedBackBottomStator,
+                calculatedDimensions: calculatedDimensions,
+                sliderOffset: $sliderOffset,
+                cursorState: cursorState,
+                handleDragChanged: handleDragChanged,
+                handleDragEnded: handleDragEnded,
+                totalScaleHeight: totalScaleHeight
+            )
+        }
+        .onGeometryChange(for: Dimensions.self) { proxy in
+            let size = proxy.size
+            return calculateDimensions(
+                availableWidth: size.width,
+                availableHeight: size.height
+            )
+        } action: { newDimensions in
+            calculatedDimensions = newDimensions
+        }
+        .onAppear {
+            cursorState.setSlideRuleProvider(self)
+            cursorState.enableReadings = true
+            loadCurrentRule()
+            updateBalancedComponents()
+        }
+        .onChange(of: selectedRuleDefinition) { oldValue, newValue in
+            print("🔄 selectedRuleDefinition changed (object)")
+            selectedRuleId = newValue?.id
+        }
+        .onChange(of: selectedRuleId) { oldValue, newValue in
+            print("🔄 Rule selection changed: \(oldValue?.uuidString ?? "nil") -> \(newValue?.uuidString ?? "nil")")
+            print("   New rule: \(selectedRuleDefinition?.name ?? "nil")")
+            parseAndUpdateSlideRule()
+            sliderOffset = 0
+            sliderBaseOffset = 0
+            saveCurrentRule()
+        }
+        .onChange(of: viewMode) { _, _ in
+            updateBalancedComponents()
         }
     }
     

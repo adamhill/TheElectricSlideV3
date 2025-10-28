@@ -22,7 +22,7 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// This prevents unnecessary redraws when display strings haven't changed
     static func == (lhs: CursorReadingsDisplayView, rhs: CursorReadingsDisplayView) -> Bool {
         lhs.side == rhs.side &&
-        lhs.readings.map(\.displayValue) == rhs.readings.map(\.displayValue)
+        lhs.readings.elementsEqual(rhs.readings) { $0.displayValue == $1.displayValue }
     }
     
     /// Cross-platform background color for the readings container

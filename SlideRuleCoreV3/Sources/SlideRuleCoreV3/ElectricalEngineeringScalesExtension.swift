@@ -57,7 +57,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("XL")
-            .withFormula("2πfL")
+            .withFormula("ωL")
             .withFunction(xlFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -106,7 +106,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Xc")
-            .withFormula("1/(2πfC)")
+            .withFormula("1/(ωC)")
             .withFunction(xcFunction)
             .withRange(begin: 100.0, end: 1.0) // Inverted range
             .withLength(length)
@@ -154,6 +154,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("F")
+            .withFormula("log₁₀ f")
             .withFunction(fFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -208,6 +209,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Fo")
+            .withFormula("c/f")
             .withFunction(foFunction)
             .withRange(begin: 100.0, end: 1.0) // Inverted
             .withLength(length)
@@ -258,6 +260,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("L")
+            .withFormula("log₁₀ L")
             .withFunction(lFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -307,6 +310,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Li")
+            .withFormula("log₁₀(1/L)")
             .withFunction(lFunction)
             .withRange(begin: 100.0, end: 1.0) // Inverted
             .withLength(length)
@@ -359,6 +363,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Cz")
+            .withFormula("log₁₀ C")
             .withFunction(czFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -410,6 +415,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Cf")
+            .withFormula("log₁₀(C·f)")
             .withFunction(cfFunction)
             .withRange(begin: 100.0, end: 1.0) // Inverted
             .withLength(length)
@@ -460,6 +466,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Z")
+            .withFormula("log₁₀ Z")
             .withFunction(zFunction)
             .withRange(begin: 1.0, end: 100.0)
             .withLength(length)
@@ -507,6 +514,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("r1")
+            .withFormula("VSWR")
             .withFunction(r1Function)
             .withRange(begin: 0.5, end: 50.0)
             .withLength(length)
@@ -563,6 +571,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("r2")
+            .withFormula("1/VSWR")
             .withFunction(r2Function)
             .withRange(begin: 0.5, end: 50.0)
             .withLength(length)
@@ -622,6 +631,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("P")
+            .withFormula("10log₁₀(P₂/P₁)")
             .withFunction(pFunction)
             .withRange(begin: 0.0, end: 14.0)
             .withLength(length)
@@ -671,6 +681,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("Q")
+            .withFormula("10log₁₀(P₁/P₂)")
             .withFunction(qFunction)
             .withRange(begin: 0.0, end: 14.0)
             .withLength(length)

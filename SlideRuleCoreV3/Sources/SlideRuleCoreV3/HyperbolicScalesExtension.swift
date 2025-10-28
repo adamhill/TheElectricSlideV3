@@ -705,6 +705,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("L180")
+            .withFormula("θ° (0-180°)")
             .withFunction(LinearDegreeFunction(maxDegrees: 360.0))
             .withRange(begin: 0, end: 360)
             .withLength(length)
@@ -768,6 +769,7 @@ extension StandardScales {
     public static func paScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("PA")
+            .withFormula("10-x-7.6log₁₀(x)/log₁₀(1.72)+log₁₀(7.6)")
             .withFunction(PercentageAngularFunction())
             .withRange(begin: 9, end: 91)
             .withLength(length)

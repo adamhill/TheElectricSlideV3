@@ -62,11 +62,21 @@ struct CursorOverlay: View {
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
                             // Update shared drag offset during gesture
-                            // Note: Readings are NOT updated here for performance (would recalculate 20+ values per frame)
-                            // Readings update only on drag end via setPosition()
                             withTransaction(Transaction(animation: nil)) {
                                 cursorState.activeDragOffset = gesture.translation.width
                             }
+                            
+                            // Realtime reading updates with modulo 3 throttling
+                            // Calculate current position during drag for reading updates
+                            let currentPosition = cursorState.position(for: side)
+                            let currentPixelPosition = currentPosition * effectiveWidth
+                            let newPixelPosition = currentPixelPosition + gesture.translation.width
+                            let normalizedPosition = newPixelPosition / effectiveWidth
+                            let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
+                            
+                            // Update readings at current drag position
+                            // Note: Modulo 3 throttling is handled internally by updateReadings()
+                            cursorState.updateReadings(at: clampedPosition)
                         }
                         .onEnded { gesture in
                             handleDragEnd(gesture, width: effectiveWidth)

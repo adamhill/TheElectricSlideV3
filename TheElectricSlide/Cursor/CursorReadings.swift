@@ -109,8 +109,8 @@ struct CursorReadings: Sendable, Equatable {
     /// This prevents unnecessary updates when display strings haven't changed
     static func == (lhs: CursorReadings, rhs: CursorReadings) -> Bool {
         // Compare only the formatted display strings, not raw positions or timestamps
-        lhs.frontReadings.map(\.displayValue) == rhs.frontReadings.map(\.displayValue) &&
-        lhs.backReadings.map(\.displayValue) == rhs.backReadings.map(\.displayValue)
+        lhs.frontReadings.elementsEqual(rhs.frontReadings) { $0.displayValue == $1.displayValue } &&
+        lhs.backReadings.elementsEqual(rhs.backReadings) { $0.displayValue == $1.displayValue }
     }
     
     /// Get readings grouped by component type

@@ -34,6 +34,18 @@ struct CursorOverlay: View {
     /// Which side this overlay is for
     let side: RuleSide?
     
+    /// Height of each scale (for vertical positioning of readings)
+    let scaleHeight: CGFloat
+    
+    /// Display configuration for scale readings
+    var displayConfig: CursorReadingDisplayConfig = .large
+    
+    /// Whether to show scale readings (names and values)
+    var showReadings: Bool = true
+    
+    /// Whether to show gradient backgrounds
+    var showGradients: Bool = true
+    
     // MARK: - Constants
     
     /// Left offset to align with scale rendering area (matches ScaleView label width)
@@ -50,8 +62,18 @@ struct CursorOverlay: View {
             let basePosition = cursorState.position(for: side) * effectiveWidth
             let currentOffset = basePosition + cursorState.activeDragOffset
             
+            // Get current readings for this side
+            let readings = getReadingsForSide()
+            
             // Use offset instead of HStack for smoother updates
-            CursorView(height: height)
+            CursorView(
+                height: height,
+                readings: readings,
+                scaleHeight: scaleHeight,
+                displayConfig: displayConfig,
+                showReadings: showReadings,
+                showGradients: showGradients
+            )
                 .frame(width: CursorView.cursorWidth, alignment: .top)
                 .offset(y: -CursorView.handleHeight)  // Move UP so handle is completely above slide rule
                 .modifier(CursorPositionModifier(offset: currentOffset))
@@ -91,6 +113,17 @@ struct CursorOverlay: View {
     
     // MARK: - Gesture Handlers
     
+    /// Get readings array for the current side
+    private func getReadingsForSide() -> [ScaleReading] {
+        guard let side = side else { return [] }
+        
+        if side == .front {
+            return cursorState.currentReadings?.frontReadings ?? []
+        } else {
+            return cursorState.currentReadings?.backReadings ?? []
+        }
+    }
+    
     /// Handle cursor drag end - commit the final position
     /// - Parameters:
     ///   - gesture: The drag gesture value
@@ -119,7 +152,8 @@ struct CursorOverlay: View {
         cursorState: state,
         width: 800,
         height: 200,
-        side: .front
+        side: .front,
+        scaleHeight: 25
     )
     .background(Color.gray.opacity(0.2))
     .frame(width: 800, height: 200)

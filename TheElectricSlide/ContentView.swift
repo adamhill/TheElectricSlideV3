@@ -31,6 +31,24 @@ enum ViewMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - Cursor Display Mode
+
+enum CursorDisplayMode: String, CaseIterable, Identifiable {
+    case gradients = "Grad"
+    case values = "Values"
+    case both = "Both"
+    
+    var id: String { rawValue }
+    
+    var showGradients: Bool {
+        self == .gradients || self == .both
+    }
+    
+    var showReadings: Bool {
+        self == .values || self == .both
+    }
+}
+
 // MARK: - Rule Side
 
 enum RuleSide: String, Sendable {
@@ -573,6 +591,7 @@ struct SideView: View, Equatable {
 struct StaticHeaderSection: View, Equatable {
     @Binding var selectedRule: SlideRuleDefinitionModel?
     @Binding var viewMode: ViewMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
     let hasBackSide: Bool
     
     var body: some View {
@@ -596,6 +615,21 @@ struct StaticHeaderSection: View, Equatable {
                 .disabled(!hasBackSide && (viewMode == .back || viewMode == .both))
                 Spacer()
             }
+            
+            // Cursor Display Mode Picker
+            HStack {
+                Spacer()
+                Picker("Cursor Display", selection: $cursorDisplayMode) {
+                    ForEach(CursorDisplayMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .padding(.horizontal)
+                .padding(.top, 4)
+                Spacer()
+            }
         }
     }
     
@@ -603,7 +637,8 @@ struct StaticHeaderSection: View, Equatable {
         // Only compare values that affect rendering
         lhs.selectedRule?.id == rhs.selectedRule?.id &&
         lhs.viewMode == rhs.viewMode &&
-        lhs.hasBackSide == rhs.hasBackSide
+        lhs.hasBackSide == rhs.hasBackSide &&
+        lhs.cursorDisplayMode == rhs.cursorDisplayMode
     }
 }
 
@@ -621,6 +656,7 @@ struct DynamicSlideRuleContent: View {
     let calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
+    let cursorDisplayMode: CursorDisplayMode
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let totalScaleHeight: (RuleSide) -> CGFloat
@@ -658,7 +694,10 @@ struct DynamicSlideRuleContent: View {
                             cursorState: cursorState,
                             width: calculatedDimensions.width,
                             height: totalScaleHeight(.front),
-                            side: .front
+                            side: .front,
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            showReadings: cursorDisplayMode.showReadings,
+                            showGradients: cursorDisplayMode.showGradients
                         )
                     }
                 }
@@ -698,7 +737,10 @@ struct DynamicSlideRuleContent: View {
                             cursorState: cursorState,
                             width: calculatedDimensions.width,
                             height: totalScaleHeight(.back),
-                            side: .back
+                            side: .back,
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            showReadings: cursorDisplayMode.showReadings,
+                            showGradients: cursorDisplayMode.showGradients
                         )
                     }
                 }
@@ -722,6 +764,7 @@ struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
+    @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
@@ -1032,6 +1075,7 @@ struct ContentView: View {
             StaticHeaderSection(
                 selectedRule: $selectedRuleDefinition,
                 viewMode: $viewMode,
+                cursorDisplayMode: $cursorDisplayMode,
                 hasBackSide: currentSlideRule.backTopStator != nil
             )
             .equatable()
@@ -1048,6 +1092,7 @@ struct ContentView: View {
                 calculatedDimensions: calculatedDimensions,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
+                cursorDisplayMode: cursorDisplayMode,
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
                 totalScaleHeight: totalScaleHeight

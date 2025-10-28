@@ -10,11 +10,6 @@ import SlideRuleCoreV3
 
 @Observable
 final class CursorState {
-    // MARK: - Constants
-    
-    /// Cursor width in points (must match CursorView)
-    private let cursorWidth: CGFloat = 108
-    
     // MARK: - Core State Properties
     
     /// Normalized cursor position (0.0 = left edge, 1.0 = right edge)
@@ -141,7 +136,7 @@ final class CursorState {
         
         // Adjust position to hairline center (position is left edge of cursor)
         let scaleWidth = provider.getScaleWidth()
-        let halfCursorWidthNormalized = (cursorWidth / 2.0) / scaleWidth
+        let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
         let hairlinePosition = position + halfCursorWidthNormalized
         
         var frontReadings: [ScaleReading] = []

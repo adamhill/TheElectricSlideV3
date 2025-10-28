@@ -42,9 +42,6 @@ struct CursorOverlay: View {
     /// Right offset for formula label area
     private let rightFormulaOffset: CGFloat = 40
     
-    /// Cursor width (must match CursorView width)
-    private let cursorWidth: CGFloat = 108
-    
     // MARK: - Body
     
     var body: some View {
@@ -55,9 +52,10 @@ struct CursorOverlay: View {
             
             // Use offset instead of HStack for smoother updates
             CursorView(height: height)
-                .frame(width: cursorWidth, height: height)
+                .frame(width: CursorView.cursorWidth, alignment: .top)
+                .offset(y: -CursorView.handleHeight)  // Move UP so handle is completely above slide rule
                 .modifier(CursorPositionModifier(offset: currentOffset))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
@@ -87,7 +85,7 @@ struct CursorOverlay: View {
                 )
                 .padding(.leading, leftLabelOffset)
         }
-        .frame(height: height)
+        .frame(height: height)  // Just the slide rule height
         .allowsHitTesting(cursorState.isEnabled)
     }
     

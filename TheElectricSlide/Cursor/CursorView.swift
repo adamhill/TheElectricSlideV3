@@ -10,40 +10,60 @@ import SwiftUI
 struct CursorView: View {
     // MARK: - Properties
     
-    /// Height of the cursor (spans full vertical space)
+    /// Height of the cursor (spans full vertical space of slide rule)
     let height: CGFloat
+    
+    // MARK: - Constants
+    
+    /// Width of the cursor frame
+    static let cursorWidth: CGFloat = 108
+    
+    /// Height of the drag handle (positioned ABOVE the slide rule)
+    static let handleHeight: CGFloat = 32
     
     // MARK: - Body
     
     var body: some View {
-        ZStack {
-            // DIAGNOSTIC: Ugly opaque rectangle for testing
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Color.red)  // Fully opaque red
-                    .frame(width: 108, height: 40)
-                    .overlay(
-                        Text("DRAG ME")
-                            .font(.caption)
-                            .foregroundColor(.white)
-                    )
-                
-                Spacer()
-            }
-            
-            // Simple transparent rectangle WITH BORDER
-            Rectangle()
-                .fill(.clear)
-                .frame(width: 108, height: height)  // 1.5 inches = 108pt at 72 DPI
+        VStack(spacing: 0) {
+            // Gray handle at the very top - OUTSIDE the slide rule area
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color(white: 0.5).opacity(0.7))
+                .frame(width: Self.cursorWidth, height: Self.handleHeight)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(Color(white: 0.3), lineWidth: 1)
+                    // Visual indicator for dragging
+                    VStack(spacing: 2) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.5))
+                            .frame(width: 40, height: 2)
+                            .cornerRadius(1)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.5))
+                            .frame(width: 40, height: 2)
+                            .cornerRadius(1)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.5))
+                            .frame(width: 40, height: 2)
+                            .cornerRadius(1)
+                    }
                 )
             
-            // 1pt hairline down center - solid black
-            Rectangle()
-                .fill(.black)  // No opacity - solid black
-                .frame(width: 1, height: height)  // 1pt wide, not 1.5pt
+            // Cursor glass area - extends full height of slide rule
+            ZStack(alignment: .topLeading) {
+                // Clear glass area with gray frame border
+                Rectangle()
+                    .fill(.clear)
+                    .frame(width: Self.cursorWidth, height: height)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color(white: 0.4), lineWidth: 2)
+                    )
+                
+                // 1pt hairline down center - solid black
+                Rectangle()
+                    .fill(.black)
+                    .frame(width: 1, height: height)
+                    .offset(x: Self.cursorWidth / 2)
+            }
         }
     }
 }

@@ -9,12 +9,21 @@ import SwiftUI
 import SlideRuleCoreV3
 
 /// Displays cursor readings for one side of the slide rule in a horizontal block format
-struct CursorReadingsDisplayView: View {
+struct CursorReadingsDisplayView: View, Equatable {
     /// Array of readings to display
     let readings: [ScaleReading]
     
     /// Which side this display is for (for styling/labeling if needed)
     let side: RuleSide
+    
+    // MARK: - Equatable Conformance
+    
+    /// Compare views based on side and display values only
+    /// This prevents unnecessary redraws when display strings haven't changed
+    static func == (lhs: CursorReadingsDisplayView, rhs: CursorReadingsDisplayView) -> Bool {
+        lhs.side == rhs.side &&
+        lhs.readings.elementsEqual(rhs.readings) { $0.displayValue == $1.displayValue }
+    }
     
     /// Cross-platform background color for the readings container
     private var backgroundColor: Color {

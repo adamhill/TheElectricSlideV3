@@ -51,7 +51,7 @@ struct ScaleReading: Sendable, Identifiable {
 // MARK: - Cursor Readings
 
 /// Complete set of cursor readings at a moment in time
-struct CursorReadings: Sendable {
+struct CursorReadings: Sendable, Equatable {
     /// Cursor position when readings were taken (0.0-1.0)
     let cursorPosition: Double
     
@@ -101,6 +101,16 @@ struct CursorReadings: Sendable {
         self.statorTopReadings = combined.filter { $0.component == .statorTop }
         self.slideReadings = combined.filter { $0.component == .slide }
         self.statorBottomReadings = combined.filter { $0.component == .statorBottom }
+    }
+    
+    // MARK: - Equatable Conformance
+    
+    /// Compare readings based on formatted display values only
+    /// This prevents unnecessary updates when display strings haven't changed
+    static func == (lhs: CursorReadings, rhs: CursorReadings) -> Bool {
+        // Compare only the formatted display strings, not raw positions or timestamps
+        lhs.frontReadings.elementsEqual(rhs.frontReadings) { $0.displayValue == $1.displayValue } &&
+        lhs.backReadings.elementsEqual(rhs.backReadings) { $0.displayValue == $1.displayValue }
     }
     
     /// Get readings grouped by component type

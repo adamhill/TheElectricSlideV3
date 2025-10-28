@@ -37,8 +37,12 @@ final class CursorState {
     
     // MARK: - Reading Feature Properties
     
-    /// Current readings at cursor position (observable)
-    var currentReadings: CursorReadings?
+    // HOT property - internal cache, changes frequently, not observed
+    @ObservationIgnored private var _internalReadings: CursorReadings? = nil
+    @ObservationIgnored private var _updateCounter: Int = 0
+    
+    // COLD property - public display, only updates when values change
+    private(set) var currentReadings: CursorReadings?
     
     /// Whether to enable automatic reading updates
     var enableReadings: Bool = true
@@ -169,13 +173,23 @@ final class CursorState {
             )
         }
         
-        // Create readings snapshot (store hairline position, not left edge)
-        currentReadings = CursorReadings(
+        // Create new readings
+        let newReadings = CursorReadings(
             cursorPosition: hairlinePosition,
             timestamp: Date(),
             frontReadings: frontReadings,
             backReadings: backReadings
         )
+        
+        // Update internal cache (not observed)
+        _internalReadings = newReadings
+        _updateCounter += 1
+        
+        // Only update observable property when values actually changed OR every 3rd update
+        // This maintains "continuous" feel while reducing unnecessary view updates
+        if _updateCounter % 3 == 0 || newReadings != currentReadings {
+            currentReadings = newReadings
+        }
         
         // Debug: Print sample readings for verification
         #if DEBUG

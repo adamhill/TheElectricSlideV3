@@ -416,8 +416,10 @@ struct StatorView: View, Equatable {
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     
     // ✅ Equatable conformance - only compare properties that affect rendering
+    // Note: cursorState is not compared (it's a reference)
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
@@ -455,6 +457,11 @@ struct StatorView: View, Equatable {
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
+        .contentShape(Rectangle())  // Make entire area tappable
+        .onTapGesture {
+            // Mark stator as touched (sticky readings)
+            cursorState?.setStatorTouched()
+        }
     }
 }
 
@@ -519,11 +526,12 @@ struct SideView: View, Equatable {
     let scaleHeight: CGFloat
     let sliderOffset: CGFloat
     let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
+    let cursorState: CursorState?  // NEW: Reference to cursor state
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
     
     // ✅ Equatable conformance - only compare properties affecting rendering
-    // Note: Closures are not compared in Equatable - they're just passed through
+    // Note: Closures and cursorState are not compared in Equatable
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
         lhs.width == rhs.width &&
@@ -550,7 +558,8 @@ struct SideView: View, Equatable {
                 width: width,
                 backgroundColor: .white,
                 borderColor: side.borderColor,
-                scaleHeight: scaleHeight
+                scaleHeight: scaleHeight,
+                cursorState: cursorState
             )
             .equatable()
             .id("\(side.rawValue)-topStator")
@@ -579,7 +588,8 @@ struct SideView: View, Equatable {
                 width: width,
                 backgroundColor: .white,
                 borderColor: side.borderColor,
-                scaleHeight: scaleHeight
+                scaleHeight: scaleHeight,
+                cursorState: cursorState
             )
             .equatable()
             .id("\(side.rawValue)-bottomStator")
@@ -685,6 +695,7 @@ struct DynamicSlideRuleContent: View {
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
                         showLabel: viewMode == .both,
+                        cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
@@ -696,7 +707,7 @@ struct DynamicSlideRuleContent: View {
                             height: totalScaleHeight(.front),
                             side: .front,
                             scaleHeight: calculatedDimensions.scaleHeight,
-                            showReadings: cursorDisplayMode.showReadings,
+                            showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
                     }
@@ -728,6 +739,7 @@ struct DynamicSlideRuleContent: View {
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
                         showLabel: viewMode == .both,
+                        cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
@@ -739,7 +751,7 @@ struct DynamicSlideRuleContent: View {
                             height: totalScaleHeight(.back),
                             side: .back,
                             scaleHeight: calculatedDimensions.scaleHeight,
-                            showReadings: cursorDisplayMode.showReadings,
+                            showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
                     }
@@ -1132,13 +1144,19 @@ struct ContentView: View {
     
     // ✅ Drag gesture handlers - single implementation for both sides
     private func handleDragChanged(_ gesture: DragGesture.Value) {
+        // Mark slide as dragging
+        cursorState.setSlideDragging(true)
+        
         let newOffset = sliderBaseOffset + gesture.translation.width
-        sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+        sliderOffset = min(max(newOffset, -calculatedDimensions.width),
                           calculatedDimensions.width)
     }
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
         sliderBaseOffset = sliderOffset
+        
+        // Mark slide drag as ended
+        cursorState.setSlideDragging(false)
     }
     
     // MARK: - Persistence Helpers

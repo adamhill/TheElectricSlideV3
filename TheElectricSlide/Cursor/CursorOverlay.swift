@@ -81,6 +81,9 @@ struct CursorOverlay: View {
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
+                            // Mark cursor as dragging
+                            cursorState.setCursorDragging(true)
+                            
                             // Update shared drag offset during gesture
                             withTransaction(Transaction(animation: nil)) {
                                 cursorState.activeDragOffset = gesture.translation.width
@@ -100,6 +103,10 @@ struct CursorOverlay: View {
                         }
                         .onEnded { gesture in
                             handleDragEnd(gesture, width: effectiveWidth)
+                            
+                            // Mark cursor drag as ended
+                            cursorState.setCursorDragging(false)
+                            
                             withTransaction(Transaction(animation: nil)) {
                                 cursorState.activeDragOffset = 0  // Reset drag offset
                             }

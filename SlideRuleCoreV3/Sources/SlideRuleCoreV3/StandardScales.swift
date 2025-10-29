@@ -85,19 +85,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 1.0 to 2.0: dense subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Finest mark at 0.01 → readable to ~0.005 with interpolation
+                // Historical: K&E rules showed 4 sig figs at low end of C/D scales (1.0-2.0 spans 30% of scale)
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1]
                 ),
-                // 2.0 to 4.0: medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05 marks → readable to ~0.02 with interpolation
+                // Historical: Mid-range provides 3-4 sig figs on quality K&E Mannheim rules
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1]
                 ),
-                // 4.0 to 10.0: coarser subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: 0.02 marks → readable to ~0.01 with interpolation  
+                // Historical: High end (9-10) spans only 4% of scale, typically 3 sig figs
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -119,16 +125,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Same as C scale - finest mark at 0.01 → readable to ~0.005
+                // Historical: D scale identical to C, provides 4 sig figs at low end
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1]
                 ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Same as C scale - 0.05 marks → readable to ~0.02
+                // Historical: Mid-range maintains 3-4 sig figs standard
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1]
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Same as C scale - 0.02 marks → readable to ~0.01
+                // Historical: High end maintains 3 sig figs per K&E standards
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -150,19 +165,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 10.0 to 4.0: mirrors C scale's 1.0 to 2.0 subsection
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: 0.02 marks → readable to ~0.01, mirrors C scale's high end
+                // Historical: Inverted scale maintains same precision as C/D at corresponding positions
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
                     labelLevels: [0]
                 ),
-                // 4.0 to 2.0: mirrors C scale's 2.0 to 4.0 subsection
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05 marks → readable to ~0.02, mirrors C scale's mid-range
+                // Historical: Maintains 3-4 sig figs standard for reciprocal operations
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1]
                 ),
-                // 2.0 to 1.0: mirrors C scale's 4.0 to 10.0 but denser
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Finest mark at 0.01 → readable to ~0.005, mirrors C scale's low end
+                // Historical: Best precision at low end (2.0-1.0), provides 4 sig figs for reciprocals
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
@@ -211,25 +232,29 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // π to 5: dense subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: 0.01 marks at π (3.14) → readable to ~0.005, same density as C scale's low end
+                // Historical: Folded scales maintain C/D precision, K&E used folding to prevent "running off scale"
                 ScaleSubsection(
                     startValue: .pi,
                     tickIntervals: [0.5, 0.1, 0.05, 0.01],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05 marks → readable to ~0.02, maintains mid-range precision
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0]
                 ),
-                // 5 to 10: medium subdivisions
                 ScaleSubsection(
                     startValue: 5.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0]
                 ),
-                // 10 to 31.4: coarser subdivisions
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Coarser marks at high end, 0.1 → readable to ~0.05
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
@@ -258,6 +283,7 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Precision comments same as CF scale (identical subsections)
                 ScaleSubsection(
                     startValue: .pi,
                     tickIntervals: [0.5, 0.1, 0.05, 0.01],
@@ -302,7 +328,7 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // Start from 10π and work backwards to π
+                // Precision comments mirror CF scale (inverted order)
                 ScaleSubsection(
                     startValue: 10 * .pi,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
@@ -376,11 +402,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Logarithmic compression (log/2), 0.05 marks → readable to ~0.02
+                // Historical: A/B scales compress 2 decades into C/D space, precision ~3 sig figs
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0]
                 ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Compressed decade (10-100), 0.5 marks → readable to ~0.2
+                // Historical: Second decade trades precision for range in square operations
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
@@ -408,41 +440,33 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // PostScript subsection 1: 1-3 (line 718)
-                // Dense subdivisions for precision in the 1-10 range
-                // Intervals: [1, .5, .1, .05] - primary, secondary, tertiary, quaternary
-                // LABEL STRATEGY: Show integers 1, 2, 3
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Triple logarithmic compression (log/3), 0.05 marks → readable to ~0.02
+                // Historical: K scale most challenging - 3 decades compressed, K&E provided ~3 sig figs
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0]  // Primary ticks at 1, 2, 3 get labels
                 ),
                 
-                // PostScript subsection 2: 3-6 (line 719)
-                // Medium density, null tertiary interval
-                // Intervals: [1, null, .5, .1]
-                // LABEL STRATEGY: Continue showing integers (3, 4, 5, 6)
-                // NOTE: 3 appears in both subsections, but duplicate removal handles this
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Increased compression, 0.1 marks → readable to ~0.05
                 ScaleSubsection(
                     startValue: 3.0,
                     tickIntervals: [1.0, 0.5, 0.1],  // Skip null interval
                     labelLevels: [0]  // Primary ticks at 3, 4, 5, 6 get labels
                 ),
                 
-                // PostScript subsection 3: 6-10 (line 720)
-                // Coarser intervals as we approach the decade boundary
-                // Intervals: [1, null, null, .2]
-                // PURPOSE: Prevents subsection 2 from labeling 7, 8, 9, 10
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
+                // Mathematical: Further compression, 0.2 marks → readable to ~0.1
                 ScaleSubsection(
                     startValue: 6.0,
                     tickIntervals: [1.0, 0.2],  // Only primary and quaternary
                     labelLevels: [0]  // Labels at 6, 7, 8, 9, 10
                 ),
                 
-                // PostScript subsection 4: 10-30 (line 721)
-                // Decade scaling begins - intervals × 10
-                // Intervals: [10, 5, 1, .5]
-                // LABEL STRATEGY: Show compact labels (10→"1", 20→"2", 30→"3")
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Decade scaling, 0.5 marks → readable to ~0.2
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
@@ -450,10 +474,8 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 5: 30-60 (line 722)
-                // Mid-range decades with null secondary interval
-                // Intervals: [10, null, 5, 1]
-                // LABEL STRATEGY: Show compact labels (30→"3", 40→"4", 50→"5", 60→"6")
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: Further compression, 1.0 marks → readable to ~0.5
                 ScaleSubsection(
                     startValue: 30.0,
                     tickIntervals: [10.0, 5.0, 1.0],
@@ -461,10 +483,8 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 6: 60-100 (line 723)
-                // Approaching the hundreds boundary
-                // Intervals: [10, null, null, 2]
-                // LABEL STRATEGY: Show compact labels (60→"6", 70→"7", 80→"8", 90→"9", 100→"10")
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval)
+                // Mathematical: Approaching hundreds, 2.0 marks → readable to ~1.0
                 ScaleSubsection(
                     startValue: 60.0,
                     tickIntervals: [10.0, 2.0],
@@ -472,10 +492,8 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 7: 100-300 (line 724)
-                // Hundreds range with × 100 intervals
-                // Intervals: [100, 50, 10, 5]
-                // LABEL STRATEGY: Show compact labels (100→"1", 200→"2", 300→"3")
+                // Cursor Precision: 1 decimal (from 5.0 quaternary interval)
+                // Mathematical: Hundreds range, 5.0 marks → readable to ~2.0
                 ScaleSubsection(
                     startValue: 100.0,
                     tickIntervals: [100.0, 50.0, 10.0, 5.0],
@@ -483,10 +501,8 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 8: 300-600 (line 725)
-                // Mid-hundreds range
-                // Intervals: [100, null, 50, 10]
-                // LABEL STRATEGY: Show compact labels (300→"3", 400→"4", 500→"5", 600→"6")
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: Mid-hundreds, 10.0 marks → readable to ~5.0
                 ScaleSubsection(
                     startValue: 300.0,
                     tickIntervals: [100.0, 50.0, 10.0],
@@ -494,10 +510,8 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 9: 600-1000 (line 726)
-                // Upper hundreds approaching maximum
-                // Intervals: [100, null, null, 20]
-                // LABEL STRATEGY: Show compact labels (600→"6", 700→"7", 800→"8", 900→"9", 1000→"10")
+                // Cursor Precision: 2 decimals (from 20.0 quaternary interval)
+                // Mathematical: Upper hundreds, 20.0 marks → readable to ~10.0
                 ScaleSubsection(
                     startValue: 600.0,
                     tickIntervals: [100.0, 20.0],
@@ -505,11 +519,7 @@ public enum StandardScales {
                     labelFormatter: StandardLabelFormatter.kScale
                 ),
                 
-                // PostScript subsection 10: 1000 (line 727)
-                // Final endpoint marker
-                // Intervals: [1000, 500, 100, 50]
-                // LABEL STRATEGY: Would show "1" but absorbed into subsection 9's "10" at 1000
-                // This subsection primarily provides tick marks, label handled by previous subsection
+                // Endpoint marker (no additional precision comment needed)
                 ScaleSubsection(
                     startValue: 1000.0,
                     tickIntervals: [1000.0, 500.0, 100.0, 50.0],
@@ -623,10 +633,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // PostScript subsection 1: 5.5-10° (line 592)
-                // Very dense for small angles where sine changes rapidly
-                // Intervals: [1, .5, .1, .05]
-                // LABEL STRATEGY: Show dual labels (sine right, cosine left) for all degree marks
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)  
+                // Mathematical: Dense marks for small angles where sin() changes rapidly, 0.05° → ~0.02°
+                // Historical: S scale critical for navigation/surveying, K&E provided 0.1° readable precision
                 ScaleSubsection(
                     startValue: 5.5,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
@@ -634,10 +643,8 @@ public enum StandardScales {
                     dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
                 
-                // PostScript subsection 2: 10-20° (line 593)
-                // Medium density with 5° primary intervals
-                // Intervals: [5, 1, .5, .1]
-                // LABEL STRATEGY: Show dual labels at 10°, 15°, 20° and intermediate degrees
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Coarser marks as sine curve flattens, 0.1° → readable to ~0.05°
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
@@ -645,10 +652,8 @@ public enum StandardScales {
                     dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
                 
-                // PostScript subsection 3: 20-30° (line 594)
-                // Transition zone, null secondary interval
-                // Intervals: [5, null, 1, .5]
-                // LABEL STRATEGY: Show dual labels at 20°, 25°, 30° and single degrees
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Mid-range transition, 0.5° → readable to ~0.2°
                 ScaleSubsection(
                     startValue: 20.0,
                     tickIntervals: [5.0, 1.0, 0.5],  // Skip null interval
@@ -656,10 +661,8 @@ public enum StandardScales {
                     dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
                 
-                // PostScript subsection 4: 30-60° (line 595)
-                // Mid-range angles with 10° primary intervals
-                // Intervals: [10, 5, 1, .5]
-                // LABEL STRATEGY: Show dual labels at 30°, 40°, 50°, 60° (every 10°)
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Flattening curve, 0.5° → readable to ~0.2°
                 ScaleSubsection(
                     startValue: 30.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
@@ -667,10 +670,8 @@ public enum StandardScales {
                     dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
                 
-                // PostScript subsection 5: 60-80° (line 596)
-                // Approaching vertical, coarser intervals
-                // Intervals: [10, null, 5, 1]
-                // LABEL STRATEGY: Show dual labels at 60°, 70°, 80° (every 10°)
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: Near vertical, 1.0° → readable to ~0.5°
                 ScaleSubsection(
                     startValue: 60.0,
                     tickIntervals: [10.0, 5.0, 1.0],  // Skip null interval
@@ -678,20 +679,15 @@ public enum StandardScales {
                     dualLabelFormatter: StandardLabelFormatter.sScaleDual
                 ),
                 
-                // PostScript subsection 6: 80-90° (line 597)
-                // Very coarse near 90° where sine plateaus
-                // Intervals: [10, null, null, 5]
-                // LABEL STRATEGY: No labels (handled by next subsection)
+                // Cursor Precision: 1 decimal (from 5.0 quaternary interval)
+                // Mathematical: Plateauing near 90°, 5.0° → readable to ~2°
                 ScaleSubsection(
                     startValue: 80.0,
                     tickIntervals: [10.0, 5.0],  // Only primary and quaternary
                     labelLevels: []  // No labels - tick marks only
                 ),
                 
-                // PostScript subsection 7: 90° endpoint (line 598)
-                // Final endpoint marker
-                // Intervals: [10, null, null, null]
-                // LABEL STRATEGY: Show dual labels "90°" (right) and "0°" (left) at endpoint
+                // Endpoint marker
                 ScaleSubsection(
                     startValue: 90.0,
                     tickIntervals: [10.0],  // Single interval
@@ -712,12 +708,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05° marks where tan() changes rapidly, readable to ~0.02°
+                // Historical: T scale used with C/D for angle calculations, same precision as S scale
                 ScaleSubsection(
                     startValue: 6.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Coarser marks as tan() increases rapidly, 0.1° → readable to ~0.05°
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
@@ -738,12 +739,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Very fine 0.005° marks for small angles, readable to ~0.002°
+                // Historical: ST (small tan) scale essential for artillery/navigation, highest angle precision
                 ScaleSubsection(
                     startValue: 0.6,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: 0.01° marks → readable to ~0.005°
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [0.5, 0.1, 0.05, 0.01],
@@ -767,6 +773,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)  // Fixed: PostScript has tickdir=1 (up), not -1 (down)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Linear scale (not logarithmic), 0.002 marks → readable to ~0.001
+                // Historical: L scale for mantissa/logarithm tables, highest linear precision on slide rules
                 ScaleSubsection(
                     startValue: 0.0,
                     tickIntervals: [0.1, 0.05, 0.01, 0.002],
@@ -787,6 +796,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Linear natural log scale, 0.005 marks → readable to ~0.002
+                // Historical: Ln scale for natural logarithm conversion, similar precision to L scale
                 ScaleSubsection(
                     startValue: 0.0,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
@@ -890,18 +902,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: K&E variant starts at 5.5°, 0.05° marks → readable to ~0.02°
+                // Historical: KE-S extended range for more complete angle coverage on K&E rules
                 ScaleSubsection(
                     startValue: 5.5,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: 0.1° marks → readable to ~0.05°
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: High angle compression, 0.5° → readable to ~0.2°
                 ScaleSubsection(
                     startValue: 50.0,
                     tickIntervals: [10.0, 5.0, 1.0, 0.5],
@@ -923,12 +942,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: K&E tangent variant, 0.05° marks → readable to ~0.02°
+                // Historical: KE-T complements KE-S for K&E Decitrig rules, same precision standard
                 ScaleSubsection(
                     startValue: 5.5,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.angle
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: 0.1° marks as tangent steepens, readable to ~0.05°
                 ScaleSubsection(
                     startValue: 10.0,
                     tickIntervals: [5.0, 1.0, 0.5, 0.1],
@@ -951,18 +975,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Extended small angle range, 0.005° marks → readable to ~0.002°
+                // Historical: SRT (Small Radian/Tangent) on K&E rules, highest precision for artillery/ballistics
                 ScaleSubsection(
                     startValue: 0.55,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: 0.01° marks → readable to ~0.005°
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [0.5, 0.1, 0.05, 0.01],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05° marks → readable to ~0.02°
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
@@ -987,21 +1018,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 1.0 to 2.0 (displays as 10-20): dense subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Same intervals as C scale but displayed ×10, maintains 4 sig figs at low end
+                // Historical: Extended range scales on specialized K&E rules for engineering calculations
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 10, decimals: 0)
                 ),
-                // 2.0 to 4.0 (displays as 20-40): medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Maintains mid-range precision with ×10 display
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 10, decimals: 0)
                 ),
-                // 4.0 to 10.0 (displays as 40-100): coarser subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: High end precision with ×10 display
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1024,21 +1059,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 1.0 to 2.0 (displays as 100-200): dense subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Same intervals as C scale but displayed ×100, maintains consistency
+                // Historical: C100-1000 for extended range engineering work, matches C scale precision
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 100, decimals: 0)
                 ),
-                // 2.0 to 4.0 (displays as 200-400): medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Mid-range with ×100 display
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 100, decimals: 0)
                 ),
-                // 4.0 to 10.0 (displays as 400-1000): coarser subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: High end with ×100 display
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1064,14 +1103,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 80 to 300: finer divisions for lower speeds
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval) 
+                // Mathematical: Specialized aviation formula, 2.0 knot marks → readable to ~1 knot
+                // Historical: CAS scale for airspeed corrections, practical aviation precision requirements
                 ScaleSubsection(
                     startValue: 80,
                     tickIntervals: [20.0, 10.0, 2.0],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
-                // 300 to 1000: coarser divisions for higher speeds
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: High speed range, 10 knot marks → readable to ~5 knots
                 ScaleSubsection(
                     startValue: 300,
                     tickIntervals: [100.0, 50.0, 10.0],
@@ -1095,14 +1137,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 60-240 minutes (1:00 - 4:00 hours)
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: Time scale spacing, 10 min marks → readable to ~5 min intervals
+                // Historical: TIME scale for quick time-distance calculations, practical minute precision
                 ScaleSubsection(
                     startValue: 60,
                     tickIntervals: [30.0, 10.0],
                     labelLevels: [0],
                     labelFormatter: Self.timeFormatter
                 ),
-                // 240-600 minutes (4:00 - 10:00 hours)
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: Extended range, 10 min marks → readable to ~5 min
                 ScaleSubsection(
                     startValue: 240,
                     tickIntervals: [60.0, 30.0, 10.0],
@@ -1124,21 +1169,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
-                // 600-1200 minutes (10-20 hours)
+                // Cursor Precision: 2 decimals (from 30.0 quaternary interval)
+                // Mathematical: Extended range (10-100 hr), 30 min marks → readable to ~15 min
+                // Historical: TIME2 for longer duration calculations, practical hour-level precision
                 ScaleSubsection(
                     startValue: 600,
                     tickIntervals: [60.0, 30.0],
                     labelLevels: [0],
                     labelFormatter: Self.timeFormatter
                 ),
-                // 1200-2940 minutes (20-49 hours)
+                // Cursor Precision: 2 decimals (from 60.0 quaternary interval)
+                // Mathematical: Mid-range hours, 60 min (1 hr) marks → readable to ~30 min
                 ScaleSubsection(
                     startValue: 1200,
                     tickIntervals: [240.0, 60.0],
                     labelLevels: [0],
                     labelFormatter: Self.timeFormatter
                 ),
-                // 2940-6000 minutes (49-100 hours) - shown in days
+                // Cursor Precision: 2 decimals (from 60.0 quaternary interval)
+                // Mathematical: Day-level precision, 60 min marks → shown as days
                 ScaleSubsection(
                     startValue: 2940,
                     tickIntervals: [1440.0, 720.0, 360.0, 60.0],
@@ -1163,35 +1212,35 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
-                // 6-25°: Dense divisions, sine labels
+                // Cursor Precision: 1 decimal (from 1.0 primary interval only)
+                // Mathematical: Simplified scale with integer degree marks, no fine subdivisions
+                // Historical: CR3S (Circular Rule 3 Sine) combines sin/cos on one scale for space efficiency
                 ScaleSubsection(
                     startValue: 6,
                     tickIntervals: [1.0],
                     labelLevels: [0],
                     labelFormatter: { value in "\(Int(value.rounded()))°" }
                 ),
-                // 25-45°: Medium divisions, sine labels
+                // Cursor Precision: 1 decimal (from 1.0 secondary interval)
+                // Mathematical: Integer degree precision throughout
                 ScaleSubsection(
                     startValue: 25,
                     tickIntervals: [5.0, 1.0],
                     labelLevels: [0],
                     labelFormatter: { value in "\(Int(value.rounded()))°" }
                 ),
-                // 45-70°: Medium divisions, cosine labels (90-x)
                 ScaleSubsection(
                     startValue: 45,
                     tickIntervals: [5.0, 1.0],
                     labelLevels: [0],
                     labelFormatter: { value in "\(Int((90 - value).rounded()))°" }
                 ),
-                // 70-80°: Coarser divisions, cosine labels
                 ScaleSubsection(
                     startValue: 70,
                     tickIntervals: [10.0, 5.0],
                     labelLevels: [0],
                     labelFormatter: { value in "\(Int((90 - value).rounded()))°" }
                 ),
-                // 80-90°: Coarsest divisions, cosine labels
                 ScaleSubsection(
                     startValue: 80,
                     tickIntervals: [10.0, 5.0],
@@ -1227,18 +1276,25 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Identical to C10-100, displayed ×10, same 4 sig fig capability
+                // Historical: D10-100 companion scale maintains C/D parity for extended range operations
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 10, decimals: 0)
                 ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Maintains mid-range precision
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
                     labelLevels: [0, 1],
                     labelFormatter: StandardLabelFormatter.scaled(by: 10, decimals: 0)
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: High end precision
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1263,7 +1319,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 1.0-2.0: Dense subdivisions
+                // Cursor Precision: 4 decimals (from 0.005 quinary interval)
+                // Mathematical: 2× log expansion, 0.005 marks → readable to ~0.002
+                // Historical: R1/R2 scales for square roots, best precision in 1-2 range per K&E design
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01, 0.005],
@@ -1276,7 +1334,8 @@ public enum StandardScales {
                         return String(format: "%.1f", value)
                     }
                 ),
-                // 2.0-3.2: Medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Reduced quinary precision, 0.01 marks → readable to ~0.005
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.01],
@@ -1305,14 +1364,17 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 3.1-5.0: Dense subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: 2× log expansion with offset, 0.02 marks → readable to ~0.01
+                // Historical: R2 continues R1, covers √10 to √100 with slightly reduced precision
                 ScaleSubsection(
                     startValue: 3.1,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
-                // 5.0-10.0: Medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Consistent precision through upper range
                 ScaleSubsection(
                     startValue: 5.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1337,7 +1399,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 1.0-2.0: Dense subdivisions
+                // Cursor Precision: 4 decimals (from 0.005 quinary interval)
+                // Mathematical: 3× log expansion, 0.005 marks → readable to ~0.002
+                // Historical: Q1/Q2/Q3 scales for cube roots, finest precision in 1-2 range similar to R1
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01, 0.005],
@@ -1350,7 +1414,8 @@ public enum StandardScales {
                         return String(format: "%.1f", value)
                     }
                 ),
-                // 2.0-2.16: Very fine subdivisions
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Fine subdivisions at transition, 0.01 marks → readable to ~0.005
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [0.1, 0.05, 0.01],
@@ -1373,7 +1438,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 2.15-2.0: Very fine subdivisions (overlap transition)
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: 3× log expansion with offset, 0.01 marks → readable to ~0.005
+                // Historical: Q2 continues Q1, covers ∛10 to ∛100 with standard precision
                 ScaleSubsection(
                     startValue: 2.15,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
@@ -1386,7 +1453,8 @@ public enum StandardScales {
                         return String(format: "%.1f", value)
                     }
                 ),
-                // 3.0-4.7: Medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Standard precision, 0.02 marks → readable to ~0.01
                 ScaleSubsection(
                     startValue: 3.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1409,7 +1477,9 @@ public enum StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // 4.6-10.0: Medium subdivisions
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: 3× log expansion with offset, 0.02 marks → readable to ~0.01
+                // Historical: Q3 completes cube root range (∛100 to ∛1000), adequate precision for 3rd roots
                 ScaleSubsection(
                     startValue: 4.6,
                     tickIntervals: [1.0, 0.5, 0.1, 0.02],
@@ -1514,9 +1584,9 @@ public enum StandardScales {
         case "Q3": return q3Scale(length: length)
         
         // Hyperbolic scales
-        case "SH": return shScale(length: length)
+        case "SH","Sh1": return shScale(length: length)
         case "CH": return chScale(length: length)
-        case "TH": return thScale(length: length)
+        case "Th": return thScale(length: length)
         
         // Power scales
         case "PA": return paScale(length: length)

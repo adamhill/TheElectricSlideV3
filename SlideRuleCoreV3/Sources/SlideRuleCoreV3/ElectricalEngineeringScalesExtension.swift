@@ -63,11 +63,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Inductive reactance requires moderate precision for component selection
+                // Historical: Radio engineers used for coil design and impedance matching in RF circuits
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withLabelColor(red: 0.0, green: 0.5, blue: 0.0) // Green for XL
@@ -112,11 +120,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Capacitive reactance requires moderate precision for filter design
+                // Historical: Essential for TV tuner and radio filter capacitor selection in electronics
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0) // Red for Xc
@@ -160,11 +176,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Frequency selection requires 1% precision for resonance calculations
+                // Historical: Radio engineers used for tuning circuits from audio to RF frequencies
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withLabelFormatter { value in
@@ -215,9 +239,15 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Wavelength calculations require higher precision for antenna design
+                // Historical: Critical for antenna element sizing in broadcasting and radar systems
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [5.0, 1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [5.0, 1.0, 0.2], labelLevels: [0])
             ])
             .withLabelFormatter { value in
@@ -266,11 +296,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Inductance selection requires moderate precision for standard values
+                // Historical: Used for selecting RF coils and transformer designs in radio equipment
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .build()
@@ -316,11 +354,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Reciprocal inductance for Q-factor and time constant calculations
+                // Historical: RF engineers used for quality factor analysis in tuned circuits
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withConstants([
@@ -369,11 +415,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Capacitance values need moderate precision for impedance matching
+                // Historical: Essential for coupling and bypass capacitor selection in amplifier design
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withConstants([
@@ -421,11 +475,19 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: RC time constants require moderate precision for timing circuits
+                // Historical: Used in oscillator and timer design for radio and TV repair
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withConstants([
@@ -472,9 +534,15 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Impedance matching requires higher precision for transmission lines
+                // Historical: Critical for 50Ω/75Ω matching in RF and antenna systems
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [5.0, 1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [5.0, 1.0, 0.2], labelLevels: [0])
             ])
             .build()
@@ -520,15 +588,27 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: VSWR measurements need high precision for quality impedance matching
+                // Historical: Essential for antenna tuning and transmission line troubleshooting
                 ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
                 ScaleSubsection(startValue: 0.7, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
                 ScaleSubsection(startValue: 1.0, tickIntervals: [0.5, 0.1, 0.02], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 ScaleSubsection(startValue: 1.5, tickIntervals: [0.5, 0.1, 0.05], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [3.0, 1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [5.0, 1.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 5.0 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [50.0, 10.0, 5.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 10.0 quaternary interval)
                 ScaleSubsection(startValue: 20.0, tickIntervals: [50.0, 10.0], labelLevels: [0]),
+                // Cursor Precision: 0 decimals (from 50.0 quaternary interval)
                 ScaleSubsection(startValue: 50.0, tickIntervals: [50.0], labelLevels: [0])
             ])
             .withConstants([
@@ -577,15 +657,27 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Reciprocal VSWR for bidirectional transmission line analysis
+                // Historical: Used with Smith charts for complex impedance transformations
                 ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
                 ScaleSubsection(startValue: 0.7, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
                 ScaleSubsection(startValue: 1.0, tickIntervals: [0.5, 0.1, 0.02], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 ScaleSubsection(startValue: 1.5, tickIntervals: [0.5, 0.1, 0.05], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 3.0, tickIntervals: [3.0, 1.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
                 ScaleSubsection(startValue: 5.0, tickIntervals: [5.0, 1.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 5.0 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [50.0, 10.0, 5.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 10.0 quaternary interval)
                 ScaleSubsection(startValue: 20.0, tickIntervals: [50.0, 10.0], labelLevels: [0]),
+                // Cursor Precision: 0 decimals (from 50.0 quaternary interval)
                 ScaleSubsection(startValue: 50.0, tickIntervals: [50.0], labelLevels: [0])
             ])
             .withConstants([
@@ -637,10 +729,17 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval in final subsection)
+                // Mathematical: Power ratio conversions need precision for accurate dB calculations
+                // Historical: Standard for amplifier gain and signal loss measurements in communications
                 ScaleSubsection(startValue: 0.0, tickIntervals: [1.0], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 1.0, tickIntervals: [2.0, 1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [2.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0])
             ])
             .withLabelColor(red: 0.0, green: 0.5, blue: 0.0) // Green
@@ -687,10 +786,17 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval in final subsection)
+                // Mathematical: Reciprocal power ratios for loss and attenuation measurements
+                // Historical: Used for filter insertion loss and cable attenuation calculations
                 ScaleSubsection(startValue: 0.0, tickIntervals: [1.0], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
                 ScaleSubsection(startValue: 1.0, tickIntervals: [2.0, 1.0, 0.5], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
                 ScaleSubsection(startValue: 2.0, tickIntervals: [2.0, 0.2], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0])
             ])
             .build()

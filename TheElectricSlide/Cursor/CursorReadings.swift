@@ -3,6 +3,7 @@
 //  TheElectricSlide
 //
 //  Data structures for cursor reading feature
+//  Precision is determined by scale definitions using subsection-based intervals
 //
 
 import Foundation
@@ -167,7 +168,6 @@ extension CursorState {
     ///   - side: Rule side (for metadata)
     ///   - componentPosition: Position within component (0, 1, 2...)
     ///   - overallPosition: Overall position on rule face
-    /// - Returns: ScaleReading with calculated value
     func calculateReading(
         at cursorPosition: Double,
         for scale: GeneratedScale,
@@ -182,10 +182,13 @@ extension CursorState {
             on: scale.definition
         )
         
-        // Format display value using scale's formatter
-        let displayValue = formatValueForDisplay(
+        // Get precision from scale definition
+        let decimalPlaces = scale.definition.cursorDecimalPlaces(at: cursorPosition, zoomLevel: 1.0)
+        
+        // Format with calculated precision
+        let displayValue = formatValueForCursor(
             value: value,
-            definition: scale.definition
+            decimalPlaces: decimalPlaces
         )
         
         return ScaleReading(
@@ -201,62 +204,21 @@ extension CursorState {
         )
     }
     
-    /// Format value for cursor reading display
+    /// Format value for cursor reading display using specified decimal places
     /// - Parameters:
     ///   - value: The value to format
-    ///   - definition: The scale definition (may have custom formatter)
+    ///   - decimalPlaces: Number of decimal places (from scale definition)
     /// - Returns: Formatted string for display
-    private func formatValueForDisplay(
+    private func formatValueForCursor(
         value: Double,
-        definition: ScaleDefinition
+        decimalPlaces: Int
     ) -> String {
         // Handle non-finite values
         guard value.isFinite else {
             return "—"  // Em dash for undefined/infinite
         }
         
-        // Use scale-specific formatter if available (for K, S, T, L, LL scales)
-        if let formatter = definition.labelFormatter {
-            return formatter(value)
-        }
-        
-        // Fall back to smart default formatting
-        return formatSmartDefault(value)
-    }
-    
-    /// Smart default formatting based on value magnitude
-    /// - Provides magnitude-based precision
-    /// - Integer display for whole numbers
-    /// - Adaptive decimal places
-    private func formatSmartDefault(_ value: Double) -> String {
-        let absValue = abs(value)
-        
-        // For very small values, use scientific notation
-        if absValue > 0 && absValue < 0.001 {
-            return String(format: "%.2e", value)
-        }
-        
-        // For values close to integers, show as integers
-        if abs(value - round(value)) < 0.001 {
-            return String(format: "%.0f", value)
-        }
-        
-        // For small values, more decimal places
-        if absValue < 1.0 {
-            return String(format: "%.3f", value)
-        }
-        
-        // For medium values, 2 decimal places
-        if absValue < 100.0 {
-            return String(format: "%.2f", value)
-        }
-        
-        // For large values, 1 decimal place
-        if absValue < 1000.0 {
-            return String(format: "%.1f", value)
-        }
-        
-        // For very large values, no decimals
-        return String(format: "%.0f", value)
+        // Format with specified decimal places
+        return String(format: "%.\(decimalPlaces)f", value)
     }
 }

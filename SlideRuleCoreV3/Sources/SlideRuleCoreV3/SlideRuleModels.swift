@@ -386,17 +386,43 @@ public struct ScaleSubsection: Sendable {
     /// Optional dual label formatter (returns multiple LabelConfig for complex labeling)
     public let dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])?
     
+    /// Cursor reading precision for this subsection
+    /// Defaults to automatic calculation from tickIntervals if not specified
+    public let cursorPrecision: CursorPrecision?
+    
     public init(
         startValue: ScaleValue,
         tickIntervals: [Double],
         labelLevels: Set<Int> = [0],
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
-        dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])? = nil
+        dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])? = nil,
+        cursorPrecision: CursorPrecision? = nil
     ) {
         self.startValue = startValue
         self.tickIntervals = tickIntervals
         self.labelLevels = labelLevels
         self.labelFormatter = labelFormatter
         self.dualLabelFormatter = dualLabelFormatter
+        self.cursorPrecision = cursorPrecision
+    }
+    
+    /// Get decimal places for a value at current zoom level
+    /// - Parameters:
+    ///   - value: The scale value
+    ///   - zoomLevel: Current zoom level (default 1.0)
+    /// - Returns: Number of decimal places (1-5)
+    public func decimalPlaces(for value: Double, zoomLevel: Double = 1.0) -> Int {
+        let precision = cursorPrecision ?? .automatic
+        
+        switch precision {
+        case .automatic:
+            // Compute from tick intervals
+            return CursorPrecision.calculateFromIntervals(tickIntervals)
+        case .fixed(let places):
+            return min(max(places, 1), 5)
+        case .zoomDependent(let basePlaces):
+            let zoomAdjusted = basePlaces + Int(log2(zoomLevel))
+            return min(max(zoomAdjusted, 1), 5)
+        }
     }
 }

@@ -1,5 +1,49 @@
 import Foundation
 
+// MARK: - Cursor Precision
+
+/// Defines how cursor reading precision is determined
+public enum CursorPrecision: Sendable, Equatable, Hashable {
+    /// Automatically compute precision from tick intervals
+    case automatic
+    
+    /// Fixed number of decimal places
+    case fixed(places: Int)
+    
+    /// Future: zoom-dependent precision (placeholder implementation)
+    case zoomDependent(basePlaces: Int)
+    
+    // MARK: - Equatable
+    
+    public static func == (lhs: CursorPrecision, rhs: CursorPrecision) -> Bool {
+        switch (lhs, rhs) {
+        case (.automatic, .automatic):
+            return true
+        case (.fixed(let l), .fixed(let r)):
+            return l == r
+        case (.zoomDependent(let l), .zoomDependent(let r)):
+            return l == r
+        default:
+            return false
+        }
+    }
+    
+    // MARK: - Hashable
+    
+    public func hash(into hasher: inout Hasher) {
+        switch self {
+        case .automatic:
+            hasher.combine(0)
+        case .fixed(let places):
+            hasher.combine(1)
+            hasher.combine(places)
+        case .zoomDependent(let basePlaces):
+            hasher.combine(2)
+            hasher.combine(basePlaces)
+        }
+    }
+}
+
 // MARK: - Scale Configuration
 
 /// Complete configuration for a slide rule scale
@@ -411,3 +455,118 @@ public enum StandardLabelFormatter {
 }
 
 
+
+// MARK: - Cursor Precision Helpers
+
+extension CursorPrecision {
+    /// Calculate decimal places for a given value and zoom level
+    /// - Parameters:
+    ///   - value: The scale value being displayed
+    ///   - zoomLevel: Current zoom level (1.0 = normal, 2.0 = 2x zoom, etc.)
+    /// - Returns: Number of decimal places (1-5)
+    public func decimalPlaces(for value: Double, zoomLevel: Double = 1.0) -> Int {
+        switch self {
+        case .automatic:
+            // Will be computed from intervals by the subsection
+            return 2 // Fallback default
+            
+        case .fixed(let places):
+            return Self.clamp(places, min: 1, max: 5)
+            
+        case .zoomDependent(let basePlaces):
+            // Future: add zoom adjustment logic
+            let zoomAdjusted = basePlaces + Int(log2(zoomLevel))
+            return Self.clamp(zoomAdjusted, min: 1, max: 5)
+        }
+    }
+    
+    /// Calculate precision from interval array using standard formula
+    /// Formula: -floor(log10(smallest_interval)) + 1, clamped to [1, 5]
+    internal static func calculateFromIntervals(_ intervals: [Double]) -> Int {
+        guard let smallest = intervals.last(where: { $0 > 0 }) else {
+            return 2 // Fallback default
+        }
+        
+        // Formula from Python analysis
+        if smallest >= 1.0 {
+            return 1 // Integer intervals: show 1 decimal for interpolation
+        }
+        
+        let decimalPlaces = -Int(floor(log10(smallest))) + 1
+        return clamp(decimalPlaces, min: 1, max: 5)
+    }
+    
+    private static func clamp(_ value: Int, min: Int, max: Int) -> Int {
+        Swift.min(Swift.max(value, min), max)
+    }
+}
+
+// MARK: - ScaleDefinition Extensions for Cursor Precision
+
+extension ScaleDefinition {
+    /// Get appropriate decimal places for cursor reading at a position
+    /// - Parameters:
+    ///   - normalizedPosition: Position along scale (0.0-1.0)
+    ///   - zoomLevel: Current zoom level (default 1.0)
+    /// - Returns: Number of decimal places (1-5)
+    public func cursorDecimalPlaces(
+        at normalizedPosition: Double,
+        zoomLevel: Double = 1.0
+    ) -> Int {
+        // Convert normalized position to actual scale value
+        let value = ScaleCalculator.value(at: normalizedPosition, on: self)
+        
+        // Find active subsection
+        guard let subsection = activeSubsection(for: value) else {
+            return 2 // Fallback default
+        }
+        
+        return subsection.decimalPlaces(for: value, zoomLevel: zoomLevel)
+    }
+    
+    /// Find the subsection that applies to a given value
+    /// - Parameter value: Scale value to query
+    /// - Returns: Active subsection, or nil if none found
+    public func activeSubsection(for value: Double) -> ScaleSubsection? {
+        var active: ScaleSubsection? = nil
+        
+        for subsection in subsections {
+            if value >= subsection.startValue {
+                active = subsection
+            } else {
+                // Subsections assumed to be sorted by startValue
+                break
+            }
+        }
+        
+        return active
+    }
+    
+    /// Format a value for cursor display with appropriate precision
+    /// - Parameters:
+    ///   - value: Value to format
+    ///   - normalizedPosition: Position for precision lookup
+    ///   - zoomLevel: Current zoom level
+    /// - Returns: Formatted string
+    public func formatForCursor(
+        value: Double,
+        at normalizedPosition: Double,
+        zoomLevel: Double = 1.0
+    ) -> String {
+        // Handle non-finite values
+        guard value.isFinite else {
+            return "—"  // Em dash
+        }
+        
+        let places = cursorDecimalPlaces(at: normalizedPosition, zoomLevel: zoomLevel)
+        
+        // Use scientific notation for very small values
+        let absValue = abs(value)
+        if absValue > 0 && absValue < 0.001 {
+            return String(format: "%.2e", value)
+        }
+        
+        // Standard decimal formatting
+        return String(format: "%.\(places)f", value)
+    }
+}

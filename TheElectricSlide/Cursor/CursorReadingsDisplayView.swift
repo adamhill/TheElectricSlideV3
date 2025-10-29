@@ -73,11 +73,36 @@ struct CursorReadingsDisplayView: View, Equatable {
                 .font(.system(size: 18, weight: .bold).monospaced())
                 .foregroundStyle(.secondary)
             
-            // Value in italic font for emphasis
+            // Value with adaptive tracking to compress long decimals
+            // Prevents ellipsis truncation while maintaining readability
             Text(reading.displayValue)
                 .font(.system(size: 18, weight: .regular).monospaced())
                 .italic()
+                .tracking(trackingAmount(for: reading.displayValue))
+                .fixedSize(horizontal: true, vertical: false)
                 .foregroundStyle(.primary)
+        }
+    }
+    
+    /// Calculates adaptive font tracking based on value length
+    /// - Parameter value: The display value string
+    /// - Returns: Negative tracking amount for compression (0 to -1.5)
+    ///
+    /// Longer values get more compression to fit without truncation:
+    /// - 5 chars or less: No compression (0)
+    /// - 6-7 chars: Slight compression (-0.5)
+    /// - 8-9 chars: More compression (-1.0)
+    /// - 10+ chars: Maximum compression (-1.5)
+    private func trackingAmount(for value: String) -> CGFloat {
+        let length = value.count
+        if length <= 5 {
+            return 0 // Normal spacing
+        } else if length <= 7 {
+            return -0.5 // Slight compression
+        } else if length <= 9 {
+            return -1.0 // More compression
+        } else {
+            return -1.5 // Maximum compression for very long values
         }
     }
 }

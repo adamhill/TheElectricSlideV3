@@ -66,36 +66,54 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 secondary interval)
+                // Mathematical: Ch scale start, cosh(0) = 1, only primary and secondary marks
+                // Historical: Hyperbolic cosine scales rare on slide rules, used for catenary calculations in bridge/transmission line design
                 ScaleSubsection(
                     startValue: 0.0,
                     tickIntervals: [1.0, 0.1, 0, 0],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Low Ch range where cosh changes slowly, 0.05 marks adequate
+                // Historical: 0.1-0.3 region provides precision for shallow catenary curves
                 ScaleSubsection(
                     startValue: 0.1,
                     tickIntervals: [0, 0.1, 0, 0.05],
                     labelLevels: [1],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Transitioning to steeper cosh curve, 0.02 marks for better precision
+                // Historical: Ch scale mid-range used for moderate catenary span calculations
                 ScaleSubsection(
                     startValue: 0.3,
                     tickIntervals: [0.1, 0.05, 0, 0.02],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Maintains 0.02 precision through 0.4-0.5 transition
+                // Historical: Tick marks without labels for visual continuity
                 ScaleSubsection(
                     startValue: 0.4,
                     tickIntervals: [0.1, 0.05, 0, 0.02],
                     labelLevels: [],
                     labelFormatter: nil
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Ch scale steepens, 0.01 marks for cosh(0.5-1) precision
+                // Historical: Used for calculating cable sag in power line design
                 ScaleSubsection(
                     startValue: 0.5,
                     tickIntervals: [0.5, 0.1, 0.05, 0.01],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Upper Ch range (cosh > 1.54), maintains 0.01 precision
+                // Historical: Ch scales uncommon, appeared on specialized engineering slide rules
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [0.1, 0, 0.05, 0.01],
@@ -139,42 +157,63 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Th scale start, tanh changes rapidly near 0, finest marks for 0.1-0.2
+                // Historical: Hyperbolic tangent for velocity addition in relativity, rare on standard rules
                 ScaleSubsection(
                     startValue: 0.1,
                     tickIntervals: [0.05, 0.01, 0.005, 0.001],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Low Th range (0.2-0.4), 0.002 marks for relativistic β calculations
+                // Historical: Used in special relativity for combining velocities near 0.2c
                 ScaleSubsection(
                     startValue: 0.2,
                     tickIntervals: [0.05, 0, 0.01, 0.002],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Mid Th range, tanh(0.4-0.7) for moderate velocity additions
+                // Historical: Th scales on specialized physics/engineering slide rules
                 ScaleSubsection(
                     startValue: 0.4,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Upper-mid Th (0.7-1.0), tanh flattening, 0.01 marks adequate
+                // Historical: 0.7-1.0 region used for high-velocity relativistic calculations
                 ScaleSubsection(
                     startValue: 0.7,
                     tickIntervals: [0.1, 0, 0.05, 0.01],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Th approaching 1 (tanh → 1 as x → ∞), coarser 0.02 marks
+                // Historical: Upper Th range for velocities approaching light speed
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [0.5, 0, 0.1, 0.02],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: High Th range (1.5-2.0), tanh very close to 1, 0.05 marks sufficient
+                // Historical: Extreme relativistic regime where tanh(x) ≈ 1 - 2e^(-2x)
                 ScaleSubsection(
                     startValue: 1.5,
                     tickIntervals: [0.5, 0, 0.1, 0.05],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 1 decimal (from 0.5 quaternary interval)
+                // Mathematical: Upper Th endpoint (2-3), tanh effectively 1, coarsest marks
+                // Historical: Th scales rare above 2, used only on specialized physics slide rules
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0, 0, 0.5],
@@ -219,18 +258,27 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Sh scale start, sinh changes rapidly near 0, finest 0.001 marks
+                // Historical: Hyperbolic sine for catenary calculations, appears on specialized engineering rules
                 ScaleSubsection(
                     startValue: 0.1,
                     tickIntervals: [0.05, 0.01, 0.005, 0.001],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Low Sh range (0.2-0.4), 0.002 marks for shallow catenary precision
+                // Historical: Used for cable sag calculations in transmission line design
                 ScaleSubsection(
                     startValue: 0.2,
                     tickIntervals: [0.05, 0, 0.01, 0.002],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Mid Sh range, sinh(0.4) ≈ 0.41, 0.005 marks for moderate spans
+                // Historical: Sh scales rare, found on K&E physics rules and some Japanese models
                 ScaleSubsection(
                     startValue: 0.4,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
@@ -274,18 +322,27 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Sh1 split scale for extended precision, identical marks to Sh at start
+                // Historical: Sh1/Sh2 split provides higher resolution for catenary work, uncommon feature
                 ScaleSubsection(
                     startValue: 0.1,
                     tickIntervals: [0.05, 0.01, 0.005, 0.001],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Sh1 mid-range (0.2-0.4), maintains finest precision for small-angle work
+                // Historical: Split Sh scales found on advanced engineering rules for precision catenary calculations
                 ScaleSubsection(
                     startValue: 0.2,
                     tickIntervals: [0.05, 0, 0.01, 0.002],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Sh1 upper range approaching transition to Sh2 at 0.9
+                // Historical: Sh1 ends at 0.9 with overlap region (0.88-0.9) for smooth transition to Sh2
                 ScaleSubsection(
                     startValue: 0.4,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
@@ -328,24 +385,36 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Sh2 start with -1 offset, overlaps Sh1 end (0.88-0.9) for continuity
+                // Historical: Offset scale allows extended range while maintaining precision, advanced engineering feature
                 ScaleSubsection(
                     startValue: 0.88,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Sh2 mid-range (1.0-1.5), sinh(x-1) for large catenary spans
+                // Historical: Extended sinh range for long-span suspension bridges and power lines
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [0.5, 0, 0.1, 0.02],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Upper Sh2 range, sinh increases rapidly, coarser 0.05 marks
+                // Historical: Sh2 upper end (1.5-2.0) for extreme catenary calculations rare in practice
                 ScaleSubsection(
                     startValue: 1.5,
                     tickIntervals: [0.5, 0, 0.1, 0.05],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 1 decimal (from 0.5 quaternary interval)
+                // Mathematical: Sh2 endpoint (2-3), very coarse marks as sinh grows exponentially
+                // Historical: Sh2 scales uncommon above 2, specialized engineering applications only
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0, 0, 0.5],
@@ -395,36 +464,54 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.0001 quaternary interval)
+                // Mathematical: H1 start near unity (√(1.005²-1) ≈ 0.1), finest marks for small Pythagorean calculations
+                // Historical: H scales for precision surveying and navigation, K&E showed extreme precision near 1
                 ScaleSubsection(
                     startValue: 1.005,
                     tickIntervals: [0.005, 0.001, 0.0005, 0.0001],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.0002 quaternary interval)
+                // Mathematical: Low H1 (1.01-1.02), √(x²-1) for small elevation changes in surveying
+                // Historical: H1 precision critical for calculating height differences over long distances
                 ScaleSubsection(
                     startValue: 1.01,
                     tickIntervals: [0.01, 0.005, 0.001, 0.0002],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Mid H1 (1.02-1.05), 0.0005 marks for precision geometry
+                // Historical: Used for optical calculations and small-angle navigation corrections
                 ScaleSubsection(
                     startValue: 1.02,
                     tickIntervals: [0.01, 0.005, 0.001, 0.0005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Upper-mid H1 (1.05-1.1), Pythagorean calculations for moderate angles
+                // Historical: H1 range used for calculating truss member lengths in structural engineering
                 ScaleSubsection(
                     startValue: 1.05,
                     tickIntervals: [0.05, 0.01, 0.005, 0.001],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 3 decimals (from 0.002 quaternary interval)
+                // Mathematical: H1 approaching transition to H2 (1.1-1.2), coarser 0.002 marks
+                // Historical: H1/H2 boundary around 1.4, scales complement each other for Pythagorean work
                 ScaleSubsection(
                     startValue: 1.1,
                     tickIntervals: [0.1, 0.05, 0.01, 0.002],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.005 tertiary interval)
+                // Mathematical: H1 endpoint (1.2-1.415), 0.005 marks as scale transitions to H2
+                // Historical: H scales rare on slide rules, found mainly on specialized surveying models
                 ScaleSubsection(
                     startValue: 1.2,
                     tickIntervals: [0.1, 0.05, 0, 0.005],
@@ -473,18 +560,27 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.01 tertiary interval)
+                // Mathematical: H2 start (1.4-2.0), √(x²-1) for general Pythagorean calculations
+                // Historical: H2 extends H1 range, used for construction and mechanical design work
                 ScaleSubsection(
                     startValue: 1.4,
                     tickIntervals: [0.1, 0.05, 0, 0.01],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Mid H2 (2.0-4.0), 0.02 marks for standard geometry problems
+                // Historical: H2 mid-range used for diagonal calculations in rectangular structures
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [0.5, 0.1, 0, 0.02],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Upper H2 (4-10), larger hypotenuses, 0.05 marks adequate
+                // Historical: H2 endpoint covers practical engineering range for Pythagorean calculations
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
@@ -545,66 +641,99 @@ extension StandardScales {
             .withTickDirection(.up)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
             .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.1 tertiary interval)
+                // Mathematical: P scale start (0-0.2), √(1-x²) for unit circle, 0.1 marks for low values
+                // Historical: P scale (Pythagorean complement) complements H scales, red labels indicate inverse relationship
                 ScaleSubsection(
                     startValue: 0.0,
                     tickIntervals: [0.2, 0, 0.1, 0],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 tertiary interval)
+                // Mathematical: P transition (0.1-0.2), tick marks only for visual continuity
+                // Historical: Sparse labeling strategy maintains readability while providing guidance
                 ScaleSubsection(
                     startValue: 0.1,
                     tickIntervals: [0, 0, 0.1, 0],
                     labelLevels: [],
                     labelFormatter: nil
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Low P (0.2-0.3), √(1-x²) for small unit circle values, 0.05 marks
+                // Historical: P scale used for probability calculations and quality control work
                 ScaleSubsection(
                     startValue: 0.2,
                     tickIntervals: [0.1, 0, 0, 0.05],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Mid-low P (0.3-0.4), 0.02 marks for moderate precision
+                // Historical: P scale mid-range provides 3 sig figs for complementary calculations
                 ScaleSubsection(
                     startValue: 0.3,
                     tickIntervals: [0.1, 0, 0, 0.02],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Mid P (0.4-0.6), 0.01 marks for standard unit circle work
+                // Historical: 0.4-0.6 range most commonly used for trigonometric complement calculations
                 ScaleSubsection(
                     startValue: 0.4,
                     tickIntervals: [0.1, 0, 0.05, 0.01],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Upper-mid P (0.6-0.8), increasing precision as √(1-x²) changes rapidly
+                // Historical: Higher precision needed as P scale approaches critical region near 0.8
                 ScaleSubsection(
                     startValue: 0.6,
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: High P (0.8-0.9), √(1-x²) flattens, 0.002 marks for precision
+                // Historical: 0.8-0.9 region critical for quality factors and acceptance rates
                 ScaleSubsection(
                     startValue: 0.8,
                     tickIntervals: [0.1, 0.05, 0.01, 0.002],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 4 decimals (from 0.001 tertiary interval)
+                // Mathematical: Very high P (0.9-0.95), finest marks for near-unity calculations
+                // Historical: P approaching 1 requires highest precision for probability work
                 ScaleSubsection(
                     startValue: 0.9,
                     tickIntervals: [0.01, 0, 0.005, 0.001],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Ultra-high P (0.95-0.98), extreme precision near unity
+                // Historical: P scale finest region for quality control acceptance calculations
                 ScaleSubsection(
                     startValue: 0.95,
                     tickIntervals: [0.01, 0.005, 0.001, 0.0005],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 4 decimals (from 0.0002 quaternary interval)
+                // Mathematical: Near-unity P (0.98-0.99), finest interval for critical calculations
+                // Historical: Ultra-high precision for 99%+ confidence levels in statistics
                 ScaleSubsection(
                     startValue: 0.98,
                     tickIntervals: [0.01, 0.005, 0.001, 0.0002],
                     labelLevels: [0],
                     labelFormatter: customFormatter
                 ),
+                // Cursor Precision: 5 decimals (from 0.0001 quaternary interval)
+                // Mathematical: P endpoint (0.99-0.995), finest marks on P scale for extreme precision
+                // Historical: P scale limit near unity, used for six-sigma quality calculations
                 ScaleSubsection(
                     startValue: 0.99,
                     tickIntervals: [0.005, 0, 0.0005, 0.0001],
@@ -650,6 +779,9 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: L360 linear scale (0-360°), 1° marks for compass bearing precision
+                // Historical: Linear degree scales for navigation and surveying, simpler than logarithmic scales
                 ScaleSubsection(
                     startValue: 0,
                     tickIntervals: [10, 0, 5, 1],
@@ -705,19 +837,24 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("L180")
+            .withFormula("θ° (0-180°)")
             .withFunction(LinearDegreeFunction(maxDegrees: 360.0))
             .withRange(begin: 0, end: 360)
             .withLength(length)
             .withTickDirection(.down)  // Note: inverted in PostScript
             .withSubsections([
-                // First subsection: 0 to 190 degrees
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: L180 first half (0-190°), linear scale with 1° marks for protractor readings
+                // Historical: Dual-labeled scales for bidirectional angle measurements, protractor applications
                 ScaleSubsection(
                     startValue: 0,
                     tickIntervals: [10, 0, 5, 1],
                     labelLevels: [0],
                     labelFormatter: primaryFormatter
                 ),
-                // Second subsection: 190 to 360 degrees with complementary labels
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: L180 second half (190-360°), complementary labels show supplementary angles
+                // Historical: Reading from either direction enables quick supplementary angle verification
                 ScaleSubsection(
                     startValue: 190,
                     tickIntervals: [10, 0, 5, 1],
@@ -768,11 +905,15 @@ extension StandardScales {
     public static func paScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("PA")
+            .withFormula("10-x-7.6log₁₀(x)/log₁₀(1.72)+log₁₀(7.6)")
             .withFunction(PercentageAngularFunction())
             .withRange(begin: 9, end: 91)
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
+                // Cursor Precision: 1 decimal (from 0.5 quaternary interval)
+                // Mathematical: PA scale complex logarithmic formula, 0.5% marks for statistical precision
+                // Historical: Percentage/angular scale for quality control and statistics, specialized K&E feature
                 ScaleSubsection(
                     startValue: 0,
                     tickIntervals: [5, 0, 1, 0.5],

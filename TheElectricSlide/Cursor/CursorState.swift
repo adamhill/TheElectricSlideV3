@@ -10,11 +10,6 @@ import SlideRuleCoreV3
 
 @Observable
 final class CursorState {
-    // MARK: - Constants
-    
-    /// Cursor width in points (must match CursorView)
-    private let cursorWidth: CGFloat = 108
-    
     // MARK: - Core State Properties
     
     /// Normalized cursor position (0.0 = left edge, 1.0 = right edge)
@@ -29,6 +24,23 @@ final class CursorState {
     
     /// Current drag offset in pixels (for live dragging feedback)
     var activeDragOffset: CGFloat = 0
+    
+    // MARK: - Interaction State Properties
+    
+    /// Whether cursor is currently being dragged
+    var isCursorDragging: Bool = false
+    
+    /// Whether slide is currently being dragged
+    var isSlideDragging: Bool = false
+    
+    /// Whether stator was touched (sticky state)
+    var statorWasTouched: Bool = false
+    
+    /// Computed property: Should readings be visible?
+    /// True when: cursor dragging OR slide dragging OR stator was touched
+    var shouldShowReadings: Bool {
+        isCursorDragging || isSlideDragging || statorWasTouched
+    }
     
     // MARK: - Per-Side Positions (for future independent mode)
     
@@ -141,7 +153,7 @@ final class CursorState {
         
         // Adjust position to hairline center (position is left edge of cursor)
         let scaleWidth = provider.getScaleWidth()
-        let halfCursorWidthNormalized = (cursorWidth / 2.0) / scaleWidth
+        let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
         let hairlinePosition = position + halfCursorWidthNormalized
         
         var frontReadings: [ScaleReading] = []
@@ -277,5 +289,34 @@ final class CursorState {
         }
         
         return readings
+    }
+    
+    // MARK: - Interaction State Management
+    
+    /// Update cursor drag state
+    /// - Parameter dragging: Whether cursor is currently being dragged
+    func setCursorDragging(_ dragging: Bool) {
+        isCursorDragging = dragging
+        
+        // Clear stator sticky state when cursor drag ends
+        if !dragging && !isSlideDragging {
+            statorWasTouched = false
+        }
+    }
+    
+    /// Update slide drag state
+    /// - Parameter dragging: Whether slide is currently being dragged
+    func setSlideDragging(_ dragging: Bool) {
+        isSlideDragging = dragging
+        
+        // Clear stator sticky state when slide drag ends
+        if !dragging && !isCursorDragging {
+            statorWasTouched = false
+        }
+    }
+    
+    /// Mark that stator was touched (sticky state)
+    func setStatorTouched() {
+        statorWasTouched = true
     }
 }

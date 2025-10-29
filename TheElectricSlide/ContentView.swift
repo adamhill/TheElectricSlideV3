@@ -31,13 +31,59 @@ enum ViewMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - Cursor Display Mode
+
+/// Defines what cursor information to display on the slide rule
+/// - gradients: Display only gradient overlay lines
+/// - values: Display only numerical reading values
+/// - both: Display both gradients and values
+enum CursorDisplayMode: String, CaseIterable, Identifiable {
+    case gradients
+    case values
+    case both
+    
+    var id: String { rawValue }
+    
+    /// User-facing display text for picker
+    var displayText: String {
+        switch self {
+        case .gradients: return "Gradients"
+        case .values: return "Values"
+        case .both: return "Both"
+        }
+    }
+    
+    /// Whether gradient lines should be displayed
+    var showGradients: Bool {
+        switch self {
+        case .gradients, .both:
+            return true
+        case .values:
+            return false
+        }
+    }
+    
+    /// Whether reading values should be displayed
+    var showReadings: Bool {
+        switch self {
+        case .values, .both:
+            return true
+        case .gradients:
+            return false
+        }
+    }
+}
+
 // MARK: - Rule Side
 
+/// Represents which side of the slide rule is being displayed
+/// - front: The primary (front) side
+/// - back: The reverse (back) side
 enum RuleSide: String, Sendable {
-    case front = "Front (Side A)"
-    case back = "Back (Side B)"
+    case front
+    case back
     
-    var displayName: String { rawValue }
+    /// Border color for visual distinction between sides
     var borderColor: Color {
         switch self {
         case .front: return .blue
@@ -56,10 +102,20 @@ struct ScaleView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left (right-aligned with minimum width)
+            // Extract label color from definition, applying it only if colorApplication allows
+            let scaleLabelColor: Color = {
+                if let tupleColor = generatedScale.definition.labelColor,
+                   generatedScale.definition.colorApplication.scaleName {
+                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+                } else {
+                    return .black
+                }
+            }()
+            
             Text(generatedScale.definition.name)
-                .font(.caption2)
-                .foregroundColor(.black)
-                .frame(minWidth: 28, alignment: .trailing)
+                .font(.body)
+                .foregroundColor(scaleLabelColor)
+                .frame(minWidth: 56, alignment: .trailing)
             
             // Scale view
             GeometryReader { geometry in
@@ -82,10 +138,10 @@ struct ScaleView: View {
             
             // Formula label on the right
             Text(generatedScale.definition.formula)
-                .font(.caption2)
+                .font(.body)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: 40, alignment: .leading)
+                .frame(width: 96, alignment: .leading)
         }
     }
     
@@ -136,6 +192,16 @@ struct ScaleView: View {
             }
             
             // Draw tick mark (vertical line) with anti-aliasing disabled
+            // Apply custom color to tick marks if colorApplication allows
+            let tickColor: Color = {
+                if let tupleColor = definition.labelColor,
+                   definition.colorApplication.scaleTicks {
+                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+                } else {
+                    return .black
+                }
+            }()
+            
             let tickPath = Path { path in
                 path.move(to: CGPoint(x: xPos, y: tickStartY))
                 path.addLine(to: CGPoint(x: xPos, y: tickEndY))
@@ -145,7 +211,7 @@ struct ScaleView: View {
                 cgContext.setShouldAntialias(false)
                 context.stroke(
                     tickPath,
-                    with: .color(.black),
+                    with: .color(tickColor),
                     lineWidth: tick.style.lineWidth / 1.5
                 )
             }
@@ -170,7 +236,8 @@ struct ScaleView: View {
                     tickHeight: tickHeight,
                     tickDirection: definition.tickDirection,
                     size: size,
-                    tickRelativeLength: tick.style.relativeLength
+                    tickRelativeLength: tick.style.relativeLength,
+                    definition: definition
                 )
             }
         }
@@ -195,6 +262,9 @@ struct ScaleView: View {
             // Use regular font (not italic), we'll apply transform for slant
             let font = Font.system(size: fontSize)
             
+            // For dual-labeled scales, labelConfig.color is already set per label
+            // For scales with labelColor in definition, we need to check colorApplication
+            // Since dual labels already have their own colors set, we just use them directly
             let text = Text(labelConfig.text)
                 .font(font)
                 .foregroundColor(colorFromLabelColor(labelConfig.color))
@@ -249,14 +319,24 @@ struct ScaleView: View {
         tickHeight: CGFloat,
         tickDirection: SlideRuleCoreV3.TickDirection,
         size: CGSize,
-        tickRelativeLength: Double
+        tickRelativeLength: Double,
+        definition: ScaleDefinition
     ) {
         let fontSize = fontSizeForTick(tickRelativeLength)
         guard fontSize > 0 else { return }
         
+        // Use label color from definition if available and colorApplication allows, otherwise default to black
+        let labelColor: Color
+        if let tupleColor = definition.labelColor,
+           definition.colorApplication.scaleLabels {
+            labelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+        } else {
+            labelColor = .black
+        }
+        
         let label = Text(text)
             .font(.system(size: fontSize))
-            .foregroundColor(.black)
+            .foregroundColor(labelColor)
         
         let resolvedText = context.resolve(label)
         let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
@@ -358,6 +438,11 @@ struct ScaleView: View {
         )
     }
     
+    /// Convert an RGB tuple to SwiftUI Color (graceful helper for older definitions)
+    private func colorFromTuple(_ tuple: (red: Double, green: Double, blue: Double)) -> Color {
+        Color(red: tuple.red, green: tuple.green, blue: tuple.blue)
+    }
+    
     /// Get font with specified style (PostScript NumFontRi, NumFontLi support)
     private func fontForStyle(_ style: SlideRuleCoreV3.LabelFontStyle, size: CGFloat) -> Font {
         switch style {
@@ -398,8 +483,10 @@ struct StatorView: View, Equatable {
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     
     // ✅ Equatable conformance - only compare properties that affect rendering
+    // Note: cursorState is not compared (it's a reference)
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
@@ -437,6 +524,11 @@ struct StatorView: View, Equatable {
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
+        .contentShape(Rectangle())  // Make entire area tappable
+        .onTapGesture {
+            // Mark stator as touched (sticky readings)
+            cursorState?.setStatorTouched()
+        }
     }
 }
 
@@ -500,18 +592,17 @@ struct SideView: View, Equatable {
     let width: CGFloat
     let scaleHeight: CGFloat
     let sliderOffset: CGFloat
-    let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
+    let cursorState: CursorState?
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
     
     // ✅ Equatable conformance - only compare properties affecting rendering
-    // Note: Closures are not compared in Equatable - they're just passed through
+    // Note: Closures and cursorState are not compared in Equatable
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.sliderOffset == rhs.sliderOffset &&
-        lhs.showLabel == rhs.showLabel &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
@@ -519,20 +610,14 @@ struct SideView: View, Equatable {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Optional side label
-            if showLabel {
-                Text(side.displayName)
-                    .font(.headline)
-                    .padding(.bottom, 4)
-            }
-            
             // Top Stator (Fixed)
             StatorView(
                 stator: topStator,
                 width: width,
                 backgroundColor: .white,
                 borderColor: side.borderColor,
-                scaleHeight: scaleHeight
+                scaleHeight: scaleHeight,
+                cursorState: cursorState
             )
             .equatable()
             .id("\(side.rawValue)-topStator")
@@ -561,7 +646,8 @@ struct SideView: View, Equatable {
                 width: width,
                 backgroundColor: .white,
                 borderColor: side.borderColor,
-                scaleHeight: scaleHeight
+                scaleHeight: scaleHeight,
+                cursorState: cursorState
             )
             .equatable()
             .id("\(side.rawValue)-bottomStator")
@@ -573,6 +659,7 @@ struct SideView: View, Equatable {
 struct StaticHeaderSection: View, Equatable {
     @Binding var selectedRule: SlideRuleDefinitionModel?
     @Binding var viewMode: ViewMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
     let hasBackSide: Bool
     
     var body: some View {
@@ -596,6 +683,21 @@ struct StaticHeaderSection: View, Equatable {
                 .disabled(!hasBackSide && (viewMode == .back || viewMode == .both))
                 Spacer()
             }
+            
+            // Cursor Display Mode Picker
+            HStack {
+                Spacer()
+                Picker("Cursor Display", selection: $cursorDisplayMode) {
+                    ForEach(CursorDisplayMode.allCases) { mode in
+                        Text(mode.displayText).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .padding(.horizontal)
+                .padding(.top, 4)
+                Spacer()
+            }
         }
     }
     
@@ -603,7 +705,8 @@ struct StaticHeaderSection: View, Equatable {
         // Only compare values that affect rendering
         lhs.selectedRule?.id == rhs.selectedRule?.id &&
         lhs.viewMode == rhs.viewMode &&
-        lhs.hasBackSide == rhs.hasBackSide
+        lhs.hasBackSide == rhs.hasBackSide &&
+        lhs.cursorDisplayMode == rhs.cursorDisplayMode
     }
 }
 
@@ -621,6 +724,7 @@ struct DynamicSlideRuleContent: View {
     let calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
+    let cursorDisplayMode: CursorDisplayMode
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let totalScaleHeight: (RuleSide) -> CGFloat
@@ -648,7 +752,7 @@ struct DynamicSlideRuleContent: View {
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
+                        cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
@@ -658,28 +762,23 @@ struct DynamicSlideRuleContent: View {
                             cursorState: cursorState,
                             width: calculatedDimensions.width,
                             height: totalScaleHeight(.front),
-                            side: .front
+                            side: .front,
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            showReadings: cursorState.shouldShowReadings,
+                            showGradients: cursorDisplayMode.showGradients
                         )
                     }
                 }
             }
-            
+
+            Spacer().frame(height: 5)
+
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
                let backTop = balancedBackTopStator,
                let backSlide = balancedBackSlide,
                let backBottom = balancedBackBottomStator {
                 VStack(spacing: 4) {
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
-                        CursorReadingsDisplayView(
-                            readings: cursorState.currentReadings?.backReadings ?? [],
-                            side: .back
-                        )
-                        .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
-                    }
-                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -688,7 +787,7 @@ struct DynamicSlideRuleContent: View {
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
+                        cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
@@ -698,8 +797,20 @@ struct DynamicSlideRuleContent: View {
                             cursorState: cursorState,
                             width: calculatedDimensions.width,
                             height: totalScaleHeight(.back),
+                            side: .back,
+                            scaleHeight: calculatedDimensions.scaleHeight,
+                            showReadings: cursorState.shouldShowReadings,
+                            showGradients: cursorDisplayMode.showGradients
+                        )
+                    }
+                    // Cursor readings display above slide rule
+                    if cursorState.isEnabled {
+                        CursorReadingsDisplayView(
+                            readings: cursorState.currentReadings?.backReadings ?? [],
                             side: .back
                         )
+                        .equatable()
+                        .frame(maxWidth: calculatedDimensions.width)
                     }
                 }
             }
@@ -722,6 +833,7 @@ struct ContentView: View {
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
+    @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
@@ -969,7 +1081,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
+    private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
@@ -1032,6 +1144,7 @@ struct ContentView: View {
             StaticHeaderSection(
                 selectedRule: $selectedRuleDefinition,
                 viewMode: $viewMode,
+                cursorDisplayMode: $cursorDisplayMode,
                 hasBackSide: currentSlideRule.backTopStator != nil
             )
             .equatable()
@@ -1048,6 +1161,7 @@ struct ContentView: View {
                 calculatedDimensions: calculatedDimensions,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
+                cursorDisplayMode: cursorDisplayMode,
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
                 totalScaleHeight: totalScaleHeight
@@ -1087,13 +1201,19 @@ struct ContentView: View {
     
     // ✅ Drag gesture handlers - single implementation for both sides
     private func handleDragChanged(_ gesture: DragGesture.Value) {
+        // Mark slide as dragging
+        cursorState.setSlideDragging(true)
+        
         let newOffset = sliderBaseOffset + gesture.translation.width
-        sliderOffset = min(max(newOffset, -calculatedDimensions.width), 
+        sliderOffset = min(max(newOffset, -calculatedDimensions.width),
                           calculatedDimensions.width)
     }
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
         sliderBaseOffset = sliderOffset
+        
+        // Mark slide drag as ended
+        cursorState.setSlideDragging(false)
     }
     
     // MARK: - Persistence Helpers
@@ -1187,4 +1307,3 @@ extension ContentView: SlideRuleProvider {
     ContentView()
         .frame(width: 900)
 }
-

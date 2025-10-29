@@ -98,11 +98,11 @@ struct StandardScalesExoticTests {
             let ll3 = StandardScales.ll3Scale(length: 250.0)
             
             // First subsection (2.6-4) uses one decimal
-            let firstLabel = ll3.subsections[0].labelFormatter(3.5)
+            let firstLabel = ll3.subsections[0].labelFormatter?(3.5) ?? ""
             #expect(firstLabel.contains("."), "First subsection should show decimals")
             
             // Later subsections use integer formatter
-            let laterLabel = ll3.subsections[8].labelFormatter(150.0)  // Subsection 9: 100-200
+            let laterLabel = ll3.subsections[8].labelFormatter?(150.0) ?? ""  // Subsection 9: 100-200
             #expect(!laterLabel.contains("."), "Later subsections should show integers only")
         }
         

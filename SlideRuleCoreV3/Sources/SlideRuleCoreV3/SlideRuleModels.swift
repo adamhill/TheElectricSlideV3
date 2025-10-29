@@ -233,6 +233,33 @@ public struct LabelColor: Sendable, Equatable, Hashable {
     public static let green = LabelColor(red: 0, green: 0.5, blue: 0)
 }
 
+/// Specifies which parts of a scale should use the custom labelColor
+/// - scaleName: Apply color to the scale name label (e.g., "LL00", "CI")
+/// - scaleLabels: Apply color to the value labels (e.g., "0.990", "1.0")
+/// - scaleTicks: Apply color to the tick marks and scale drawing
+public typealias ScaleColorApplication = (scaleName: Bool, scaleLabels: Bool, scaleTicks: Bool)
+
+/// Common preset configurations for ScaleColorApplication
+public enum ScaleColorPresets {
+    /// Apply color to all elements (scale name, labels, and ticks)
+    public static let all: ScaleColorApplication = (scaleName: true, scaleLabels: true, scaleTicks: true)
+    
+    /// Apply color only to labels (scale name and value labels, but not ticks)
+    public static let labelsOnly: ScaleColorApplication = (scaleName: true, scaleLabels: true, scaleTicks: false)
+    
+    /// Apply color only to ticks (not to any labels)
+    public static let ticksOnly: ScaleColorApplication = (scaleName: false, scaleLabels: false, scaleTicks: true)
+    
+    /// Apply color to scale name only (not to value labels or ticks)
+    public static let scaleNameOnly: ScaleColorApplication = (scaleName: true, scaleLabels: false, scaleTicks: false)
+    
+    /// Apply color to ticks and scale name (but not value labels)
+    public static let ticksAndScaleName: ScaleColorApplication = (scaleName: true, scaleLabels: false, scaleTicks: true)
+    
+    /// No color applied to any element
+    public static let none: ScaleColorApplication = (scaleName: false, scaleLabels: false, scaleTicks: false)
+}
+
 /// Configuration for a single label on a tick mark
 /// Supports PostScript's dual labeling system (plabelR, plabelL)
 public struct LabelConfig: Sendable, Equatable, Hashable {
@@ -386,17 +413,43 @@ public struct ScaleSubsection: Sendable {
     /// Optional dual label formatter (returns multiple LabelConfig for complex labeling)
     public let dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])?
     
+    /// Cursor reading precision for this subsection
+    /// Defaults to automatic calculation from tickIntervals if not specified
+    public let cursorPrecision: CursorPrecision?
+    
     public init(
         startValue: ScaleValue,
         tickIntervals: [Double],
         labelLevels: Set<Int> = [0],
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
-        dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])? = nil
+        dualLabelFormatter: (@Sendable (ScaleValue) -> [LabelConfig])? = nil,
+        cursorPrecision: CursorPrecision? = nil
     ) {
         self.startValue = startValue
         self.tickIntervals = tickIntervals
         self.labelLevels = labelLevels
         self.labelFormatter = labelFormatter
         self.dualLabelFormatter = dualLabelFormatter
+        self.cursorPrecision = cursorPrecision
+    }
+    
+    /// Get decimal places for a value at current zoom level
+    /// - Parameters:
+    ///   - value: The scale value
+    ///   - zoomLevel: Current zoom level (default 1.0)
+    /// - Returns: Number of decimal places (1-5)
+    public func decimalPlaces(for value: Double, zoomLevel: Double = 1.0) -> Int {
+        let precision = cursorPrecision ?? .automatic
+        
+        switch precision {
+        case .automatic:
+            // Compute from tick intervals
+            return CursorPrecision.calculateFromIntervals(tickIntervals)
+        case .fixed(let places):
+            return min(max(places, 1), 5)
+        case .zoomDependent(let basePlaces):
+            let zoomAdjusted = basePlaces + Int(log2(zoomLevel))
+            return min(max(zoomAdjusted, 1), 5)
+        }
     }
 }

@@ -12,6 +12,92 @@ Real-time capture of scale values at cursor position. Updates automatically as c
 
 ## Current Implementation Details
 
+### Visual Cursor Features ✅ IMPLEMENTED
+
+**Cursor Display Architecture:**
+- **Handle**: 32pt gray rounded rectangle with drag indicators, positioned ABOVE slide rule
+- **Glass Area**: 108pt wide × full rule height, clear with gray border
+- **Hairline**: 1pt solid black vertical line at center
+- **Scale Readings**: Canvas-rendered text on both sides of hairline
+  - Left side: Scale names (right-aligned)
+  - Right side: Scale values (left-aligned)
+- **Gradient Backgrounds**: Configurable 4-color gradients behind text
+  - Left gradient: Fades from left edge to center hairline
+  - Right gradient: Fades from right edge to center hairline (mirrored)
+- **Display Mode Selector**: Segmented picker with "Grad | Values | Both" options
+
+### Font Configuration System
+
+**FontConfig Structure:**
+```swift
+struct FontConfig {
+    var name: String?              // Custom font name (nil = system)
+    var size: CGFloat              // Font size in points
+    var color: Color               // Text color
+    var weight: Font.Weight        // Font weight
+    var design: Font.Design        // Font design (default, monospaced, etc.)
+    var outline: OutlineConfig?    // Text stroke/outline
+    var gradient: GradientConfig?  // Background gradient
+}
+```
+
+**OutlineConfig (Text Stroke):**
+```swift
+struct OutlineConfig {
+    var color: Color      // Outline color
+    var width: CGFloat    // Outline width in points
+    
+    static let `default` = OutlineConfig(color: .white, width: 1.0)
+}
+```
+
+**GradientConfig (Background):**
+```swift
+struct GradientConfig {
+    var colors: [Color]          // 4-color gradient stops
+    var startPoint: UnitPoint    // Gradient start
+    var endPoint: UnitPoint      // Gradient end
+    var opacity: Double          // Overall opacity
+    
+    static let `default` = GradientConfig(
+        colors: [
+            Color.black.opacity(0.3),
+            Color.black.opacity(0.15),
+            Color.black.opacity(0.05),
+            Color.clear
+        ],
+        startPoint: .leading,
+        endPoint: .trailing,
+        opacity: 1.0
+    )
+}
+```
+
+**Built-in Presets:**
+- `.default`: 10pt Helvetica, primary color, white outline, default gradient
+- `.large`: 16pt/14pt bold/medium, enhanced visibility (current default)
+- `.bold`: 10pt bold, high contrast
+- `.monospaced`: 10pt Menlo, aligned values
+
+### Display Mode Control
+
+**CursorDisplayMode Enum:**
+```swift
+enum CursorDisplayMode: String, CaseIterable {
+    case gradients = "Grad"    // Show gradients only (no text)
+    case values = "Values"     // Show text only (no gradients)
+    case both = "Both"         // Show both gradients and text
+    
+    var showGradients: Bool { self == .gradients || self == .both }
+    var showReadings: Bool { self == .values || self == .both }
+}
+```
+
+**UI Integration:**
+- Segmented picker in header section (matches View Mode picker style)
+- Updates both front and back cursors simultaneously
+- Smooth toggling without performance impact
+
 ### Cursor Positioning Architecture
 
 **Key Pattern**: `activeDragOffset` + `normalizedPosition`
@@ -131,7 +217,30 @@ protocol SlideRuleProvider: AnyObject {
 - [x] Add `.onAppear { cursorState.setSlideRuleProvider(self) }`
 - [x] Add `.onChange(of: sliderOffset) { cursorState.updateReadings() }` - triggers updates when slide moves
 
-### Step 4: Test Reading Accuracy
+### Step 4: Create CursorView.swift ✅ COMPLETED
+- [x] Create file: `TheElectricSlide/Cursor/CursorView.swift`
+- [x] Implement `CursorReadingDisplayConfig` with font presets
+- [x] Implement `FontConfig` with outline and gradient support
+- [x] Create handle view (32pt gray rounded rectangle)
+- [x] Create glass area with border and hairline
+- [x] Implement Canvas-based text rendering with `drawScaleReadings()`
+- [x] Add outline rendering with 8-directional stroke pattern
+- [x] Add configurable gradient backgrounds (VStack of LinearGradients)
+- [x] Add display mode toggles (showReadings, showGradients)
+- [x] Optimize with `.drawingGroup()` for Metal acceleration
+
+### Step 5: Update CursorOverlay.swift ✅ COMPLETED
+- [x] Add `displayConfig` parameter
+- [x] Add `showReadings` parameter
+- [x] Add `showGradients` parameter
+- [x] Pass readings to CursorView
+- [x] Thread configuration through to CursorView
+
+### Step 6: Add UI Controls ✅ COMPLETED
+- [x] Create `CursorDisplayMode` enum with three modes
+- [x] Add segmented picker in StaticHeaderSection
+- [x] Thread mode through view hierarchy
+- [x] Update both front and back cursors
 - [ ] Test C scale at known positions (0.0→1.0, 0.301→2.0, 0.5→3.162, 1.0→10.0)
 - [ ] Test inverted scale (CI reciprocal of C)
 - [ ] Test square scale (A reads √value shown on D)
@@ -312,24 +421,60 @@ let ciValue = ScaleCalculator.value(at: pos, on: ciScale) // CI: ~0.316 (recipro
 
 ## File Locations
 
-| File | Purpose | Lines Added |
-|------|---------|-------------|
-| `Cursor/CursorReadings.swift` | Data structures + helpers | ~180 new |
-| `Cursor/CursorState.swift` | Reading methods | ~180 added |
-| `ContentView.swift` | SlideRuleProvider conformance | ~33 added |
+| File | Purpose | Status | Lines |
+|------|---------|--------|-------|
+| `Cursor/CursorReadings.swift` | Data structures + helpers | ✅ Complete | ~180 |
+| `Cursor/CursorState.swift` | Reading methods | ✅ Complete | ~180 added |
+| `Cursor/CursorView.swift` | Visual display with Canvas | ✅ Complete | ~400 new |
+| `Cursor/CursorOverlay.swift` | Gesture handling + config | ✅ Complete | ~30 added |
+| `ContentView.swift` | SlideRuleProvider + UI controls | ✅ Complete | ~70 added |
 
-**Total**: ~393 lines for complete reading feature
+**Total**: ~860 lines for complete cursor reading + display feature
+
+---
+
+## UI Components Summary
+
+### CursorView Layout
+```
+┌─────────────────────────────┐
+│  ═══ DRAG HANDLE ═══        │ ← 32pt gray handle (outside slide rule)
+├─────────────────────────────┤
+│ ░░░░░ Gradient BG ░░░░░     │
+│ C: 3.16    │    D: 3.16     │ ← Canvas text with outlines
+│ CI: 0.32   │    A: 10.0     │
+│            │                 │ ← 1pt black hairline
+│ ░░░░░ Gradient BG ░░░░░     │
+└─────────────────────────────┘
+     108pt wide × full height
+```
+
+### Header Controls
+```
+┌──────────────────────────────────────────┐
+│ [Slide Rule Picker ▼]                    │
+├──────────────────────────────────────────┤
+│      [Front | Back | Both]               │ ← View Mode
+│      [Grad | Values | Both]              │ ← Cursor Display Mode
+└──────────────────────────────────────────┘
+```
 
 ---
 
 ## Quick Integration Steps
 
-1. **Create** `CursorReadings.swift` with structs and protocol
-2. **Extend** `CursorState.swift` with reading properties and methods
-3. **Add** `SlideRuleProvider` conformance to `ContentView`
-4. **Wire** up provider in `ContentView.onAppear`
-5. **Test** reading accuracy for all scale types
-6. **Verify** performance < 0.3ms
+1. ✅ **Create** `CursorReadings.swift` with structs and protocol
+2. ✅ **Extend** `CursorState.swift` with reading properties and methods
+3. ✅ **Add** `SlideRuleProvider` conformance to `ContentView`
+4. ✅ **Wire** up provider in `ContentView.onAppear`
+5. ✅ **Create** `CursorView.swift` with Canvas rendering
+6. ✅ **Add** font configuration system with presets
+7. ✅ **Implement** gradient backgrounds (4-color smooth fades)
+8. ✅ **Add** text outline/stroke rendering (8-directional)
+9. ✅ **Create** display mode controls (segmented picker)
+10. ✅ **Thread** configuration through view hierarchy
+11. [ ] **Test** reading accuracy for all scale types
+12. [ ] **Verify** performance < 0.3ms
 
 ---
 
@@ -392,6 +537,7 @@ let ciValue = ScaleCalculator.value(at: pos, on: ciScale) // CI: ~0.316 (recipro
 
 ---
 
-**Document Version**: 1.0  
-**Created**: October 26, 2025  
-**Purpose**: Quick reference for implementing cursor reading feature
+**Document Version**: 2.0  
+**Updated**: October 28, 2025  
+**Status**: Feature complete with visual display, gradients, and UI controls  
+**Purpose**: Quick reference for cursor reading feature with full display implementation

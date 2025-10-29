@@ -115,6 +115,9 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.0001 quaternary interval)
+                // Mathematical: Extreme compression near e^0.01, finest marks for micro-exponential precision
+                // Historical: LL1 start required finest precision on K&E rules for daily compound interest calculations
                 // PostScript: 1.010 [.005 .001 .0005 .0001] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.010,
@@ -122,6 +125,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.0002 quaternary interval)
+                // Mathematical: Slightly coarser as e^x spacing increases, maintains 4 sig figs at LL1 mid-range
+                // Historical: K&E LL1 readable to 0.0005 by experts, matches precision requirements
                 // PostScript: 1.020 [.010 .005 .0010 .0002] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.020,
@@ -129,6 +135,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Transitioning toward LL2, 0.0005 intervals maintain precision for fractional powers
+                // Historical: Upper LL1 range (1.05-1.06) critical for weekly/monthly compound interest
                 // PostScript: 1.050 [.010 .005 .0010 .0005] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.050,
@@ -136,6 +145,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Final LL1 subsection before transition to LL2, maintains consistency
+                // Historical: 1.06-1.105 range completes LL1 coverage with uniform precision
                 // PostScript: 1.060 [.010 .005 .0010 .0005] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.060,
@@ -248,6 +260,9 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.001 fine interval only)
+                // Mathematical: Transition zone from LL1, single fine interval ensures smooth handoff
+                // Historical: 1.105 is exact boundary between LL1/LL2, K&E used minimal ticks here
                 // PostScript: 1.105 [null null .001 null] [plabel1] scaleSvars
                 // Note: Only fine ticks at transition point
                 ScaleSubsection(
@@ -256,6 +271,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Full density at LL2 start, 0.001 marks for e^0.1 precision
+                // Historical: LL2 beginning required finest marks for fractional exponential accuracy
                 // PostScript: 1.106 [.05 .01 .005 .001] [plabel1] scaleSvars
                 ScaleSubsection(
                     startValue: 1.106,
@@ -263,6 +281,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.threeDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Maintains precision as logarithmic compression increases
+                // Historical: 1.12-1.20 range critical for small power calculations on K&E LL scales
                 // PostScript: 1.120 [.05 .01 .005 .001] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.120,
@@ -270,6 +291,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Slight precision reduction as function spacing increases toward e^0.3
+                // Historical: K&E LL2 mid-range (1.2-1.4) readable to 3-4 sig figs
                 // PostScript: 1.200 [.05 null .010 .002] [plabel] scaleSvars
                 // Note: Skips medium tick (null in second position)
                 ScaleSubsection(
@@ -278,6 +302,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Coarser marks as function spreads, approaching e^0.5 region
+                // Historical: 1.4-1.8 range transitions toward e, maintains 3 sig fig accuracy
                 // PostScript: 1.400 [.10 .05 .010 .005] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1.400,
@@ -285,6 +312,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Near e (2.718), logarithmic spacing widens, 0.01 marks adequate
+                // Historical: LL2 near e shows coarsest marks but still 2-3 sig figs per K&E standards
                 // PostScript: 1.800 [.10 null .050 .010] [plabel] scaleSvars
                 // Note: Skips medium tick
                 ScaleSubsection(
@@ -293,6 +323,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Approaching and passing e (2.718), maintains readable precision
+                // Historical: 2.0-2.5 includes e constant marker, K&E showed 0.01 readability
                 // PostScript: 2.000 [.50 .1 .050 .010] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 2.000,
@@ -300,6 +333,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Past e toward e^1 endpoint, coarsest LL2 marks at 0.02
+                // Historical: LL2 upper end (2.5-2.7) transitions to LL3, adequate for power operations
                 // PostScript: 2.500 [.50 null .100 .020] [plabel] scaleSvars
                 // Note: Skips medium tick
                 ScaleSubsection(
@@ -433,18 +469,25 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL2B")
+            .withFormula("log₁₀(ln(x)×10)/2")
             .withFunction(ll2BFunction)
             .withRange(begin: 1.106, end: 20000.0)
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
                 // Note: This is a VERY detailed scale with 26 subsections!
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: LL2B start at e^0.1, divided by 2 for A/B reference, finest precision
+                // Historical: LL2B combines LL2+LL3 range, enables square-exponential operations on K&E rules
                 // PostScript: 1.106 [ .1 .05 .01 .002] [] scaleSvars
                 ScaleSubsection(
                     startValue: 1.106,
                     tickIntervals: [0.1, 0.05, 0.01, 0.002],
                     labelLevels: []
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Early LL2B requires fine marks for small exponential precision
+                // Historical: 1.11 region critical for fractional powers with A/B scale alignment
                 // PostScript: 1.11 [ .01 null null .002] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1.11,
@@ -452,6 +495,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Maintains finest precision through low LL2B range
+                // Historical: 1.12-1.2 transition maintains 4 sig figs for compound operations
                 // PostScript: 1.12 [ .05 null .01 .002] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1.12,
@@ -459,6 +505,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.twoDecimals
                 ),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Slight coarsening as logarithmic spacing increases
+                // Historical: 1.2-1.4 range provides 3-4 sig figs for A/B scale power operations
                 // PostScript: 1.2 [ .1 .05 .01 .005] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1.2,
@@ -466,6 +515,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
+                // Mathematical: Approaching e region, marks coarser but adequate for LL2B range
+                // Historical: 1.4-1.8 covers e^0.4-0.7 range with standard K&E precision
                 // PostScript: 1.4 [.1 null .05 .010] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1.4,
@@ -473,6 +525,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Near e (2.718), logarithmic compression widens spacing
+                // Historical: 1.8-1.9 subsection provides adequate marks near e constant
                 // PostScript: 1.800 [.10 null null .020] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1.800,
@@ -480,12 +535,18 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Transition subsection near e, no labels but provides tick guidance
+                // Historical: 1.9-2.0 fills gap, maintains visual continuity on K&E LL2B scales
                 // PostScript: 1.900 [.10 null .050 .020] [] scaleSvars
                 ScaleSubsection(
                     startValue: 1.900,
                     tickIntervals: [0.10, 0.05, 0.02],
                     labelLevels: []
                 ),
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: Past e, entering LL3 territory but compressed by factor of 2
+                // Historical: 2.0-2.5 (e^0.7-1.0) overlaps LL2/LL3 boundary on extended K&E rules
                 // PostScript: 2.000 [.5 null .10 .020] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 2.000,
@@ -493,6 +554,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Approaching e^1, marks coarsen to 0.05 as spacing increases
+                // Historical: 2.5-3.0 range transitions from LL2-like to LL3-like density
                 // PostScript: 2.500 [.50 null .100 .050] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 2.500,
@@ -500,6 +564,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Into LL3 range (e^1+), integer labels with 0.05 fine marks
+                // Historical: 3-4 covers e^1.1-1.4, K&E LL2B shows decades with fine subdivisions
                 // PostScript: 3 [1 null .100 .050] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 3.0,
@@ -507,6 +574,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: LL3 low range, 0.1 marks provide 2-3 sig figs
+                // Historical: 4-6 (e^1.4-1.8) maintains readability through compressed scale
                 // PostScript: 4 [1 null .5 .1] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 4.0,
@@ -514,6 +584,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
+                // Mathematical: Mid LL3 range, coarser 0.2 marks adequate for this region
+                // Historical: 6-7 subsection provides uniform spacing per K&E LL2B design
                 // PostScript: 6 [1 null null .2] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 6.0,
@@ -521,6 +594,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
+                // Mathematical: Approaching 10 (e^2.3), larger primary intervals
+                // Historical: 7-10 transition shows 5-unit primary marks on K&E extended scales
                 // PostScript: 7 [5 null null .2] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 7.0,
@@ -528,6 +604,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: First decade boundary (10 = e^2.3), richest subdivisions at major mark
+                // Historical: 10-20 region shows full tick hierarchy on K&E LL2B: 10s, 5s, 1s, 0.5s
                 // PostScript: 10 [10 5 1 .5] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 10.0,
@@ -535,6 +614,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval)
+                // Mathematical: Second decade (20-30), simplified to 10-unit and 2-unit marks
+                // Historical: 20-30 subsection reduces density as scale compresses per K&E practice
                 // PostScript: 20 [10 null null 2] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 20.0,
@@ -542,12 +624,18 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval)
+                // Mathematical: Mid-decade transition, tick marks only (no labels)
+                // Historical: 30-50 fills visual gap, K&E LL2B maintained tick continuity here
                 // PostScript: 30 [null null 10 2] [] scaleSvars
                 ScaleSubsection(
                     startValue: 30.0,
                     tickIntervals: [10.0, 2.0],
                     labelLevels: []
                 ),
+                // Cursor Precision: 2 decimals (from 5.0 quaternary interval)
+                // Mathematical: Half-century mark, 50-unit primary with 5-unit quaternary
+                // Historical: 50-100 (e^4.0-4.6) shows decade-scale marks on K&E LL2B
                 // PostScript: 50 [50 null 10 5] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 50.0,
@@ -555,6 +643,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 20.0 quaternary interval)
+                // Mathematical: Century mark (100 = e^4.6), coarse 20-unit marks
+                // Historical: 100-300 spans one LL3 decade, K&E showed major marks only
                 // PostScript: 100 [100 null null 20] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 100.0,
@@ -562,6 +653,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 20.0 quaternary interval)
+                // Mathematical: 300-500 region, 500-unit primary (note asymmetric interval)
+                // Historical: K&E LL2B used non-uniform intervals here to balance density
                 // PostScript: 300 [500 null null 20] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 300.0,
@@ -569,6 +663,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 100.0 quaternary interval)
+                // Mathematical: Half-millennium, coarsest marks at 100-unit quaternary
+                // Historical: 500-1000 (e^6.2-6.9) approaches upper LL3 range per K&E limits
                 // PostScript: 500 [500 null null 100] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 500.0,
@@ -576,6 +673,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 200.0 quaternary interval)
+                // Mathematical: Millennium mark (1000 = e^6.9), very coarse 200-unit marks
+                // Historical: 1000-2000 shows minimal subdivision on K&E LL2B extended range
                 // PostScript: 1000 [1000 null null 200] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 1000.0,
@@ -583,24 +683,36 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 200.0 quaternary interval)
+                // Mathematical: 2000-3000 transition, tick marks only for visual continuity
+                // Historical: No labels here per K&E LL2B, boundaries labeled by adjacent subsections
                 // PostScript: 2000 [null null 1000 200] [] scaleSvars
                 ScaleSubsection(
                     startValue: 2000.0,
                     tickIntervals: [1000.0, 200.0],
                     labelLevels: []
                 ),
+                // Cursor Precision: 1 decimal (from 500.0 quaternary interval)
+                // Mathematical: 3000-5000 range, larger quaternary spacing (500 units)
+                // Historical: Upper LL2B becomes sparse, K&E provided minimal marks above e^8
                 // PostScript: 3000 [null null 1000 500] [] scaleSvars
                 ScaleSubsection(
                     startValue: 3000.0,
                     tickIntervals: [1000.0, 500.0],
                     labelLevels: []
                 ),
+                // Cursor Precision: 1 decimal (from 1000.0 quaternary interval)
+                // Mathematical: Five-thousand mark, coarsest quaternary at 1000 units
+                // Historical: 5000-10000 (e^8.5-9.2) approaches LL2B limit per K&E design
                 // PostScript: 5000 [5000 null null 1000] [] scaleSvars
                 ScaleSubsection(
                     startValue: 5000.0,
                     tickIntervals: [5000.0, 1000.0],
                     labelLevels: []
                 ),
+                // Cursor Precision: 1 decimal (from 2000.0 quaternary interval)
+                // Mathematical: Ten-thousand mark (10^4 = e^9.2), labeled decade boundary
+                // Historical: 10000-20000 final LL2B range, K&E showed major marks only
                 // PostScript: 10000 [10000 null null 2000] [plabel0] scaleSvars
                 ScaleSubsection(
                     startValue: 10000.0,
@@ -608,6 +720,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 2000.0 quaternary interval)
+                // Mathematical: Endpoint region (20000 = e^9.9), tick marks for visual completion
+                // Historical: Final LL2B subsection, no labels, approaches theoretical e^10 limit
                 // PostScript: 20000 [10000 null null 2000] [] scaleSvars
                 ScaleSubsection(
                     startValue: 20000.0,
@@ -744,6 +859,9 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: LL3 starts at e (2.718), 0.02 marks near e provide 2-3 sig figs
+                // Historical: LL3 low end (2.6-4) most precise region, K&E readable to 0.05 for small powers
                 // PostScript: 2.6 [1 .5 .1 .02] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 2.6,
@@ -751,6 +869,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Low LL3 range (e^1.4), 0.05 marks → readable to ~0.02
+                // Historical: 4-6 region (e^1.4-1.8) standard K&E LL3 precision for decade powers
                 // PostScript: 4 [1 .5 .1 .05] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 4.0,
@@ -758,6 +879,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Approaching 10 (e^2.3), marks coarsen to 0.1 as spacing increases
+                // Historical: 6-10 transition shows reduced density per K&E LL3 design
                 // PostScript: 6 [1 null .5 .1] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 6.0,
@@ -765,6 +889,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
+                // Mathematical: First decade boundary (10 = e^2.3), 0.2 marks for interpolation
+                // Historical: 10-15 region shows 5-unit primary marks on K&E LL3 scales
                 // PostScript: 10 [5 null 1 .2] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 10.0,
@@ -772,6 +899,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Mid-teens region, 0.5 quaternary provides adequate precision
+                // Historical: 15-20 subsection maintains visual continuity on K&E LL3
                 // PostScript: 15 [5 null 1 .5] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 15.0,
@@ -779,6 +909,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: 20 = e^3.0, richest tick hierarchy at this decade point
+                // Historical: 20-30 region shows full 4-level subdivision on K&E LL3 rules
                 // PostScript: 20 [10 5 1 .5] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 20.0,
@@ -786,6 +919,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: 30-50 range (e^3.4-3.9), coarser 1-unit quaternary marks
+                // Historical: K&E LL3 mid-range reduces density while maintaining decade readability
                 // PostScript: 30 [10 null 5 1] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 30.0,
@@ -793,6 +929,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval)
+                // Mathematical: Half-century mark, 2-unit quaternary for 50-100 range
+                // Historical: 50-100 (e^3.9-4.6) shows decade transition on K&E LL3
                 // PostScript: 50 [50 null 10 2] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 50.0,
@@ -800,6 +939,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 5.0 quaternary interval)
+                // Mathematical: Century mark (100 = e^4.6), richest subdivision at major boundary
+                // Historical: 100-200 shows full tick hierarchy on K&E LL3: 100s, 50s, 10s, 5s
                 // PostScript: 100 [100 50 10 5] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 100.0,
@@ -807,6 +949,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: 200-500 mid-hundreds, 10-unit quaternary adequate for this range
+                // Historical: K&E LL3 maintains readability through second century
                 // PostScript: 200 [200 100 50 10] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 200.0,
@@ -814,6 +959,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 2 decimals (from 50.0 quaternary interval)
+                // Mathematical: Half-millennium (500 = e^6.2), coarsening toward thousands
+                // Historical: 500-1000 transition shows reduced density per K&E LL3 design
                 // PostScript: 500 [500 null 100 50] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 500.0,
@@ -821,6 +969,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 100.0 quaternary interval)
+                // Mathematical: Millennium (1000 = e^6.9), 100-unit quaternary marks
+                // Historical: 1000-2000 (e^6.9-7.6) shows major marks on K&E LL3 upper range
                 // PostScript: 1000 [1000 null 500 100] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 1000.0,
@@ -828,6 +979,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 200.0 quaternary interval)
+                // Mathematical: Two thousand (2000 = e^7.6), 200-unit quaternary spacing
+                // Historical: 2000-4000 range approaching LL3 upper limit per K&E standards
                 // PostScript: 2000 [2000 null 1000 200] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 2000.0,
@@ -835,6 +989,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 200.0 quaternary interval)
+                // Mathematical: 4000-5000 transition, note 5000-unit primary (asymmetric)
+                // Historical: K&E LL3 used non-uniform intervals here to balance visual density
                 // PostScript: 4000 [5000 null 1000 200] [plabel] scaleSvars
                 // Note: Major tick is 5000 even though subsection starts at 4000
                 ScaleSubsection(
@@ -843,6 +1000,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 500.0 quaternary interval)
+                // Mathematical: Five thousand (5000 = e^8.5), coarse 500-unit marks
+                // Historical: 5000-10000 final LL3 range, K&E showed minimal subdivision
                 // PostScript: 5000 [5000 null 1000 500] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 5000.0,
@@ -850,6 +1010,9 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.integer
                 ),
+                // Cursor Precision: 1 decimal (from 1000.0 quaternary interval)
+                // Mathematical: Ten thousand (10000 = e^9.2), coarsest LL3 marks at 1000 units
+                // Historical: 10000-21000 endpoint region, K&E LL3 limit near e^10
                 // PostScript: 10000 [10000 null 5000 1000] [plabel] scaleSvars
                 ScaleSubsection(
                     startValue: 10000.0,
@@ -895,11 +1058,15 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL3")
+            .withFormula("log₁₀(ln(x))")
             .withFunction(ll3Function)
             .withRange(begin: 2.74, end: 21000.0)  // e¹ to e¹⁰
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
+                // Mathematical: LL3 starts near e, 0.02 marks provide finest precision in this implementation
+                // Historical: Simplified LL3 maintains K&E precision standards at scale start
                 // PostScript subsection 1: 2.6-4 (line 1426)
                 // Very fine divisions for e^1 region where LL3 begins
                 // Intervals: [1, .5, .1, .02]
@@ -911,6 +1078,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.oneDecimal
                 ),
                 
+                // Cursor Precision: 2 decimals (from 0.05 quaternary interval)
+                // Mathematical: Low LL3 range, 0.05 marks adequate for e^1.4 region
+                // Historical: 4-6 subsection maintains readability as logarithmic compression increases
                 // PostScript subsection 2: 4-6 (line 1427)
                 // Slightly coarser as we move away from e
                 // Intervals: [1, .5, .1, .05]
@@ -921,6 +1091,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Approaching first decade (10 = e^2.3), coarser 0.1 marks
+                // Historical: K&E LL3 reduced tick density in 6-10 transition per design standards
                 // PostScript subsection 3: 6-10 (line 1428)
                 // Transition to decades
                 // Intervals: [1, null, .5, .1]
@@ -932,6 +1105,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
+                // Mathematical: First decade boundary, 0.2 quaternary for 10-15 interpolation
+                // Historical: 10-15 region shows 5-unit primary on K&E LL3 scales
                 // PostScript subsection 4: 10-15 (line 1429)
                 // Lower decades with 5-unit primary intervals
                 // Intervals: [5, null, 1, .2]
@@ -943,6 +1119,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Mid-decade, 0.5 marks adequate for 15-20 range
+                // Historical: K&E maintained uniform 5-unit primaries through lower decades
                 // PostScript subsection 5: 15-20 (line 1430)
                 // Mid-decade refinement
                 // Intervals: [5, null, 1, .5]
@@ -954,6 +1133,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: 20 = e^3.0, richest tick hierarchy at major decade
+                // Historical: 20-30 shows full 4-level subdivision on K&E LL3 for this critical range
                 // PostScript subsection 6: 20-30 (line 1431)
                 // Decades with half-decade markers
                 // Intervals: [10, 5, 1, .5]
@@ -965,6 +1147,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: 30-50 mid-range, 1-unit marks adequate for this spacing
+                // Historical: K&E LL3 shows coarser marks past 30 as scale compresses
                 // PostScript subsection 7: 30-50 (line 1432)
                 // Wider spacing as function becomes linear
                 // Intervals: [10, null, 5, 1]
@@ -976,6 +1161,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 2.0 quaternary interval)
+                // Mathematical: Half-century to century transition, 2-unit marks
+                // Historical: 50-100 (e^3.9-4.6) decade boundary on K&E LL3
                 // PostScript subsection 8: 50-100 (line 1433)
                 // Transition to hundreds
                 // Intervals: [50, null, 10, 2]
@@ -987,6 +1175,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 5.0 quaternary interval)
+                // Mathematical: Century mark, richest hundred-scale subdivision
+                // Historical: 100-200 shows full tick hierarchy (100, 50, 10, 5) on K&E LL3
                 // PostScript subsection 9: 100-200 (line 1434)
                 // Hundreds with rich subdivisions
                 // Intervals: [100, 50, 10, 5]
@@ -998,6 +1189,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: Mid-hundreds with 10-unit quaternary
+                // Historical: 200-500 maintains adequate readability on K&E LL3 upper range
                 // PostScript subsection 10: 200-500 (line 1435)
                 // Mid-hundreds
                 // Intervals: [200, 100, 50, 10]
@@ -1009,6 +1203,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 2 decimals (from 50.0 quaternary interval)
+                // Mathematical: Half-millennium, 50-unit quaternary marks
+                // Historical: 500-1000 shows reduced density approaching thousands on K&E LL3
                 // PostScript subsection 11: 500-1000 (line 1436)
                 // Upper hundreds
                 // Intervals: [500, 100, 50]
@@ -1020,6 +1217,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 100.0 quaternary interval)
+                // Mathematical: Millennium (1000 = e^6.9), coarse 100-unit marks
+                // Historical: 1000-2000 shows sparse subdivision on K&E LL3 upper range
                 // PostScript subsection 12: 1000-2000 (line 1437)
                 // Thousands
                 // Intervals: [1000, 500, 100]
@@ -1031,6 +1231,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 200.0 quaternary interval)
+                // Mathematical: 2000-3000 transition, tick marks only (no labels per PostScript)
+                // Historical: K&E LL3 omitted labels here, boundaries labeled by adjacent subsections
                 // PostScript subsection 13: 2000-3000 (line 1438)
                 // Mid-thousands without primary labels
                 // Intervals: [null, null, 1000, 200]
@@ -1043,6 +1246,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 500.0 quaternary interval)
+                // Mathematical: 3000-5000 region, coarse 500-unit quaternary
+                // Historical: Upper LL3 thousands become very sparse per K&E design
                 // PostScript subsection 14: 3000-5000 (line 1439)
                 // Upper thousands
                 // Intervals: [null, null, 1000, 500]
@@ -1054,6 +1260,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 1000.0 quaternary interval)
+                // Mathematical: 5000-10000 final approach, coarsest marks at 1000 units
+                // Historical: K&E LL3 showed minimal subdivision in this endpoint region
                 // PostScript subsection 15: 5000-10000 (line 1440)
                 // Five-thousand interval
                 // Intervals: [5000, null, null, 1000]
@@ -1065,6 +1274,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 2000.0 quaternary interval)
+                // Mathematical: Ten thousand (10^4 = e^9.2), major labeled boundary
+                // Historical: 10000-20000 final labeled region on K&E LL3, approaching e^10 limit
                 // PostScript subsection 16: 10000-20000 (line 1441)
                 // Ten-thousand interval
                 // Intervals: [10000, null, null, 2000]
@@ -1076,6 +1288,9 @@ extension StandardScales {
                     labelFormatter: StandardLabelFormatter.integer
                 ),
                 
+                // Cursor Precision: 1 decimal (from 2000.0 quaternary interval)
+                // Mathematical: Endpoint region (20000-21000), tick marks for visual completion
+                // Historical: Final LL3 subsection, no labels, approaches theoretical e^10 = 22026 limit
                 // PostScript subsection 17: 20000+ (line 1442)
                 // Endpoint region
                 // Intervals: [10000, null, null, 2000]
@@ -1142,13 +1357,23 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL2")
+            .withFormula("log₁₀(ln(x)×10)")
             .withFunction(ll2Function)
             .withRange(begin: 1.105, end: 2.72)  // e^0.1 to e^1
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Simplified LL2 start, 0.005 marks provide 3-4 sig figs
+                // Historical: Simplified version maintains essential precision for e^0.1-0.5 range
                 ScaleSubsection(startValue: 1.105, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Mid-range LL2, uniform 0.005 marks throughout for consistency
+                // Historical: Simplified subsections trade PostScript accuracy for ease of use
                 ScaleSubsection(startValue: 1.5, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Upper LL2 approaching e, maintains consistent quaternary spacing
+                // Historical: Uniform intervals simplify implementation while preserving readable precision
                 ScaleSubsection(startValue: 2.0, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.twoDecimals)
@@ -1192,12 +1417,19 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL1")
+            .withFormula("log₁₀(ln(x)×100)")
             .withFunction(ll1Function)
             .withRange(begin: 1.0101, end: 1.105)  // e^0.01 to e^0.1
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Simplified LL1 start, 0.0005 marks for e^0.01-0.05 micro-exponential precision
+                // Historical: Maintains K&E LL1 precision requirements with simplified 2-subsection pattern
                 ScaleSubsection(startValue: 1.01, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Upper LL1, uniform 0.0005 intervals through e^0.05-0.1 range
+                // Historical: Simplified version preserves fine precision critical for LL1 operations
                 ScaleSubsection(startValue: 1.05, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
@@ -1241,12 +1473,19 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL0")
+            .withFormula("log₁₀(ln(x)×1000)")
             .withFunction(ll0Function)
             .withRange(begin: 1.001, end: 1.0101)  // e^0.001 to e^0.01
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: Ultra-precision LL0 start, 0.00005 marks for e^0.001-0.005 finest resolution
+                // Historical: Simplified LL0 preserves K&E ultra-precision requirements, capped at 5 decimals
                 ScaleSubsection(startValue: 1.001, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: Upper LL0, uniform finest marks through e^0.005-0.01 range
+                // Historical: Maintains extreme precision needed for LL0 micro-correction calculations
                 ScaleSubsection(startValue: 1.005, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
@@ -1298,19 +1537,36 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL03")
+            .withFormula("log₁₀(−ln(x))")
             .withFunction(ll03Function)
             .withRange(begin: 0.00005, end: 0.368)  // e^-10 to e^-1
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.000005 quaternary interval, capped at 5)
+                // Mathematical: Reciprocal of LL3 at e^-10, extreme precision for ultra-small decay values
+                // Historical: LL03 start (0.00005 = e^-10) required finest marks on K&E reciprocal scales
                 ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00001, 0.000005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.000005 quaternary interval, capped at 5)
+                // Mathematical: Ultra-fine marks for e^-9 to e^-7 range, mirrors LL3 upper precision
+                // Historical: K&E LL03 low end readable to 0.00001 by experts for decay calculations
                 ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0001, 0.00005, 0.00001, 0.000005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: e^-7 to e^-5 range, 0.00005 marks for precise decay/attenuation work
+                // Historical: Mid-LL03 maintains 4-5 sig figs per K&E reciprocal scale standards
                 ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: e^-5 to e^-2 range, coarsening as values approach 1/e
+                // Historical: Upper LL03 shows reduced density like LL3, maintains 3-4 sig figs
                 ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Approaching 1/e (0.368), coarsest LL03 marks at 0.005
+                // Historical: LL03 end (0.1-0.368 = e^-2.3 to e^-1) transitions to LL02, K&E standard precision
                 ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e
@@ -1358,17 +1614,28 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL02")
+            .withFormula("log₁₀(−ln(x)×10)")
             .withFunction(ll02Function)
             .withRange(begin: 0.368, end: 0.905)  // e^-1 to e^-0.1
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: LL02 start at 1/e, 0.005 marks for e^-1 to e^-0.7 precision
+                // Historical: Reciprocal of LL2, maintains K&E precision for moderate negative powers
                 ScaleSubsection(startValue: 0.37, tickIntervals: [0.05, 0.02, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Mid-LL02 (0.5 = e^-0.69), uniform marks for decay calculations
+                // Historical: 0.5-0.8 range critical for RC circuits, K&E LL02 showed 3-4 sig figs
                 ScaleSubsection(startValue: 0.50, tickIntervals: [0.05, 0.02, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Approaching e^-0.1, finest LL02 marks at 0.001 near scale end
+                // Historical: Upper LL02 (0.8-0.905) transitions to LL01, K&E increased density here
                 ScaleSubsection(startValue: 0.80, tickIntervals: [0.02, 0.01, 0.005, 0.001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e at left edge
@@ -1415,17 +1682,28 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL01")
+            .withFormula("log₁₀(−ln(x)×100)")
             .withFunction(ll01Function)
             .withRange(begin: 0.905, end: 0.990)  // e^-0.1 to e^-0.01
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: LL01 start at e^-0.1, reciprocal of LL1, fine marks for small negative powers
+                // Historical: 0.90-0.95 range matches LL1 precision, K&E LL01 readable to 0.001
                 ScaleSubsection(startValue: 0.90, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Mid-LL01 (0.95 = e^-0.05), uniform fine marks for precision attenuation
+                // Historical: 0.95-0.98 critical for quality factor calculations, K&E maintained 4 sig figs
                 ScaleSubsection(startValue: 0.95, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.0001 quaternary interval)
+                // Mathematical: Approaching e^-0.01, finest LL01 marks at 0.0001 near unity
+                // Historical: Upper LL01 (0.98-0.990) transitions to LL00, K&E showed maximum density here
                 ScaleSubsection(startValue: 0.98, tickIntervals: [0.005, 0.001, 0.0005, 0.0001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .build()
     }
     
@@ -1459,17 +1737,28 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL00")
+            .withFormula("log₁₀(−ln(x)×1000)")
             .withFunction(ll00Function)
             .withRange(begin: 0.990, end: 0.999)  // e^-0.01 to e^-0.001
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: LL00 start at e^-0.01, ultra-precision reciprocal, finest marks on slide rule
+                // Historical: 0.990-0.995 range required extreme precision on K&E LL00, readable to 0.0001
                 ScaleSubsection(startValue: 0.990, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval, capped at 5)
+                // Mathematical: Mid-LL00 (0.995 = e^-0.005), finest interval on any slide rule scale
+                // Historical: THE MOST PRECISE SUBSECTION: K&E LL00 experts could read to 0.00001 (6 decimals theoretically)
                 ScaleSubsection(startValue: 0.995, tickIntervals: [0.001, 0.0005, 0.0001, 0.00002], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00001 quaternary interval, capped at 5)
+                // Mathematical: Approaching unity (0.999 = e^-0.001), extreme compression requires finest marks
+                // Historical: Upper LL00 (0.998-0.999) the ultimate precision challenge on K&E rules
                 ScaleSubsection(startValue: 0.998, tickIntervals: [0.0005, 0.0001, 0.00005, 0.00001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .build()
     }
     
@@ -1507,16 +1796,35 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL02B")
+            .withFormula("log₁₀(−ln(x)×10)/2")
             .withFunction(ll02BFunction)
             .withRange(begin: 0.00005, end: 0.904)  // Extended range
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 5 decimals (from 0.00001 quaternary interval, capped at 5)
+                // Mathematical: LL02B combines LL02+LL03 ranges, divided by 2 for A/B reference
+                // Historical: Extended negative scale on K&E, matches LL03 extreme precision at start
                 ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00001], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: Ultra-low decay range (e^-9 to e^-7), finest marks for nano-scale work
+                // Historical: LL02B low end preserves precision for combined square-decay operations
                 ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0001, 0.00005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Transitioning through e^-7 to e^-5 range, reduced quaternary density
+                // Historical: K&E LL02B mid-range shows 4 sig figs for extended decay calculations
                 ScaleSubsection(startValue: 0.0010, tickIntervals: [0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: e^-5 to e^-2 range, coarsening as values approach 1/e
+                // Historical: LL02B upper-mid maintains precision for A/B scale compatibility
                 ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: 0.1-0.8 range (e^-2.3 to e^-0.2), standard LL02-like precision
+                // Historical: LL02B overlaps LL02 range here, K&E showed 3-4 sig figs
                 ScaleSubsection(startValue: 0.10, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Approaching e^-0.1, finest LL02B upper marks at 0.002
+                // Historical: LL02B end (0.8-0.904) matches LL02, enables seamless A/B operations
                 ScaleSubsection(startValue: 0.80, tickIntervals: [0.05, 0.01, 0.002], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
@@ -1549,16 +1857,35 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL00B")
+            .withFormula("log₁₀(−ln(x)×100)/2+0.5")
             .withFunction(ll00BFunction)
             .withRange(begin: 0.900, end: 0.999)
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: LL00B start (0.900 = e^-0.105), combines LL00+LL01, A/B referenced
+                // Historical: Hemmi 266 variant, coarser than pure LL01 but adequate for combined ops
                 ScaleSubsection(startValue: 0.900, tickIntervals: [0.05, 0.01, 0.005, 0.001], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Mid-LL00B (0.950 = e^-0.05), increasing density for precision
+                // Historical: 0.95-0.98 transition zone, Hemmi 266 showed 4 sig figs here
                 ScaleSubsection(startValue: 0.950, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0002 quaternary interval)
+                // Mathematical: Approaching LL00 range, 0.0002 marks for high precision
+                // Historical: 0.98-0.99 Hemmi 266 increased density approaching unity
                 ScaleSubsection(startValue: 0.980, tickIntervals: [0.01, 0.005, 0.001, 0.0002], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.0001 quaternary interval)
+                // Mathematical: LL00B enters LL00 territory (e^-0.01), finest marks begin
+                // Historical: 0.990-0.995 Hemmi 266 matched LL00 precision for quality factors
                 ScaleSubsection(startValue: 0.990, tickIntervals: [0.005, 0.001, 0.0005, 0.0001], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
+                // Mathematical: Ultra-precision LL00B region (0.995 = e^-0.005), extreme compression
+                // Historical: Hemmi 266 LL00B peak precision, readable to 0.0001 by experts
                 ScaleSubsection(startValue: 0.995, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval, capped at 5)
+                // Mathematical: LL00B end approaching unity, finest marks (0.00002) on Hemmi variant
+                // Historical: 0.998-0.999 ultimate Hemmi 266 precision, matches LL00 theoretical limit
                 ScaleSubsection(startValue: 0.998, tickIntervals: [0.0005, 0.0001, 0.00002], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
@@ -1590,8 +1917,17 @@ extension StandardScales {
             layout: ll00BScale.layout,
             tickDirection: ll00BScale.tickDirection,
             subsections: [
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: H266LL01 truncated LL00B range, maintains precision for 0.9-0.95
+                // Historical: Hemmi 266 space-saving variant, adequate for compact rule design
                 ScaleSubsection(startValue: 0.900, tickIntervals: [0.05, 0.01, 0.005, 0.001], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: Mid-H266LL01, increasing density toward 0.98
+                // Historical: Hemmi 266 maintained LL00B precision in truncated range
                 ScaleSubsection(startValue: 0.950, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
+                // Cursor Precision: 4 decimals (from 0.0002 quaternary interval)
+                // Mathematical: H266LL01 upper end, finest marks at 0.0002 before truncation
+                // Historical: Truncated at 0.99, preserves essential LL00B functionality on Hemmi 266
                 ScaleSubsection(startValue: 0.980, tickIntervals: [0.01, 0.005, 0.001, 0.0002], labelLevels: [0])
             ],
             defaultTickStyles: ll00BScale.defaultTickStyles,
@@ -1671,20 +2007,51 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("H266LL03")
+            .withFormula("log₁₀(ln(x×10⁻⁹)×−0.1)/2")
             .withFunction(h266LL03Function)
             .withRange(begin: 1.0, end: 50000.0)  // Scale units, not physical values
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
+                // Cursor Precision: 1 decimal (from 1.0 single interval)
+                // Mathematical: H266LL03 represents 10^-9 scale units, 1-unit marks at nano-scale start
+                // Historical: Specialized Hemmi 266 scale for ultra-small values, coarse scale-unit marks
                 ScaleSubsection(startValue: 1.0, tickIntervals: [1.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: 2-10 range (10^-9 to 10^-8 physical), 1-unit quaternary marks
+                // Historical: Hemmi 266 H266LL03 low range shows decade subdivisions
                 ScaleSubsection(startValue: 2.0, tickIntervals: [10.0, 5.0, 1.0], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 5.0 quaternary interval)
+                // Mathematical: First decade (10 = 10^-8), simplified to 5-unit marks
+                // Historical: 10-20 region Hemmi 266 reduced tick density for nano-scale calculations
                 ScaleSubsection(startValue: 10.0, tickIntervals: [10.0, 5.0], labelLevels: [0]),
+                // Cursor Precision: 2 decimals (from 10.0 quaternary interval)
+                // Mathematical: 20-100 range (10^-8 to 10^-7), coarse 10-unit quaternary
+                // Historical: Hemmi 266 mid-range shows decade transitions with limited subdivision
                 ScaleSubsection(startValue: 20.0, tickIntervals: [100.0, 50.0, 10.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 100.0 quaternary interval)
+                // Mathematical: Century mark in scale units (100 = 10^-7), very coarse marks
+                // Historical: 100-200 Hemmi 266 shows minimal subdivision in middle decades
                 ScaleSubsection(startValue: 100.0, tickIntervals: [100.0, 500.0, 100.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 100.0 quaternary interval)
+                // Mathematical: 200-1000 transition, 100-unit quaternary spacing
+                // Historical: Hemmi 266 maintained sparse marks through upper scale-unit decades
                 ScaleSubsection(startValue: 200.0, tickIntervals: [1000.0, 500.0, 100.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 1000.0 quaternary interval)
+                // Mathematical: Millennium in scale units (1000 = 10^-6), coarsest marks
+                // Historical: 1000-2000 Hemmi 266 shows major marks only for micro-scale range
                 ScaleSubsection(startValue: 1000.0, tickIntervals: [1000.0, 5000.0, 1000.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 1000.0 quaternary interval)
+                // Mathematical: Upper thousands (2000-10000 = 10^-6 to 10^-5), very sparse
+                // Historical: Hemmi 266 H266LL03 approaching upper limit, minimal subdivision
                 ScaleSubsection(startValue: 2000.0, tickIntervals: [10000.0, 5000.0, 1000.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 10000.0 quaternary interval)
+                // Mathematical: Ten thousand in scale units (10000 = 10^-5), decade boundary
+                // Historical: 10000-20000 Hemmi 266 shows final decade with coarse marks
                 ScaleSubsection(startValue: 10000.0, tickIntervals: [10000.0, 50000.0, 10000.0], labelLevels: [0]),
+                // Cursor Precision: 1 decimal (from 10000.0 quaternary interval)
+                // Mathematical: Endpoint region (20000-50000 = 2×10^-5 to 5×10^-5), sparse marks
+                // Historical: Final H266LL03 subsection, Hemmi 266 limit at 5×10^-5 physical value
                 ScaleSubsection(startValue: 20000.0, tickIntervals: [100000.0, 50000.0, 10000.0], labelLevels: [0])
             ])
             .withLabelFormatter({ value in h266Formatter(value) ?? "" })

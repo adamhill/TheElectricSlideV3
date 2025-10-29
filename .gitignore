@@ -105,3 +105,4 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 */Tests/Results/
+.vscode/settings.json

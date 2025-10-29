@@ -1566,6 +1566,7 @@ extension StandardScales {
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e
@@ -1634,6 +1635,7 @@ extension StandardScales {
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e at left edge
@@ -1701,6 +1703,7 @@ extension StandardScales {
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .build()
     }
     
@@ -1755,6 +1758,7 @@ extension StandardScales {
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .build()
     }
     

@@ -91,6 +91,9 @@ public struct ScaleDefinition: Sendable {
     /// Optional color for labels (as RGB components 0-1)
     public let labelColor: (red: Double, green: Double, blue: Double)?
     
+    /// Specifies which parts of the scale should use the labelColor
+    public let colorApplication: ScaleColorApplication
+    
     /// Optional constants to mark on the scale (like π, e)
     public let constants: [ScaleConstant]
     
@@ -116,6 +119,7 @@ public struct ScaleDefinition: Sendable {
         defaultTickStyles: [TickStyle] = [.major, .medium, .minor, .tiny],
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
         labelColor: (red: Double, green: Double, blue: Double)? = nil,
+        colorApplication: ScaleColorApplication = ScaleColorPresets.all,
         constants: [ScaleConstant] = [],
         showBaseline: Bool = false,
         formulaTracking: Double = 1.0
@@ -132,6 +136,7 @@ public struct ScaleDefinition: Sendable {
         self.defaultTickStyles = defaultTickStyles
         self.labelFormatter = labelFormatter
         self.labelColor = labelColor
+        self.colorApplication = colorApplication
         self.constants = constants
         self.showBaseline = showBaseline
         self.formulaTracking = formulaTracking
@@ -178,6 +183,7 @@ public struct ScaleBuilder {
     private var defaultTickStyles: [TickStyle] = [.major, .medium, .minor, .tiny]
     private var labelFormatter: (@Sendable (ScaleValue) -> String)?
     private var labelColor: (red: Double, green: Double, blue: Double)?
+    private var colorApplication: ScaleColorApplication = ScaleColorPresets.all
     private var constants: [ScaleConstant] = []
     private var showBaseline: Bool = false
     private var formulaTracking: Double = 1.0
@@ -254,6 +260,12 @@ public struct ScaleBuilder {
         return copy
     }
     
+    public func withColorApplication(_ application: ScaleColorApplication) -> ScaleBuilder {
+        var copy = self
+        copy.colorApplication = application
+        return copy
+    }
+    
     public func withConstants(_ constants: [ScaleConstant]) -> ScaleBuilder {
         var copy = self
         copy.constants = constants
@@ -299,6 +311,7 @@ public struct ScaleBuilder {
             defaultTickStyles: defaultTickStyles,
             labelFormatter: labelFormatter,
             labelColor: labelColor,
+            colorApplication: colorApplication,
             constants: constants,
             showBaseline: showBaseline,
             formulaTracking: formulaTracking

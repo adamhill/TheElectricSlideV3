@@ -191,6 +191,8 @@ public enum StandardScales {
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
+            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withColorApplication(ScaleColorPresets.labelsOnly)
             .build()
     }
     
@@ -362,6 +364,8 @@ public enum StandardScales {
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
+            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withColorApplication(ScaleColorPresets.labelsOnly)
             .addConstant(value: .pi, label: "π", style: .major)
             .addConstant(value: 10.0, label: "10", style: .major)
             .build()

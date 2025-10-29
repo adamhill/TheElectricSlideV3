@@ -102,10 +102,20 @@ struct ScaleView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left (right-aligned with minimum width)
+            // Extract label color from definition, applying it only if colorApplication allows
+            let scaleLabelColor: Color = {
+                if let tupleColor = generatedScale.definition.labelColor,
+                   generatedScale.definition.colorApplication.scaleName {
+                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+                } else {
+                    return .black
+                }
+            }()
+            
             Text(generatedScale.definition.name)
-                .font(.caption2)
-                .foregroundColor(.black)
-                .frame(minWidth: 28, alignment: .trailing)
+                .font(.body)
+                .foregroundColor(scaleLabelColor)
+                .frame(minWidth: 56, alignment: .trailing)
             
             // Scale view
             GeometryReader { geometry in
@@ -128,10 +138,10 @@ struct ScaleView: View {
             
             // Formula label on the right
             Text(generatedScale.definition.formula)
-                .font(.caption2)
+                .font(.body)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: 40, alignment: .leading)
+                .frame(width: 96, alignment: .leading)
         }
     }
     
@@ -182,6 +192,16 @@ struct ScaleView: View {
             }
             
             // Draw tick mark (vertical line) with anti-aliasing disabled
+            // Apply custom color to tick marks if colorApplication allows
+            let tickColor: Color = {
+                if let tupleColor = definition.labelColor,
+                   definition.colorApplication.scaleTicks {
+                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+                } else {
+                    return .black
+                }
+            }()
+            
             let tickPath = Path { path in
                 path.move(to: CGPoint(x: xPos, y: tickStartY))
                 path.addLine(to: CGPoint(x: xPos, y: tickEndY))
@@ -191,7 +211,7 @@ struct ScaleView: View {
                 cgContext.setShouldAntialias(false)
                 context.stroke(
                     tickPath,
-                    with: .color(.black),
+                    with: .color(tickColor),
                     lineWidth: tick.style.lineWidth / 1.5
                 )
             }
@@ -216,7 +236,8 @@ struct ScaleView: View {
                     tickHeight: tickHeight,
                     tickDirection: definition.tickDirection,
                     size: size,
-                    tickRelativeLength: tick.style.relativeLength
+                    tickRelativeLength: tick.style.relativeLength,
+                    definition: definition
                 )
             }
         }
@@ -241,6 +262,9 @@ struct ScaleView: View {
             // Use regular font (not italic), we'll apply transform for slant
             let font = Font.system(size: fontSize)
             
+            // For dual-labeled scales, labelConfig.color is already set per label
+            // For scales with labelColor in definition, we need to check colorApplication
+            // Since dual labels already have their own colors set, we just use them directly
             let text = Text(labelConfig.text)
                 .font(font)
                 .foregroundColor(colorFromLabelColor(labelConfig.color))
@@ -295,14 +319,24 @@ struct ScaleView: View {
         tickHeight: CGFloat,
         tickDirection: SlideRuleCoreV3.TickDirection,
         size: CGSize,
-        tickRelativeLength: Double
+        tickRelativeLength: Double,
+        definition: ScaleDefinition
     ) {
         let fontSize = fontSizeForTick(tickRelativeLength)
         guard fontSize > 0 else { return }
         
+        // Use label color from definition if available and colorApplication allows, otherwise default to black
+        let labelColor: Color
+        if let tupleColor = definition.labelColor,
+           definition.colorApplication.scaleLabels {
+            labelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+        } else {
+            labelColor = .black
+        }
+        
         let label = Text(text)
             .font(.system(size: fontSize))
-            .foregroundColor(.black)
+            .foregroundColor(labelColor)
         
         let resolvedText = context.resolve(label)
         let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
@@ -402,6 +436,11 @@ struct ScaleView: View {
             blue: labelColor.blue,
             opacity: labelColor.alpha
         )
+    }
+    
+    /// Convert an RGB tuple to SwiftUI Color (graceful helper for older definitions)
+    private func colorFromTuple(_ tuple: (red: Double, green: Double, blue: Double)) -> Color {
+        Color(red: tuple.red, green: tuple.green, blue: tuple.blue)
     }
     
     /// Get font with specified style (PostScript NumFontRi, NumFontLi support)
@@ -1042,7 +1081,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
+    private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
@@ -1268,4 +1307,3 @@ extension ContentView: SlideRuleProvider {
     ContentView()
         .frame(width: 900)
 }
-

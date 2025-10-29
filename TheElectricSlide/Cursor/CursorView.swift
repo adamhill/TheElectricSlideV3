@@ -89,8 +89,8 @@ struct CursorReadingDisplayConfig {
             name: nil,
             size: 14,
             color: .black,
-            weight: .medium,
-            design: .default,
+            weight: .bold,
+            design: .monospaced,
             outline: .default,
             gradient: .default
         ),
@@ -267,7 +267,7 @@ struct CursorView: View {
     // MARK: - Constants
     
     /// Width of the cursor frame
-    static let cursorWidth: CGFloat = 108
+    static let cursorWidth: CGFloat = 144
     
     /// Height of the drag handle (positioned ABOVE the slide rule)
     static let handleHeight: CGFloat = 32

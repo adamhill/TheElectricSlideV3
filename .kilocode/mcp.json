@@ -23,7 +23,7 @@
         "tavily-crawl",
         "tavily-map"
       ],
-      "disabled": false
+      "disabled": true
     },
     "XcodeBuildMCP": {
       "command": "npx",

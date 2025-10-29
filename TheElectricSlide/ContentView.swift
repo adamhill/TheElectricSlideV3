@@ -138,10 +138,10 @@ struct ScaleView: View {
             
             // Formula label on the right
             Text(generatedScale.definition.formula)
-                .font(.body)
+                .font(.caption)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: 96, alignment: .leading)
+                .frame(width: 64, alignment: .leading)
         }
     }
     
@@ -262,12 +262,20 @@ struct ScaleView: View {
             // Use regular font (not italic), we'll apply transform for slant
             let font = Font.system(size: fontSize)
             
-            // For dual-labeled scales, labelConfig.color is already set per label
-            // For scales with labelColor in definition, we need to check colorApplication
-            // Since dual labels already have their own colors set, we just use them directly
+            // Check if we should apply custom color based on colorApplication
+            let labelColor: Color
+            if let tupleColor = generatedScale.definition.labelColor,
+               generatedScale.definition.colorApplication.scaleLabels {
+                // Use the definition's label color if colorApplication allows
+                labelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+            } else {
+                // Otherwise use the label config's color (for dual labels) or default to black
+                labelColor = colorFromLabelColor(labelConfig.color)
+            }
+            
             let text = Text(labelConfig.text)
                 .font(font)
-                .foregroundColor(colorFromLabelColor(labelConfig.color))
+                .foregroundColor(labelColor)
             
             let resolvedText = context.resolve(text)
             let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))

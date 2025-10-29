@@ -33,29 +33,57 @@ enum ViewMode: String, CaseIterable, Identifiable {
 
 // MARK: - Cursor Display Mode
 
+/// Defines what cursor information to display on the slide rule
+/// - gradients: Display only gradient overlay lines
+/// - values: Display only numerical reading values
+/// - both: Display both gradients and values
 enum CursorDisplayMode: String, CaseIterable, Identifiable {
-    case gradients = "Grad"
-    case values = "Values"
-    case both = "Both"
+    case gradients
+    case values
+    case both
     
     var id: String { rawValue }
     
-    var showGradients: Bool {
-        self == .gradients || self == .both
+    /// User-facing display text for picker
+    var displayText: String {
+        switch self {
+        case .gradients: return "Gradients"
+        case .values: return "Values"
+        case .both: return "Both"
+        }
     }
     
+    /// Whether gradient lines should be displayed
+    var showGradients: Bool {
+        switch self {
+        case .gradients, .both:
+            return true
+        case .values:
+            return false
+        }
+    }
+    
+    /// Whether reading values should be displayed
     var showReadings: Bool {
-        self == .values || self == .both
+        switch self {
+        case .values, .both:
+            return true
+        case .gradients:
+            return false
+        }
     }
 }
 
 // MARK: - Rule Side
 
+/// Represents which side of the slide rule is being displayed
+/// - front: The primary (front) side
+/// - back: The reverse (back) side
 enum RuleSide: String, Sendable {
-    case front = "Front (Side A)"
-    case back = "Back (Side B)"
+    case front
+    case back
     
-    var displayName: String { rawValue }
+    /// Border color for visual distinction between sides
     var borderColor: Color {
         switch self {
         case .front: return .blue
@@ -525,8 +553,7 @@ struct SideView: View, Equatable {
     let width: CGFloat
     let scaleHeight: CGFloat
     let sliderOffset: CGFloat
-    let showLabel: Bool  // Whether to show "Front (Side A)" / "Back (Side B)" label
-    let cursorState: CursorState?  // NEW: Reference to cursor state
+    let cursorState: CursorState?
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
     
@@ -537,7 +564,6 @@ struct SideView: View, Equatable {
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.sliderOffset == rhs.sliderOffset &&
-        lhs.showLabel == rhs.showLabel &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
@@ -545,13 +571,6 @@ struct SideView: View, Equatable {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Optional side label
-            if showLabel {
-                Text(side.displayName)
-                    .font(.headline)
-                    .padding(.bottom, 4)
-            }
-            
             // Top Stator (Fixed)
             StatorView(
                 stator: topStator,
@@ -631,7 +650,7 @@ struct StaticHeaderSection: View, Equatable {
                 Spacer()
                 Picker("Cursor Display", selection: $cursorDisplayMode) {
                     ForEach(CursorDisplayMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.displayText).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -694,7 +713,6 @@ struct DynamicSlideRuleContent: View {
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
@@ -713,23 +731,15 @@ struct DynamicSlideRuleContent: View {
                     }
                 }
             }
-            
+
+            Spacer().frame(height: 5)
+
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
                let backTop = balancedBackTopStator,
                let backSlide = balancedBackSlide,
                let backBottom = balancedBackBottomStator {
                 VStack(spacing: 4) {
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
-                        CursorReadingsDisplayView(
-                            readings: cursorState.currentReadings?.backReadings ?? [],
-                            side: .back
-                        )
-                        .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
-                    }
-                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -738,7 +748,6 @@ struct DynamicSlideRuleContent: View {
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         sliderOffset: sliderOffset,
-                        showLabel: viewMode == .both,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
@@ -754,6 +763,15 @@ struct DynamicSlideRuleContent: View {
                             showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
+                    }
+                    // Cursor readings display above slide rule
+                    if cursorState.isEnabled {
+                        CursorReadingsDisplayView(
+                            readings: cursorState.currentReadings?.backReadings ?? [],
+                            side: .back
+                        )
+                        .equatable()
+                        .frame(maxWidth: calculatedDimensions.width)
                     }
                 }
             }

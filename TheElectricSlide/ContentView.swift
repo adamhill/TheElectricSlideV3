@@ -42,7 +42,7 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
 // MARK: - Responsive Layout Configuration
 
 /// Responsive breakpoint tiers for layout adaptation
-enum LayoutTier {
+enum LayoutTier: Sendable {
     case extraLarge  // 640pt+ width
     case large       // 480-639pt width
     case medium      // 320-479pt width
@@ -79,6 +79,18 @@ enum LayoutTier {
         case .large: return .callout
         case .medium: return .caption
         case .small: return .caption2
+        }
+    }
+}
+
+// Explicit nonisolated Equatable conformance for LayoutTier
+extension LayoutTier: Equatable {
+    nonisolated static func == (lhs: LayoutTier, rhs: LayoutTier) -> Bool {
+        switch (lhs, rhs) {
+        case (.extraLarge, .extraLarge), (.large, .large), (.medium, .medium), (.small, .small):
+            return true
+        default:
+            return false
         }
     }
 }
@@ -950,7 +962,7 @@ struct ContentView: View {
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     // ✅ State for calculated dimensions - only updates when window size changes
 
-    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64)
+    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64, tier: .extraLarge)
     @State private var cursorState = CursorState()
     
     // Current slide rule selection (persisted via SwiftData)

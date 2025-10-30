@@ -64,7 +64,6 @@ struct CursorOverlay: View {
             // Cursor interactive area - matches scale width exactly
             GeometryReader { geometry in
                 let effectiveWidth = width  // Use passed scale width directly
-                let halfCursorWidth = CursorView.cursorWidth / 2.0
                 let basePosition = cursorState.position(for: side) * effectiveWidth
                 
                 // Get current readings for this side

@@ -36,6 +36,7 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     var scaleHeight: CGFloat
     var leftMarginWidth: CGFloat
     var rightMarginWidth: CGFloat
+    var tier: LayoutTier
 }
 
 // MARK: - Responsive Layout Configuration
@@ -1193,20 +1194,6 @@ struct ContentView: View {
         return 0
     }
     
-    // Helper function to get font for margin text based on margin width (discrete tiers)
-    private func fontForMarginWidth(_ marginWidth: CGFloat) -> Font {
-        // Determine tier from margin width and return corresponding font
-        if marginWidth >= kExtraLargeMargin {
-            return LayoutTier.extraLarge.font
-        } else if marginWidth >= kLargeMargin {
-            return LayoutTier.large.font
-        } else if marginWidth >= kMediumMargin {
-            return LayoutTier.medium.font
-        } else {
-            return LayoutTier.small.font
-        }
-    }
-    
     // Helper function to calculate responsive dimensions
     private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
@@ -1246,7 +1233,8 @@ struct ContentView: View {
             width: scaleWidth,
             scaleHeight: scaleHeight,
             leftMarginWidth: leftMarginWidth,
-            rightMarginWidth: rightMarginWidth
+            rightMarginWidth: rightMarginWidth,
+            tier: tier
         )
     }
     
@@ -1301,7 +1289,7 @@ struct ContentView: View {
                 balancedBackSlide: balancedBackSlide,
                 balancedBackBottomStator: balancedBackBottomStator,
                 calculatedDimensions: calculatedDimensions,
-                marginFont: fontForMarginWidth(calculatedDimensions.leftMarginWidth),
+                marginFont: calculatedDimensions.tier.font,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
                 cursorDisplayMode: cursorDisplayMode,

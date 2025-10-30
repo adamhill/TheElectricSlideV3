@@ -9,16 +9,77 @@ import SwiftUI
 import SwiftData
 import SlideRuleCoreV3
 
+// MARK: - Responsive Layout Constants
+
+/// Breakpoint widths for responsive layout tiers
+/// Based on common device widths: iPhone SE (320pt), standard phones (480pt), tablets/wide windows (640pt+)
+nonisolated(unsafe) private let kExtraLargeBreakpoint: CGFloat = 640
+nonisolated(unsafe) private let kLargeBreakpoint: CGFloat = 480
+nonisolated(unsafe) private let kMediumBreakpoint: CGFloat = 320
+
+/// Margin widths for each responsive tier
+/// Progressively smaller margins accommodate narrower screens while maintaining readability
+nonisolated(unsafe) private let kExtraLargeMargin: CGFloat = 64
+nonisolated(unsafe) private let kLargeMargin: CGFloat = 56
+nonisolated(unsafe) private let kMediumMargin: CGFloat = 48
+nonisolated(unsafe) private let kSmallMargin: CGFloat = 40
+
 // NOTE:
 // `onGeometryChange(for:)` requires the value type to be usable across isolation domains.
 // A main-actor–isolated conformance to `Equatable` cannot satisfy a generic `Sendable` requirement.
 // By making the type's conformances `nonisolated` and using `@unchecked Sendable` for this trivial
-// value type (two `CGFloat`s), we assert it's safe to pass across tasks/actors.
+// value type, we assert it's safe to pass across tasks/actors.
 // This avoids the compiler error: "Main actor-isolated conformance ... cannot satisfy conformance
 // requirement for a 'Sendable' type parameter".
 nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     var width: CGFloat
     var scaleHeight: CGFloat
+    var leftMarginWidth: CGFloat
+    var rightMarginWidth: CGFloat
+}
+
+// MARK: - Responsive Layout Configuration
+
+/// Responsive breakpoint tiers for layout adaptation
+enum LayoutTier {
+    case extraLarge  // 640pt+ width
+    case large       // 480-639pt width
+    case medium      // 320-479pt width
+    case small       // <320pt width
+    
+    /// Determine layout tier from available width
+    nonisolated static func from(availableWidth: CGFloat) -> LayoutTier {
+        switch availableWidth {
+        case kExtraLargeBreakpoint...:
+            return .extraLarge
+        case kLargeBreakpoint..<kExtraLargeBreakpoint:
+            return .large
+        case kMediumBreakpoint..<kLargeBreakpoint:
+            return .medium
+        default:
+            return .small
+        }
+    }
+    
+    /// Margin width for this tier
+    nonisolated var marginWidth: CGFloat {
+        switch self {
+        case .extraLarge: return kExtraLargeMargin
+        case .large: return kLargeMargin
+        case .medium: return kMediumMargin
+        case .small: return kSmallMargin
+        }
+    }
+    
+    /// Font size for this tier
+    nonisolated var font: Font {
+        switch self {
+        case .extraLarge: return .body
+        case .large: return .callout
+        case .medium: return .caption
+        case .small: return .caption2
+        }
+    }
 }
 
 // MARK: - View Mode
@@ -98,10 +159,13 @@ struct ScaleView: View {
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
+    let leftMarginWidth: CGFloat
+    let rightMarginWidth: CGFloat
+    let marginFont: Font
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            // Scale name label on the left (right-aligned with minimum width)
+            // Scale name label on the left (right-aligned with responsive width)
             // Extract label color from definition, applying it only if colorApplication allows
             let scaleLabelColor: Color = {
                 if let tupleColor = generatedScale.definition.labelColor,
@@ -113,9 +177,9 @@ struct ScaleView: View {
             }()
             
             Text(generatedScale.definition.name)
-                .font(.body)
+                .font(marginFont)
                 .foregroundColor(scaleLabelColor)
-                .frame(minWidth: 56, alignment: .trailing)
+                .frame(width: leftMarginWidth, alignment: .trailing)
             
             // Scale view
             GeometryReader { geometry in
@@ -136,12 +200,12 @@ struct ScaleView: View {
             .frame(width: width)
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
             
-            // Formula label on the right
+            // Formula label on the right (left-aligned with responsive width)
             Text(generatedScale.definition.formula)
-                .font(.caption)
+                .font(marginFont)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: 64, alignment: .leading)
+                .frame(width: rightMarginWidth, alignment: .leading)
         }
     }
     
@@ -491,6 +555,9 @@ struct StatorView: View, Equatable {
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    let leftMarginWidth: CGFloat
+    let rightMarginWidth: CGFloat
+    let marginFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     
     // ✅ Equatable conformance - only compare properties that affect rendering
@@ -498,6 +565,8 @@ struct StatorView: View, Equatable {
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.leftMarginWidth == rhs.leftMarginWidth &&
+        lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.stator.scales.count == rhs.stator.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor
@@ -514,7 +583,10 @@ struct StatorView: View, Equatable {
                 ScaleView(
                     generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight
+                    height: scaleHeight,
+                    leftMarginWidth: leftMarginWidth,
+                    rightMarginWidth: rightMarginWidth,
+                    marginFont: marginFont
                 )
             }
         }
@@ -548,11 +620,16 @@ struct SlideView: View, Equatable {
     let backgroundColor: Color
     let borderColor: Color
     let scaleHeight: CGFloat // Configurable height per scale
+    let leftMarginWidth: CGFloat
+    let rightMarginWidth: CGFloat
+    let marginFont: Font
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.leftMarginWidth == rhs.leftMarginWidth &&
+        lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor
@@ -569,7 +646,10 @@ struct SlideView: View, Equatable {
                 ScaleView(
                     generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
                     width: width,
-                    height: scaleHeight
+                    height: scaleHeight,
+                    leftMarginWidth: leftMarginWidth,
+                    rightMarginWidth: rightMarginWidth,
+                    marginFont: marginFont
                 )
             }
         }
@@ -599,6 +679,9 @@ struct SideView: View, Equatable {
     let bottomStator: Stator
     let width: CGFloat
     let scaleHeight: CGFloat
+    let leftMarginWidth: CGFloat
+    let rightMarginWidth: CGFloat
+    let marginFont: Font
     let sliderOffset: CGFloat
     let cursorState: CursorState?
     let onDragChanged: (DragGesture.Value) -> Void
@@ -610,6 +693,8 @@ struct SideView: View, Equatable {
         lhs.side == rhs.side &&
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
+        lhs.leftMarginWidth == rhs.leftMarginWidth &&
+        lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.sliderOffset == rhs.sliderOffset &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
@@ -625,6 +710,9 @@ struct SideView: View, Equatable {
                 backgroundColor: .white,
                 borderColor: side.borderColor,
                 scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                marginFont: marginFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -636,7 +724,10 @@ struct SideView: View, Equatable {
                 width: width,
                 backgroundColor: .white,
                 borderColor: .orange,
-                scaleHeight: scaleHeight
+                scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                marginFont: marginFont
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -655,6 +746,9 @@ struct SideView: View, Equatable {
                 backgroundColor: .white,
                 borderColor: side.borderColor,
                 scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                marginFont: marginFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -730,6 +824,7 @@ struct DynamicSlideRuleContent: View {
     let balancedBackSlide: Slide?
     let balancedBackBottomStator: Stator?
     let calculatedDimensions: Dimensions
+    let marginFont: Font
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
     let cursorDisplayMode: CursorDisplayMode
@@ -759,6 +854,9 @@ struct DynamicSlideRuleContent: View {
                         bottomStator: balancedFrontBottomStator,
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
+                        leftMarginWidth: calculatedDimensions.leftMarginWidth,
+                        rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                        marginFont: marginFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -772,6 +870,8 @@ struct DynamicSlideRuleContent: View {
                             height: totalScaleHeight(.front),
                             side: .front,
                             scaleHeight: calculatedDimensions.scaleHeight,
+                            leftMarginWidth: calculatedDimensions.leftMarginWidth,
+                            rightMarginWidth: calculatedDimensions.rightMarginWidth,
                             showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
@@ -794,6 +894,9 @@ struct DynamicSlideRuleContent: View {
                         bottomStator: backBottom,
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
+                        leftMarginWidth: calculatedDimensions.leftMarginWidth,
+                        rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                        marginFont: marginFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -807,6 +910,8 @@ struct DynamicSlideRuleContent: View {
                             height: totalScaleHeight(.back),
                             side: .back,
                             scaleHeight: calculatedDimensions.scaleHeight,
+                            leftMarginWidth: calculatedDimensions.leftMarginWidth,
+                            rightMarginWidth: calculatedDimensions.rightMarginWidth,
                             showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
@@ -844,7 +949,7 @@ struct ContentView: View {
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     // ✅ State for calculated dimensions - only updates when window size changes
 
-    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25)
+    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64)
     @State private var cursorState = CursorState()
     
     // Current slide rule selection (persisted via SwiftData)
@@ -1088,10 +1193,32 @@ struct ContentView: View {
         return 0
     }
     
+    // Helper function to get font for margin text based on margin width (discrete tiers)
+    private func fontForMarginWidth(_ marginWidth: CGFloat) -> Font {
+        // Determine tier from margin width and return corresponding font
+        if marginWidth >= kExtraLargeMargin {
+            return LayoutTier.extraLarge.font
+        } else if marginWidth >= kLargeMargin {
+            return LayoutTier.large.font
+        } else if marginWidth >= kMediumMargin {
+            return LayoutTier.medium.font
+        } else {
+            return LayoutTier.small.font
+        }
+    }
+    
     // Helper function to calculate responsive dimensions
     private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
+        
+        // Determine layout tier based on available width
+        let tier = LayoutTier.from(availableWidth: availableWidth)
+        let leftMarginWidth = tier.marginWidth
+        let rightMarginWidth = tier.marginWidth
+        
+        // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
+        let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
         
         // Account for spacing between sides and labels
         let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
@@ -1111,9 +1238,16 @@ struct ContentView: View {
         let widthFromAspectRatio = totalHeight * targetAspectRatio
         
         // Use the smaller of the two to ensure it fits within window
-        let width = min(maxWidth, widthFromAspectRatio)
+        // Then subtract margins to get the actual scale width
+        let totalAvailableWidth = min(maxWidth, widthFromAspectRatio)
+        let scaleWidth = max(totalAvailableWidth - totalMarginAndSpacing, 100) // 100pt minimum scale width
         
-        return Dimensions(width: width, scaleHeight: scaleHeight)
+        return Dimensions(
+            width: scaleWidth,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth
+        )
     }
     
     /// Calculate total vertical height for all scales on a given side
@@ -1167,6 +1301,7 @@ struct ContentView: View {
                 balancedBackSlide: balancedBackSlide,
                 balancedBackBottomStator: balancedBackBottomStator,
                 calculatedDimensions: calculatedDimensions,
+                marginFont: fontForMarginWidth(calculatedDimensions.leftMarginWidth),
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
                 cursorDisplayMode: cursorDisplayMode,

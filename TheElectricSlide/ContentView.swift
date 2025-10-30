@@ -72,12 +72,22 @@ enum LayoutTier: Sendable {
         }
     }
     
-    /// Font size for this tier
-    nonisolated var font: Font {
+    /// Font size for scale names (left margin) - always bold
+    nonisolated var nameFont: Font {
         switch self {
-        case .extraLarge: return .body
-        case .large: return .callout
-        case .medium: return .caption
+        case .extraLarge: return .body.weight(.bold)
+        case .large: return .callout.weight(.bold)
+        case .medium: return .caption.weight(.bold)
+        case .small: return .caption2.weight(.bold)
+        }
+    }
+    
+    /// Font size for formulas (right margin) - slightly smaller than names
+    nonisolated var formulaFont: Font {
+        switch self {
+        case .extraLarge: return .callout
+        case .large: return .caption
+        case .medium: return .caption2
         case .small: return .caption2
         }
     }
@@ -174,7 +184,8 @@ struct ScaleView: View {
     let height: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
@@ -190,7 +201,7 @@ struct ScaleView: View {
             }()
             
             Text(generatedScale.definition.name)
-                .font(marginFont)
+                .font(nameFont)
                 .foregroundColor(scaleLabelColor)
                 .frame(width: leftMarginWidth, alignment: .trailing)
             
@@ -215,7 +226,7 @@ struct ScaleView: View {
             
             // Formula label on the right (left-aligned with responsive width)
             Text(generatedScale.definition.formula)
-                .font(marginFont)
+                .font(formulaFont)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
                 .frame(width: rightMarginWidth, alignment: .leading)
@@ -289,7 +300,7 @@ struct ScaleView: View {
                 context.stroke(
                     tickPath,
                     with: .color(tickColor),
-                    lineWidth: tick.style.lineWidth / 1.5
+                    lineWidth: tick.style.lineWidth / 1.25
                 )
             }
             
@@ -570,7 +581,8 @@ struct StatorView: View, Equatable {
     let scaleHeight: CGFloat // Configurable height per scale
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     
     // ✅ Equatable conformance - only compare properties that affect rendering
@@ -599,7 +611,8 @@ struct StatorView: View, Equatable {
                     height: scaleHeight,
                     leftMarginWidth: leftMarginWidth,
                     rightMarginWidth: rightMarginWidth,
-                    marginFont: marginFont
+                    nameFont: nameFont,
+                    formulaFont: formulaFont
                 )
             }
         }
@@ -635,7 +648,8 @@ struct SlideView: View, Equatable {
     let scaleHeight: CGFloat // Configurable height per scale
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
@@ -662,7 +676,8 @@ struct SlideView: View, Equatable {
                     height: scaleHeight,
                     leftMarginWidth: leftMarginWidth,
                     rightMarginWidth: rightMarginWidth,
-                    marginFont: marginFont
+                    nameFont: nameFont,
+                    formulaFont: formulaFont
                 )
             }
         }
@@ -694,7 +709,8 @@ struct SideView: View, Equatable {
     let scaleHeight: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     let sliderOffset: CGFloat
     let cursorState: CursorState?
     let onDragChanged: (DragGesture.Value) -> Void
@@ -725,7 +741,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -740,7 +757,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont
+                nameFont: nameFont,
+                formulaFont: formulaFont
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -761,7 +779,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -837,7 +856,8 @@ struct DynamicSlideRuleContent: View {
     let balancedBackSlide: Slide?
     let balancedBackBottomStator: Stator?
     let calculatedDimensions: Dimensions
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
     let cursorDisplayMode: CursorDisplayMode
@@ -869,7 +889,8 @@ struct DynamicSlideRuleContent: View {
                         scaleHeight: calculatedDimensions.scaleHeight,
                         leftMarginWidth: calculatedDimensions.leftMarginWidth,
                         rightMarginWidth: calculatedDimensions.rightMarginWidth,
-                        marginFont: marginFont,
+                        nameFont: nameFont,
+                        formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -909,7 +930,8 @@ struct DynamicSlideRuleContent: View {
                         scaleHeight: calculatedDimensions.scaleHeight,
                         leftMarginWidth: calculatedDimensions.leftMarginWidth,
                         rightMarginWidth: calculatedDimensions.rightMarginWidth,
-                        marginFont: marginFont,
+                        nameFont: nameFont,
+                        formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -1301,7 +1323,8 @@ struct ContentView: View {
                 balancedBackSlide: balancedBackSlide,
                 balancedBackBottomStator: balancedBackBottomStator,
                 calculatedDimensions: calculatedDimensions,
-                marginFont: calculatedDimensions.tier.font,
+                nameFont: calculatedDimensions.tier.nameFont,
+                formulaFont: calculatedDimensions.tier.formulaFont,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
                 cursorDisplayMode: cursorDisplayMode,

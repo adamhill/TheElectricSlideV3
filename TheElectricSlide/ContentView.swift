@@ -107,12 +107,69 @@ extension LayoutTier: Equatable {
 
 // MARK: - View Mode
 
+/// Represents the viewing mode for displaying slide rule sides.
+/// The available modes are device-dependent:
+/// - Compact devices (iPhone, Apple Watch) support only single-side views: .front or .back
+/// - Regular devices (iPad, Mac, Vision Pro) support all modes: .front, .back, and .both
 enum ViewMode: String, CaseIterable, Identifiable {
     case front = "Front"
     case back = "Back"
     case both = "Both"
     
     var id: String { rawValue }
+    
+    // MARK: - Device-Aware Mode Selection
+    
+    /// Returns the list of view modes available for a given device category.
+    ///
+    /// Compact devices (phone, watch) are restricted to single-side views only,
+    /// while regular devices (pad, mac, vision) can display multiple sides simultaneously.
+    ///
+    /// - Parameter category: The device category to query
+    /// - Returns: Array of available ViewMode cases for the device
+    ///
+    /// ## Examples
+    /// ```swift
+    /// ViewMode.availableModes(for: .phone)   // [.front, .back]
+    /// ViewMode.availableModes(for: .pad)     // [.front, .back, .both]
+    /// ViewMode.availableModes(for: .watch)   // [.front, .back]
+    /// ```
+    static func availableModes(for category: DeviceCategory) -> [ViewMode] {
+        switch category {
+        case .phone, .watch:
+            // Compact devices: single-side only
+            return [.front, .back]
+        case .pad, .mac, .vision:
+            // Regular devices: all options including both sides
+            return [.front, .back, .both]
+        }
+    }
+    
+    /// Constrains the current view mode to be compatible with the given device category.
+    ///
+    /// If the current mode is `.both` and the device is a compact device (phone or watch),
+    /// this method returns `.front` as a fallback. Otherwise, it returns the current mode unchanged.
+    ///
+    /// This ensures that the view mode is always valid for the current device's capabilities.
+    ///
+    /// - Parameter category: The device category to constrain for
+    /// - Returns: A ViewMode that is guaranteed to be available on the device
+    ///
+    /// ## Examples
+    /// ```swift
+    /// ViewMode.both.constrained(for: .phone)   // Returns .front (fallback)
+    /// ViewMode.both.constrained(for: .pad)     // Returns .both (unchanged)
+    /// ViewMode.front.constrained(for: .phone)  // Returns .front (unchanged)
+    /// ```
+    func constrained(for category: DeviceCategory) -> ViewMode {
+        // If current mode is .both and device doesn't support multi-side view,
+        // fall back to .front
+        if self == .both && !category.supportsMultiSideView {
+            return .front
+        }
+        // Otherwise, current mode is valid for this device
+        return self
+    }
 }
 
 // MARK: - Cursor Display Mode
@@ -795,44 +852,104 @@ struct StaticHeaderSection: View, Equatable {
     @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
     let hasBackSide: Bool
+    let deviceCategory: DeviceCategory  // NEW: Device category for conditional rendering
     
     var body: some View {
         VStack(spacing: 0) {
             SlideRulePicker(currentRule: $selectedRule)
             
             Divider()
+            Divider()
             
-            // View Mode Picker
-            HStack {
-                Spacer()
-                Picker("View Mode", selection: $viewMode) {
-                    ForEach(ViewMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
+            // Conditional rendering based on device category
+            // Regular devices (iPad, Mac, Vision Pro) show full picker with all three modes
+            // Compact devices (iPhone, Apple Watch) show flip button inline with cursor picker
+            if deviceCategory.supportsMultiSideView {
+                // Regular devices: Show picker with Front/Back/Both options
+                viewModePickerSection()
+                
+                // Cursor Display Mode Picker (shown separately on regular devices)
+                HStack {
+                    Spacer()
+                    Picker("Cursor Display", selection: $cursorDisplayMode) {
+                        ForEach(CursorDisplayMode.allCases) { mode in
+                            Text(mode.displayText).tag(mode)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 300)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                    Spacer()
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .disabled(!hasBackSide && (viewMode == .back || viewMode == .both))
-                Spacer()
-            }
-            
-            // Cursor Display Mode Picker
-            HStack {
-                Spacer()
-                Picker("Cursor Display", selection: $cursorDisplayMode) {
-                    ForEach(CursorDisplayMode.allCases) { mode in
-                        Text(mode.displayText).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                .padding(.horizontal)
-                .padding(.top, 4)
-                Spacer()
+            } else {
+                // Compact devices: Show flip button inline with cursor picker
+                flipButtonSection()
             }
         }
+    }
+    
+    /// View Mode Picker for regular devices (iPad, Mac, Vision Pro)
+    /// Shows segmented control with Front/Back/Both options
+    @ViewBuilder
+    private func viewModePickerSection() -> some View {
+        #if DEBUG
+        let _ = print("[ViewModePicker] Rendering with viewMode=\(viewMode.rawValue), hasBackSide=\(hasBackSide), deviceCategory=\(deviceCategory.rawValue)")
+        #endif
+        
+        // Determine available modes based on device category and slide rule capabilities
+        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
+            // Allow Front always, and Back/Both only if slide rule has back side
+            mode == .front || hasBackSide
+        }
+        
+        #if DEBUG
+        let _ = print("[ViewModePicker] Available modes: \(availableModes.map { $0.rawValue }.joined(separator: ", "))")
+        #endif
+        
+        HStack {
+            Spacer()
+            Picker("View Mode", selection: $viewMode) {
+                ForEach(availableModes) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .onChange(of: viewMode) { oldValue, newValue in
+                #if DEBUG
+                print("[ViewModePicker] ViewMode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
+                #endif
+            }
+            Spacer()
+        }
+    }
+    /// Flip Button and Cursor Picker for compact devices (iPhone, Apple Watch)
+    /// Shows flip button inline with cursor display mode picker
+    @ViewBuilder
+    private func flipButtonSection() -> some View {
+        HStack(spacing: 12) {
+            Spacer()
+            
+            // Flip button on the left
+            FlipButton(viewMode: $viewMode)
+                .disabled(!hasBackSide)
+            
+            // Cursor Display Mode Picker on the right
+            Picker("Cursor Display", selection: $cursorDisplayMode) {
+                ForEach(CursorDisplayMode.allCases) { mode in
+                    Text(mode.displayText).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     static func == (lhs: StaticHeaderSection, rhs: StaticHeaderSection) -> Bool {
@@ -840,7 +957,8 @@ struct StaticHeaderSection: View, Equatable {
         lhs.selectedRule?.id == rhs.selectedRule?.id &&
         lhs.viewMode == rhs.viewMode &&
         lhs.hasBackSide == rhs.hasBackSide &&
-        lhs.cursorDisplayMode == rhs.cursorDisplayMode
+        lhs.cursorDisplayMode == rhs.cursorDisplayMode &&
+        lhs.deviceCategory == rhs.deviceCategory  // NEW: Include deviceCategory in comparison
     }
 }
 
@@ -911,6 +1029,15 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
+                // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
+                // Creates a natural left-to-right flip effect when switching sides
+                // - New view slides in from the right (trailing edge) with fade-in
+                // - Old view slides out to the left (leading edge) with fade-out
+                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             }
 
             Spacer().frame(height: 5)
@@ -961,6 +1088,15 @@ struct DynamicSlideRuleContent: View {
                         .frame(maxWidth: calculatedDimensions.width)
                     }
                 }
+                // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
+                // Creates a natural left-to-right flip effect when switching sides
+                // - New view slides in from the right (trailing edge) with fade-in
+                // - Old view slides out to the left (leading edge) with fade-out
+                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -976,12 +1112,14 @@ struct DynamicSlideRuleContent: View {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var currentRuleQuery: [CurrentSlideRule]
     
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
+    @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64, tier: .extraLarge)
@@ -1309,7 +1447,8 @@ struct ContentView: View {
                 selectedRule: $selectedRuleDefinition,
                 viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
-                hasBackSide: currentSlideRule.backTopStator != nil
+                hasBackSide: currentSlideRule.backTopStator != nil,
+                deviceCategory: deviceCategory  // NEW: Pass device category for conditional rendering
             )
             .equatable()
             
@@ -1345,6 +1484,23 @@ struct ContentView: View {
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
+            // Initialize device category
+            deviceCategory = DeviceDetection.currentDeviceCategory()
+            #if DEBUG
+            print("[ViewMode] Device category initialized: \(deviceCategory.rawValue)")
+            #endif
+            
+            // CRITICAL: Constrain viewMode to device capabilities on launch
+            // This ensures iPhone starts with .front instead of .both
+            // The initial viewMode is .both (line 1090), but compact devices only support .front or .back
+            let constrainedMode = viewMode.constrained(for: deviceCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining on launch: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
+            
             loadCurrentRule()
             updateBalancedComponents()
         }
@@ -1362,6 +1518,37 @@ struct ContentView: View {
         }
         .onChange(of: viewMode) { _, _ in
             updateBalancedComponents()
+        }
+        .onChange(of: horizontalSizeClass) { _, _ in
+            // Re-detect device category when size class changes
+            // This handles iPad split-view transitions
+            deviceCategory = DeviceDetection.currentDeviceCategory()
+            #if DEBUG
+            print("[ViewMode] Horizontal size class changed, device category updated: \(deviceCategory.rawValue)")
+            #endif
+            
+            // Constrain viewMode to device capabilities after size class change
+            let constrainedMode = viewMode.constrained(for: deviceCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining after size class change: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
+        }
+        .onChange(of: deviceCategory) { oldCategory, newCategory in
+            #if DEBUG
+            print("[ViewMode] Device category changed: \(oldCategory.rawValue) → \(newCategory.rawValue)")
+            #endif
+            // When device category changes, ensure viewMode is valid for the device
+            // This handles cases where iPad enters/exits Split View or Slide Over
+            let constrainedMode = viewMode.constrained(for: newCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining after device category change: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
         }
     }
     

@@ -862,31 +862,62 @@ struct StaticHeaderSection: View, Equatable {
             Divider()
             
             // Conditional rendering based on device category
-            // Regular devices (iPad, Mac, Vision Pro) show full picker with all three modes
-            // Compact devices (iPhone, Apple Watch) show flip button inline with cursor picker
+            // Regular devices (iPad, Mac, Vision Pro) show both pickers side by side
+            // Compact devices (iPhone, Apple Watch) show flip button with cursor picker
             if deviceCategory.supportsMultiSideView {
-                // Regular devices: Show picker with Front/Back/Both options
-                viewModePickerSection()
-                
-                // Cursor Display Mode Picker (shown separately on regular devices)
-                HStack {
-                    Spacer()
-                    Picker("Cursor Display", selection: $cursorDisplayMode) {
-                        ForEach(CursorDisplayMode.allCases) { mode in
-                            Text(mode.displayText).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 300)
-                    .padding(.horizontal)
-                    .padding(.top, 4)
-                    Spacer()
-                }
+                // Regular devices: Show both pickers side by side in same HStack
+                combinedPickersSection()
             } else {
                 // Compact devices: Show flip button inline with cursor picker
                 flipButtonSection()
             }
         }
+    }
+    
+    /// Combined pickers section for regular devices (iPad, Mac, Vision Pro)
+    /// Shows both View Mode and Cursor Display pickers side by side in same HStack
+    @ViewBuilder
+    private func combinedPickersSection() -> some View {
+        #if DEBUG
+        let _ = print("[CombinedPickers] Rendering with viewMode=\(viewMode.rawValue), hasBackSide=\(hasBackSide), deviceCategory=\(deviceCategory.rawValue)")
+        #endif
+        
+        // Determine available modes based on device category and slide rule capabilities
+        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
+            // Allow Front always, and Back/Both only if slide rule has back side
+            mode == .front || hasBackSide
+        }
+        
+        HStack(spacing: 16) {
+            Spacer()
+            
+            // View Mode Picker (Front | Back | Both)
+            Picker("View Mode", selection: $viewMode) {
+                ForEach(availableModes) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            .onChange(of: viewMode) { oldValue, newValue in
+                #if DEBUG
+                print("[ViewModePicker] ViewMode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
+                #endif
+            }
+            
+            // Cursor Display Mode Picker (Gradients | Values | Both)
+            Picker("Cursor Display", selection: $cursorDisplayMode) {
+                ForEach(CursorDisplayMode.allCases) { mode in
+                    Text(mode.displayText).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     /// View Mode Picker for regular devices (iPad, Mac, Vision Pro)
@@ -926,18 +957,14 @@ struct StaticHeaderSection: View, Equatable {
             Spacer()
         }
     }
-    /// Flip Button and Cursor Picker for compact devices (iPhone, Apple Watch)
-    /// Shows flip button inline with cursor display mode picker
+    /// Cursor Picker for compact devices (iPhone, Apple Watch)
+    /// Shows cursor display mode picker (flip button is now a floating button)
     @ViewBuilder
     private func flipButtonSection() -> some View {
         HStack(spacing: 12) {
             Spacer()
             
-            // Flip button on the left
-            FlipButton(viewMode: $viewMode)
-                .disabled(!hasBackSide)
-            
-            // Cursor Display Mode Picker on the right
+            // Cursor Display Mode Picker
             Picker("Cursor Display", selection: $cursorDisplayMode) {
                 ForEach(CursorDisplayMode.allCases) { mode in
                     Text(mode.displayText).tag(mode)
@@ -984,7 +1011,7 @@ struct DynamicSlideRuleContent: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
                 VStack(spacing: 4) {
@@ -1030,17 +1057,15 @@ struct DynamicSlideRuleContent: View {
                     }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
-                // Creates a natural left-to-right flip effect when switching sides
-                // - New view slides in from the right (trailing edge) with fade-in
-                // - Old view slides out to the left (leading edge) with fade-out
+                // Creates a natural vertical flip effect when switching sides
+                // - New view slides up from the bottom with fade-in
+                // - Old view slides up to the top with fade-out
                 // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
                 .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
                 ))
             }
-
-            Spacer().frame(height: 5)
 
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
@@ -1089,18 +1114,19 @@ struct DynamicSlideRuleContent: View {
                     }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
-                // Creates a natural left-to-right flip effect when switching sides
-                // - New view slides in from the right (trailing edge) with fade-in
-                // - Old view slides out to the left (leading edge) with fade-out
+                // Creates a natural vertical flip effect when switching sides
+                // - New view slides up from the bottom with fade-in
+                // - Old view slides up to the top with fade-out
                 // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
                 .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
                 ))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .padding(.bottom, 40)
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
         }
@@ -1471,6 +1497,14 @@ struct ContentView: View {
                 handleDragEnded: handleDragEnded,
                 totalScaleHeight: totalScaleHeight
             )
+        }
+        .overlay(alignment: .bottomTrailing) {
+            // Floating flip button for compact devices (iPhone, Apple Watch)
+            // Only shown when device doesn't support multi-side view and slide rule has a back side
+            if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
+                FlipButton(viewMode: $viewMode)
+                    .padding(20)
+            }
         }
         .onGeometryChange(for: Dimensions.self) { proxy in
             let size = proxy.size

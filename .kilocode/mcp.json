@@ -41,7 +41,16 @@
         "get_app_bundle_id",
         "get_device_app_path",
         "discover_tools",
-        "build_run_macos"
+        "build_run_macos",
+        "build_sim",
+        "install_app_sim",
+        "launch_app_logs_sim",
+        "list_schemes",
+        "screenshot",
+        "list_sims",
+        "build_run_sim",
+        "open_sim",
+        "describe_ui"
       ]
     },
     "dash-api": {

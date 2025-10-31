@@ -63,11 +63,16 @@ struct FlipButton: View {
     var body: some View {
         Button(action: toggleSide) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 18))
-                .frame(width: 40, height: 40)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(Color.accentColor)
+                )
         }
-        .buttonStyle(.bordered)  // Subtle bordered style (not prominent)
-        .clipShape(Circle())     // Make button circular
+        .buttonStyle(.plain)
+        .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(accessibilityHint)
     }

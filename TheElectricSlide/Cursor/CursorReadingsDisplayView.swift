@@ -37,14 +37,14 @@ struct CursorReadingsDisplayView: View, Equatable {
     var body: some View {
         if readings.isEmpty {
             // Gracefully handle empty readings - show minimal placeholder
-            Text("No readings")
-                .font(.system(size: 22).monospaced())
+            Text("  ")
+                .font(.system(size: 12).monospaced())
                 .foregroundStyle(.secondary)
-                .frame(height: 48)
+                .frame(height: 24)
         } else {
             // Horizontal flow of readings
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 6) {
                     ForEach(readings) { reading in
                         readingView(for: reading)
                     }
@@ -65,18 +65,18 @@ struct CursorReadingsDisplayView: View, Equatable {
         HStack(spacing: 2) {
             // Scale name in regular font
             Text(reading.scaleName)
-                .font(.system(size: 18, weight: .bold).monospaced())
+                .font(.system(size: 12, weight: .bold).monospaced())
                 .foregroundStyle(.primary)
             
             // Separator
             Text(":")
-                .font(.system(size: 18, weight: .bold).monospaced())
+                .font(.system(size: 12, weight: .bold).monospaced())
                 .foregroundStyle(.secondary)
             
             // Value with adaptive tracking to compress long decimals
             // Prevents ellipsis truncation while maintaining readability
             Text(reading.displayValue)
-                .font(.system(size: 18, weight: .regular).monospaced())
+                .font(.system(size: 12, weight: .regular).monospaced())
                 .italic()
                 .tracking(trackingAmount(for: reading.displayValue))
                 .fixedSize(horizontal: true, vertical: false)

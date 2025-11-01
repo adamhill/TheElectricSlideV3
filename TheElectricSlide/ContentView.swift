@@ -935,6 +935,16 @@ struct DynamicSlideRuleContent: View {
                let backSlide = balancedBackSlide,
                let backBottom = balancedBackBottomStator {
                 VStack(spacing: 4) {
+                    // Cursor readings display above slide rule
+                    if cursorState.isEnabled {
+                        CursorReadingsDisplayView(
+                            readings: cursorState.currentReadings?.backReadings ?? [],
+                            side: .back
+                        )
+                        .equatable()
+                        .frame(maxWidth: calculatedDimensions.width)
+                    }
+                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -964,15 +974,6 @@ struct DynamicSlideRuleContent: View {
                             showReadings: cursorState.shouldShowReadings,
                             showGradients: cursorDisplayMode.showGradients
                         )
-                    }
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
-                        CursorReadingsDisplayView(
-                            readings: cursorState.currentReadings?.backReadings ?? [],
-                            side: .back
-                        )
-                        .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
                     }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
@@ -1138,6 +1139,28 @@ struct SlideRuleDetailView: View {
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
                 totalScaleHeight: totalScaleHeight
+            )
+            .gesture(
+                DragGesture(minimumDistance: 30, coordinateSpace: .local)
+                    .onEnded { value in
+                        // Only flip if there's a back side and device doesn't support multi-side view
+                        guard !deviceCategory.supportsMultiSideView,
+                              currentSlideRule.backTopStator != nil else { return }
+                        
+                        let verticalMovement = value.translation.height
+                        
+                        // Swipe down (positive) -> show back
+                        // Swipe up (negative) -> show front
+                        if abs(verticalMovement) > abs(value.translation.width) {
+                            if verticalMovement > 0 {
+                                // Swipe down -> back
+                                viewMode = .back
+                            } else {
+                                // Swipe up -> front
+                                viewMode = .front
+                            }
+                        }
+                    }
             )
             .overlay(alignment: .bottomTrailing) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
@@ -1600,6 +1623,7 @@ struct ContentView: View {
                 )
             }
         }
+        .navigationSplitViewStyle(.prominentDetail)
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true

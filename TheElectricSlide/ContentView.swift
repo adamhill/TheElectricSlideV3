@@ -73,12 +73,24 @@ enum LayoutTier: Sendable {
     }
     
     /// Font size for scale names (left margin) - always bold
-    nonisolated var nameFont: Font {
-        switch self {
-        case .extraLarge: return .body.weight(.bold)
-        case .large: return .callout.weight(.bold)
-        case .medium: return .caption.weight(.bold)
-        case .small: return .caption2.weight(.bold)
+    /// - Parameter deviceCategory: The device category to adjust font size for
+    nonisolated func nameFont(for deviceCategory: DeviceCategory) -> Font {
+        // On iPhone, use smaller font sizes for better space utilization
+        if deviceCategory == .phone {
+            switch self {
+            case .extraLarge: return .callout.weight(.bold)  // Smaller on iPhone
+            case .large: return .caption.weight(.bold)       // Smaller on iPhone
+            case .medium: return .caption2.weight(.bold)     // Smaller on iPhone
+            case .small: return .caption2.weight(.bold)      // Same as before
+            }
+        } else {
+            // iPad, Mac, and other devices use standard sizes
+            switch self {
+            case .extraLarge: return .body.weight(.bold)
+            case .large: return .callout.weight(.bold)
+            case .medium: return .caption.weight(.bold)
+            case .small: return .caption2.weight(.bold)
+            }
         }
     }
     
@@ -1131,7 +1143,7 @@ struct SlideRuleDetailView: View {
                 balancedBackSlide: balancedBackSlide,
                 balancedBackBottomStator: balancedBackBottomStator,
                 calculatedDimensions: calculatedDimensions,
-                nameFont: calculatedDimensions.tier.nameFont,
+                nameFont: calculatedDimensions.tier.nameFont(for: deviceCategory),
                 formulaFont: calculatedDimensions.tier.formulaFont,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,

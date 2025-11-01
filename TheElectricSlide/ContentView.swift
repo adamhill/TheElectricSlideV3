@@ -845,150 +845,6 @@ struct SideView: View, Equatable {
         }
     }
 }
-// MARK: - StaticHeaderSection
-
-struct StaticHeaderSection: View, Equatable {
-    @Binding var selectedRule: SlideRuleDefinitionModel?
-    @Binding var viewMode: ViewMode
-    @Binding var cursorDisplayMode: CursorDisplayMode
-    let hasBackSide: Bool
-    let deviceCategory: DeviceCategory  // NEW: Device category for conditional rendering
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            SlideRulePicker(currentRule: $selectedRule)
-            
-            Divider()
-            Divider()
-            
-            // Conditional rendering based on device category
-            // Regular devices (iPad, Mac, Vision Pro) show both pickers side by side
-            // Compact devices (iPhone, Apple Watch) show flip button with cursor picker
-            if deviceCategory.supportsMultiSideView {
-                // Regular devices: Show both pickers side by side in same HStack
-                combinedPickersSection()
-            } else {
-                // Compact devices: Show flip button inline with cursor picker
-                flipButtonSection()
-            }
-        }
-    }
-    
-    /// Combined pickers section for regular devices (iPad, Mac, Vision Pro)
-    /// Shows both View Mode and Cursor Display pickers side by side in same HStack
-    @ViewBuilder
-    private func combinedPickersSection() -> some View {
-        #if DEBUG
-        let _ = print("[CombinedPickers] Rendering with viewMode=\(viewMode.rawValue), hasBackSide=\(hasBackSide), deviceCategory=\(deviceCategory.rawValue)")
-        #endif
-        
-        // Determine available modes based on device category and slide rule capabilities
-        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
-            // Allow Front always, and Back/Both only if slide rule has back side
-            mode == .front || hasBackSide
-        }
-        
-        HStack(spacing: 16) {
-            Spacer()
-            
-            // View Mode Picker (Front | Back | Both)
-            Picker("View Mode", selection: $viewMode) {
-                ForEach(availableModes) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            .onChange(of: viewMode) { oldValue, newValue in
-                #if DEBUG
-                print("[ViewModePicker] ViewMode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
-                #endif
-            }
-            
-            // Cursor Display Mode Picker (Gradients | Values | Both)
-            Picker("Cursor Display", selection: $cursorDisplayMode) {
-                ForEach(CursorDisplayMode.allCases) { mode in
-                    Text(mode.displayText).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.top, 8)
-    }
-    
-    /// View Mode Picker for regular devices (iPad, Mac, Vision Pro)
-    /// Shows segmented control with Front/Back/Both options
-    @ViewBuilder
-    private func viewModePickerSection() -> some View {
-        #if DEBUG
-        let _ = print("[ViewModePicker] Rendering with viewMode=\(viewMode.rawValue), hasBackSide=\(hasBackSide), deviceCategory=\(deviceCategory.rawValue)")
-        #endif
-        
-        // Determine available modes based on device category and slide rule capabilities
-        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
-            // Allow Front always, and Back/Both only if slide rule has back side
-            mode == .front || hasBackSide
-        }
-        
-        #if DEBUG
-        let _ = print("[ViewModePicker] Available modes: \(availableModes.map { $0.rawValue }.joined(separator: ", "))")
-        #endif
-        
-        HStack {
-            Spacer()
-            Picker("View Mode", selection: $viewMode) {
-                ForEach(availableModes) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .onChange(of: viewMode) { oldValue, newValue in
-                #if DEBUG
-                print("[ViewModePicker] ViewMode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
-                #endif
-            }
-            Spacer()
-        }
-    }
-    /// Cursor Picker for compact devices (iPhone, Apple Watch)
-    /// Shows cursor display mode picker (flip button is now a floating button)
-    @ViewBuilder
-    private func flipButtonSection() -> some View {
-        HStack(spacing: 12) {
-            Spacer()
-            
-            // Cursor Display Mode Picker
-            Picker("Cursor Display", selection: $cursorDisplayMode) {
-                ForEach(CursorDisplayMode.allCases) { mode in
-                    Text(mode.displayText).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.top, 8)
-    }
-    
-    static func == (lhs: StaticHeaderSection, rhs: StaticHeaderSection) -> Bool {
-        // Only compare values that affect rendering
-        lhs.selectedRule?.id == rhs.selectedRule?.id &&
-        lhs.viewMode == rhs.viewMode &&
-        lhs.hasBackSide == rhs.hasBackSide &&
-        lhs.cursorDisplayMode == rhs.cursorDisplayMode &&
-        lhs.deviceCategory == rhs.deviceCategory  // NEW: Include deviceCategory in comparison
-    }
-}
-
 // MARK: - DynamicSlideRuleContent
 
 struct DynamicSlideRuleContent: View {
@@ -1066,6 +922,12 @@ struct DynamicSlideRuleContent: View {
                     removal: .move(edge: .top).combined(with: .opacity)
                 ))
             }
+            
+            // Spacing between front and back sides when showing both
+            if viewMode == .both && balancedBackTopStator != nil {
+                Spacer()
+                    .frame(height: 40)
+            }
 
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
@@ -1134,12 +996,198 @@ struct DynamicSlideRuleContent: View {
 }
 
 
+// MARK: - Sidebar View (List of Slide Rules)
+
+struct SlideRuleSidebarView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Binding var selectedRule: SlideRuleDefinitionModel?
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    let availableRules: [SlideRuleDefinitionModel]
+    let onRuleSelected: (SlideRuleDefinitionModel) -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Cursor Display Mode Picker at top
+            VStack(spacing: 8) {
+                Text("Cursor Display")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Picker("Cursor Display", selection: $cursorDisplayMode) {
+                    ForEach(CursorDisplayMode.allCases) { mode in
+                        Text(mode.displayText).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            .padding()
+            .background(Color(uiColor: .systemBackground))
+            
+            Divider()
+            
+            // List of slide rules
+            List(availableRules, selection: $selectedRule) { rule in
+                Button {
+                    onRuleSelected(rule)
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                    // Icon
+                    Image(systemName: rule.circularSpec != nil ? "circle.hexagongrid.circle" : "ruler.fill")
+                        .font(.title2)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 30)
+                    
+                    // Details
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(rule.name)
+                            .font(.headline)
+                        
+                        Text(rule.ruleDescription)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            }
+            .navigationTitle("Slide Rules")
+            #if os(macOS)
+            .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 400)
+            #endif
+            .onAppear {
+                initializeLibraryIfNeeded()
+            }
+        }
+    }
+    
+    /// Initialize library with standard rules if database is empty
+    private func initializeLibraryIfNeeded() {
+        if availableRules.isEmpty {
+            let standardRules = SlideRuleLibrary.standardRules()
+            for rule in standardRules {
+                modelContext.insert(rule)
+            }
+            
+            do {
+                try modelContext.save()
+            } catch {
+                print("Failed to initialize slide rule library: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Detail View (Slide Rule Visualization)
+
+struct SlideRuleDetailView: View {
+    @Binding var viewMode: ViewMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    let deviceCategory: DeviceCategory
+    let currentSlideRule: SlideRule
+    
+    let balancedFrontTopStator: Stator
+    let balancedFrontSlide: Slide
+    let balancedFrontBottomStator: Stator
+    let balancedBackTopStator: Stator?
+    let balancedBackSlide: Slide?
+    let balancedBackBottomStator: Stator?
+    
+    @Binding var calculatedDimensions: Dimensions
+    @Binding var sliderOffset: CGFloat
+    let cursorState: CursorState
+    
+    let handleDragChanged: (DragGesture.Value) -> Void
+    let handleDragEnded: (DragGesture.Value) -> Void
+    let totalScaleHeight: (RuleSide) -> CGFloat
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header controls (ViewMode picker for iPad/Mac)
+            // NOTE: Cursor Display picker is now in the sidebar
+            if deviceCategory.supportsMultiSideView {
+                VStack(spacing: 0) {
+                    Divider()
+                    
+                    combinedPickersSection()
+                    
+                    Divider()
+                }
+                .background(Color(uiColor: .systemBackground))
+                .allowsHitTesting(true)
+                .zIndex(100)
+            }
+            
+            // Dynamic content - responds to sliderOffset
+            DynamicSlideRuleContent(
+                viewMode: viewMode,
+                balancedFrontTopStator: balancedFrontTopStator,
+                balancedFrontSlide: balancedFrontSlide,
+                balancedFrontBottomStator: balancedFrontBottomStator,
+                balancedBackTopStator: balancedBackTopStator,
+                balancedBackSlide: balancedBackSlide,
+                balancedBackBottomStator: balancedBackBottomStator,
+                calculatedDimensions: calculatedDimensions,
+                nameFont: calculatedDimensions.tier.nameFont,
+                formulaFont: calculatedDimensions.tier.formulaFont,
+                sliderOffset: $sliderOffset,
+                cursorState: cursorState,
+                cursorDisplayMode: cursorDisplayMode,
+                handleDragChanged: handleDragChanged,
+                handleDragEnded: handleDragEnded,
+                totalScaleHeight: totalScaleHeight
+            )
+            .overlay(alignment: .bottomTrailing) {
+                // Floating flip button for compact devices (iPhone, Apple Watch)
+                if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
+                    Color.clear
+                        .allowsHitTesting(false)
+                        .overlay(alignment: .bottomTrailing) {
+                            FlipButton(viewMode: $viewMode)
+                                .padding(20)
+                        }
+                }
+            }
+        }
+    }
+    
+    /// View Mode picker section for regular devices (iPad, Mac, Vision Pro)
+    @ViewBuilder
+    private func combinedPickersSection() -> some View {
+        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
+            mode == .front || (currentSlideRule.backTopStator != nil)
+        }
+        
+        HStack(spacing: 16) {
+            Spacer()
+            
+            // View Mode Picker (Front | Back | Both)
+            Picker("View Mode", selection: $viewMode) {
+                ForEach(availableModes) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            .allowsHitTesting(true)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var currentRuleQuery: [CurrentSlideRule]
+    @Query(sort: \SlideRuleDefinitionModel.sortOrder) private var availableRules: [SlideRuleDefinitionModel]
     
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
@@ -1399,8 +1447,43 @@ struct ContentView: View {
         
         // Determine layout tier based on available width
         let tier = LayoutTier.from(availableWidth: availableWidth)
-        let leftMarginWidth = tier.marginWidth
-        let rightMarginWidth = tier.marginWidth
+        
+        // On iPhone, use asymmetric margins to maximize space on the side without Dynamic Island
+        let leftMarginWidth: CGFloat
+        let rightMarginWidth: CGFloat
+        
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            // iPhone: NavigationSplitView collapses to single stack, so we have full width available
+            // Use minimal margins and make them asymmetric based on Dynamic Island position
+            let orientation = UIDevice.current.orientation
+            
+            switch orientation {
+            case .landscapeLeft:
+                // Dynamic Island on RIGHT in landscapeLeft
+                // Minimal left margin (4pt), slightly more on right for Dynamic Island (20pt)
+                leftMarginWidth = 4
+                rightMarginWidth = 20
+            case .landscapeRight:
+                // Dynamic Island on LEFT in landscapeRight
+                // Slightly more left margin for Dynamic Island (20pt), minimal right (4pt)
+                leftMarginWidth = 20
+                rightMarginWidth = 4
+            default:
+                // Portrait or unknown: use small symmetric margins
+                leftMarginWidth = 16
+                rightMarginWidth = 16
+            }
+        } else {
+            // iPad: Keep symmetric margins based on tier
+            leftMarginWidth = tier.marginWidth
+            rightMarginWidth = tier.marginWidth
+        }
+        #else
+        // macOS/other: Keep symmetric margins
+        leftMarginWidth = tier.marginWidth
+        rightMarginWidth = tier.marginWidth
+        #endif
         
         // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
         let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
@@ -1467,53 +1550,55 @@ struct ContentView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Static header - isolated from sliderOffset changes
-            StaticHeaderSection(
+        NavigationSplitView {
+            // SIDEBAR: List of available slide rules
+            SlideRuleSidebarView(
                 selectedRule: $selectedRuleDefinition,
-                viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
-                hasBackSide: currentSlideRule.backTopStator != nil,
-                deviceCategory: deviceCategory  // NEW: Pass device category for conditional rendering
+                availableRules: availableRules,
+                onRuleSelected: { rule in
+                    selectedRuleDefinition = rule
+                    selectedRuleId = rule.id
+                }
             )
-            .equatable()
-            
-            // Dynamic content - responds to sliderOffset
-            DynamicSlideRuleContent(
-                viewMode: viewMode,
-                balancedFrontTopStator: balancedFrontTopStator,
-                balancedFrontSlide: balancedFrontSlide,
-                balancedFrontBottomStator: balancedFrontBottomStator,
-                balancedBackTopStator: balancedBackTopStator,
-                balancedBackSlide: balancedBackSlide,
-                balancedBackBottomStator: balancedBackBottomStator,
-                calculatedDimensions: calculatedDimensions,
-                nameFont: calculatedDimensions.tier.nameFont,
-                formulaFont: calculatedDimensions.tier.formulaFont,
-                sliderOffset: $sliderOffset,
-                cursorState: cursorState,
-                cursorDisplayMode: cursorDisplayMode,
-                handleDragChanged: handleDragChanged,
-                handleDragEnded: handleDragEnded,
-                totalScaleHeight: totalScaleHeight
-            )
-        }
-        .overlay(alignment: .bottomTrailing) {
-            // Floating flip button for compact devices (iPhone, Apple Watch)
-            // Only shown when device doesn't support multi-side view and slide rule has a back side
-            if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
-                FlipButton(viewMode: $viewMode)
-                    .padding(20)
+        } detail: {
+            // DETAIL: Slide rule visualization
+            if selectedRuleDefinition != nil {
+                SlideRuleDetailView(
+                    viewMode: $viewMode,
+                    cursorDisplayMode: $cursorDisplayMode,
+                    deviceCategory: deviceCategory,
+                    currentSlideRule: currentSlideRule,
+                    balancedFrontTopStator: balancedFrontTopStator,
+                    balancedFrontSlide: balancedFrontSlide,
+                    balancedFrontBottomStator: balancedFrontBottomStator,
+                    balancedBackTopStator: balancedBackTopStator,
+                    balancedBackSlide: balancedBackSlide,
+                    balancedBackBottomStator: balancedBackBottomStator,
+                    calculatedDimensions: $calculatedDimensions,
+                    sliderOffset: $sliderOffset,
+                    cursorState: cursorState,
+                    handleDragChanged: handleDragChanged,
+                    handleDragEnded: handleDragEnded,
+                    totalScaleHeight: totalScaleHeight
+                )
+                .onGeometryChange(for: Dimensions.self) { proxy in
+                    let size = proxy.size
+                    return calculateDimensions(
+                        availableWidth: size.width,
+                        availableHeight: size.height
+                    )
+                } action: { newDimensions in
+                    calculatedDimensions = newDimensions
+                }
+            } else {
+                // Empty state when no rule selected
+                ContentUnavailableView(
+                    "Select a Slide Rule",
+                    systemImage: "ruler",
+                    description: Text("Choose a slide rule from the sidebar to begin")
+                )
             }
-        }
-        .onGeometryChange(for: Dimensions.self) { proxy in
-            let size = proxy.size
-            return calculateDimensions(
-                availableWidth: size.width,
-                availableHeight: size.height
-            )
-        } action: { newDimensions in
-            calculatedDimensions = newDimensions
         }
         .onAppear {
             cursorState.setSlideRuleProvider(self)
@@ -1525,8 +1610,6 @@ struct ContentView: View {
             #endif
             
             // CRITICAL: Constrain viewMode to device capabilities on launch
-            // This ensures iPhone starts with .front instead of .both
-            // The initial viewMode is .both (line 1090), but compact devices only support .front or .back
             let constrainedMode = viewMode.constrained(for: deviceCategory)
             if constrainedMode != viewMode {
                 #if DEBUG
@@ -1537,7 +1620,35 @@ struct ContentView: View {
             
             loadCurrentRule()
             updateBalancedComponents()
+            
+            #if os(iOS)
+            // Start listening for orientation changes
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            #endif
         }
+        .onDisappear {
+            #if os(iOS)
+            // Stop listening for orientation changes
+            UIDevice.current.endGeneratingDeviceOrientationNotifications()
+            #endif
+        }
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            // Force recalculation when orientation changes (triggers onGeometryChange)
+            // The geometry will be the same, but we need to recalculate margins based on new orientation
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                #if DEBUG
+                print("[Orientation] Device orientation changed, recalculating dimensions")
+                #endif
+                // Trigger dimension recalculation by forcing the geometry change handler
+                let currentSize = CGSize(width: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8,
+                                        height: CGFloat(totalScaleCount) * calculatedDimensions.scaleHeight)
+                let newDimensions = calculateDimensions(availableWidth: currentSize.width + (padding * 2), 
+                                                       availableHeight: currentSize.height + (padding * 2))
+                calculatedDimensions = newDimensions
+            }
+        }
+        #endif
         .onChange(of: selectedRuleDefinition) { oldValue, newValue in
             print("🔄 selectedRuleDefinition changed (object)")
             selectedRuleId = newValue?.id
@@ -1555,7 +1666,6 @@ struct ContentView: View {
         }
         .onChange(of: horizontalSizeClass) { _, _ in
             // Re-detect device category when size class changes
-            // This handles iPad split-view transitions
             deviceCategory = DeviceDetection.currentDeviceCategory()
             #if DEBUG
             print("[ViewMode] Horizontal size class changed, device category updated: \(deviceCategory.rawValue)")
@@ -1574,8 +1684,6 @@ struct ContentView: View {
             #if DEBUG
             print("[ViewMode] Device category changed: \(oldCategory.rawValue) → \(newCategory.rawValue)")
             #endif
-            // When device category changes, ensure viewMode is valid for the device
-            // This handles cases where iPad enters/exits Split View or Slide Over
             let constrainedMode = viewMode.constrained(for: newCategory)
             if constrainedMode != viewMode {
                 #if DEBUG

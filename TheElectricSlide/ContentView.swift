@@ -1582,7 +1582,6 @@ struct ContentView: View {
                     handleDragEnded: handleDragEnded,
                     totalScaleHeight: totalScaleHeight
                 )
-                .backgroundExtensionEffect()
                 .onGeometryChange(for: Dimensions.self) { proxy in
                     let size = proxy.size
                     return calculateDimensions(

@@ -996,6 +996,18 @@ struct DynamicSlideRuleContent: View {
 }
 
 
+// MARK: - Platform Color Helpers
+
+#if os(iOS)
+private func systemBackgroundColor() -> Color {
+    Color(uiColor: .systemBackground)
+}
+#else
+private func systemBackgroundColor() -> Color {
+    Color(nsColor: .windowBackgroundColor)
+}
+#endif
+
 // MARK: - Sidebar View (List of Slide Rules)
 
 struct SlideRuleSidebarView: View {
@@ -1022,7 +1034,7 @@ struct SlideRuleSidebarView: View {
                 .labelsHidden()
             }
             .padding()
-            .background(Color(uiColor: .systemBackground))
+            .background(systemBackgroundColor())
             
             Divider()
             
@@ -1115,7 +1127,7 @@ struct SlideRuleDetailView: View {
                     
                     Divider()
                 }
-                .background(Color(uiColor: .systemBackground))
+                .background(systemBackgroundColor())
                 .allowsHitTesting(true)
                 .zIndex(100)
             }
@@ -1441,7 +1453,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
+    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
@@ -1488,19 +1500,50 @@ struct ContentView: View {
         // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
         let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
         
+        // Calculate local values instead of accessing @State properties
+        let localSideGapCount: Int
+        if viewMode == .both && currentSlideRule.backTopStator != nil {
+            localSideGapCount = 1
+        } else {
+            localSideGapCount = 0
+        }
+        
+        let localLabelHeight: CGFloat
+        if viewMode == .both && currentSlideRule.backTopStator != nil {
+            localLabelHeight = 30
+        } else {
+            localLabelHeight = 0
+        }
+        
+        // Calculate total scale count locally
+        var localTotalScaleCount = 0
+        if viewMode == .front || viewMode == .both {
+            localTotalScaleCount += currentSlideRule.frontTopStator.scales.count +
+                                     currentSlideRule.frontSlide.scales.count +
+                                     currentSlideRule.frontBottomStator.scales.count
+        }
+        if (viewMode == .back || viewMode == .both),
+           let backTop = currentSlideRule.backTopStator,
+           let backSlide = currentSlideRule.backSlide,
+           let backBottom = currentSlideRule.backBottomStator {
+            localTotalScaleCount += backTop.scales.count +
+                                     backSlide.scales.count +
+                                     backBottom.scales.count
+        }
+        
         // Account for spacing between sides and labels
-        let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
+        let totalSpacingHeight = (CGFloat(localSideGapCount) * sideSpacing) + localLabelHeight
         let availableHeightForScales = maxHeight - totalSpacingHeight
         
         // Calculate scale height based on available height
         let calculatedScaleHeight = min(
-            availableHeightForScales / CGFloat(totalScaleCount),
+            availableHeightForScales / CGFloat(localTotalScaleCount),
             maxScaleHeight
         )
         let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
         
         // Calculate total height needed for all scales
-        let totalHeight = scaleHeight * CGFloat(totalScaleCount) + totalSpacingHeight
+        let totalHeight = scaleHeight * CGFloat(localTotalScaleCount) + totalSpacingHeight
         
         // Calculate width based on aspect ratio
         let widthFromAspectRatio = totalHeight * targetAspectRatio

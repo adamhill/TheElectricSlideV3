@@ -6,21 +6,21 @@
 
 ## Implementation Status Summary
 
+> **Historical Note:** Scale balancing functionality was proposed but never implemented in the production codebase. Documentation archived to [`swift-docs/historical/scale-balancing-feature-removed.md`](historical/scale-balancing-feature-removed.md).
+
 **Completed Features**:
 - ✅ Phase 1: SideView component extraction (commit: 106c96d)
 - ✅ Phase 2: Dual-side display with conditional rendering (commit: 106c96d)
-- ✅ Phase 3: Enhanced dimension calculations with scale balancing (commit: 3d35afd)
+- ✅ Phase 3: Enhanced dimension calculations (commit: 106c96d)
 - ✅ Phase 4: Shared gesture handling through bindings (commit: 106c96d)
 - ✅ ViewMode toggle: Front/Back/Both segmented picker (commit: 106c96d)
-- ✅ Scale balancing: Automatic spacer insertion for unequal front/back counts (commit: 3d35afd)
 - ⚠️ Phase 5: Visual polish partially complete (headers added, flip animation removed)
 
 **Key Achievements**:
 1. **DRY Principle**: Single `SideView` component renders both front and back
 2. **Synchronized Movement**: Shared `sliderOffset` binding ensures slides move together
-3. **Automatic Balancing**: Blank spacer scales added to shorter side for alignment
-4. **View Mode Control**: User can toggle between Front, Back, or Both sides
-5. **Performance Maintained**: Equatable conformance and pre-computed tick marks preserved
+3. **View Mode Control**: User can toggle between Front, Back, or Both sides
+4. **Performance Maintained**: Equatable conformance and pre-computed tick marks preserved
 
 ## Executive Summary
 
@@ -196,7 +196,7 @@ VStack(spacing: 20) {
 - ✅ Backward compatible with single-sided rules
 - ✅ No code duplication between sides
 
-### Phase 3: Update Dimension Calculations ✅ COMPLETED (commit: 3d35afd)
+### Phase 3: Update Dimension Calculations ✅ COMPLETED (commit: 106c96d)
 
 **File**: `ContentView.swift` - `calculateDimensions()` and related functions
 
@@ -205,19 +205,6 @@ VStack(spacing: 20) {
 2. ✅ Added `sideGapCount` to calculate spacing between sides
 3. ✅ Added `labelHeight` calculation for side headers
 4. ✅ Updated `calculateDimensions()` to include spacing and labels
-5. ✅ **BONUS**: Implemented automatic scale balancing for unequal front/back
-
-**Scale Balancing Feature** (commit: 3d35afd):
-```swift
-// Creates blank spacer scales when front/back have different counts
-private func createSpacerScale(length: Double) -> GeneratedScale
-private var balancedFrontTopStator: Stator
-private var balancedFrontSlide: Slide
-private var balancedFrontBottomStator: Stator
-private var balancedBackTopStator: Stator?
-private var balancedBackSlide: Slide?
-private var balancedBackBottomStator: Stator?
-```
 
 **Dimension Calculation Logic**:
 ```swift
@@ -252,11 +239,9 @@ private var sideGapCount: Int {
 }
 ```
 
-**Actual Changes**: ~150 lines added (balancing logic), ~20 lines modified (dimensions)
+**Actual Changes**: ~20 lines modified (dimensions)
 
 **Benefits Realized**:
-- ✅ Perfect alignment when showing both sides
-- ✅ Automatic padding for unequal scale counts
 - ✅ Proper spacing and label accounting in layout
 
 ### Phase 4: Shared Gesture Handling ✅ COMPLETED (commit: 106c96d)
@@ -385,21 +370,19 @@ enum RuleSide: String {
 |-------|----------------|--------------|-------|
 | Phase 1 | ~100 | ~90 | SideView component extraction |
 | Phase 2 | ~30 | ~40 | ViewMode enum + conditional rendering |
-| Phase 3 | ~20 | ~80 | Enhanced dimensions + scale balancing (bonus) |
+| Phase 3 | ~20 | ~20 | Enhanced dimensions |
 | Phase 4 | ~20 | ~25 | Shared gesture handlers |
 | Phase 5 | ~30 | ~35 | Headers, borders, picker |
-| **Total** | **~200** | **~270** | Includes bonus scale balancing feature |
+| **Total** | **~200** | **~210** | Actual implementation |
 
-**Net Change**: Approximately +270 lines to ContentView.swift
+**Net Change**: Approximately +210 lines to ContentView.swift
 - Original estimate: ~617 → ~817 lines
-- Actual with balancing: ~617 → ~887 lines (includes createSpacerScale + 6 balanced computed properties)
+- Actual: ~617 → ~827 lines
 
 **Key Additions**:
 - `ViewMode` enum (3 cases)
 - `RuleSide` enum with borderColor
 - `SideView` component (~90 lines, Equatable)
-- `createSpacerScale()` function (~15 lines)
-- 6 balanced scale computed properties (~40 lines)
 - totalScaleCount, sideGapCount computed properties (~10 lines)
 
 ## Alternative Designs Considered
@@ -464,7 +447,6 @@ If issues arise:
 - ✅ Drag gesture synchronizes both slides (shared sliderOffset state)
 - ✅ Window resize handles both sides responsively (onGeometryChange preserved)
 - ✅ Side labels clearly identify front/back ("FRONT SIDE (FACE)" / "BACK SIDE (FACE)")
-- ✅ Scale balancing ensures visual alignment (commit: 3d35afd - bonus feature)
 - ✅ Code passes build tests (xcodebuild verified multiple times)
 - ✅ ViewMode picker provides intuitive front/back/both selection
 
@@ -475,7 +457,6 @@ If issues arise:
 - ⏳ Accessibility: VoiceOver compatibility (not explicitly tested yet)
 
 ### Bonus Features Delivered
-- ✅ Automatic scale balancing with spacer scales (commit: 3d35afd)
 - ✅ ViewMode segmented picker control (commit: 106c96d)
 - ✅ RuleSide enum with borderColor property
 - ❌ 3D flip animation (attempted, removed - too complex)
@@ -486,17 +467,16 @@ If issues arise:
 |-------|----------------|-------------|-------|
 | Phase 1 | 1-2 hours | ~1.5 hours | SideView extraction |
 | Phase 2 | 1 hour | ~1.5 hours | ViewMode enum + conditional rendering |
-| Phase 3 | 30 minutes | ~2 hours | Enhanced dimensions + scale balancing (bonus) |
+| Phase 3 | 30 minutes | ~30 minutes | Enhanced dimensions |
 | Phase 4 | 1 hour | ~30 minutes | Gesture handlers already structured well |
 | Phase 5 | 1 hour | ~1 hour | Headers, borders, picker |
 | **Testing** | 2 hours | ~1 hour | Multiple xcodebuild runs |
 | **Flip Animation** | Out of scope | ~2 hours | Attempted, then removed (deferred) |
-| **Total** | **6.5-7.5 hours** | **~9.5 hours** | Includes bonus features + flip attempts |
+| **Total** | **6.5-7.5 hours** | **~8 hours** | Includes flip animation attempts |
 
 **Key Insights**:
-- Scale balancing feature added more complexity than estimated
 - Flip animation exploration took extra time but provided learning
-- Overall implementation slightly over estimate due to bonus features
+- Overall implementation close to estimate
 
 ## Future Enhancements (Out of Scope)
 
@@ -513,8 +493,7 @@ If issues arise:
 ### Git Commit History
 Key commits for this feature:
 - `e72f275`: "feat(scales): implement complete LL3 scale with all 17 PostScript subsections"
-- `106c96d`: "feat(ui): added ability to view front back or both sides" (Phases 1, 2, 4, 5)
-- `3d35afd`: "feat(ui): add scale balancing for dual-sided view mode" (Phase 3 enhancement)
+- `106c96d`: "feat(ui): added ability to view front back or both sides" (Phases 1, 2, 3, 4, 5)
 
 ### Flip Animation Exploration (Removed)
 Multiple attempts were made to implement a 3D flip animation using `rotation3DEffect`:
@@ -523,13 +502,6 @@ Multiple attempts were made to implement a 3D flip animation using `rotation3DEf
 - Attempted conditional upside-down rendering for back side
 - **Result**: Too complex to coordinate with conditional rendering; deferred for future exploration
 - Cleaner UX: ViewMode picker provides instant, clear view switching
-
-### Scale Balancing Feature (Bonus)
-Not in original plan, but added to solve visual alignment issue:
-- Problem: Unequal scale counts between front/back caused misalignment
-- Solution: `createSpacerScale()` generates blank scales matching scaleLength
-- Implementation: 6 computed properties (`balancedFrontTopStator`, etc.) insert spacers
-- Result: Both sides have equal heights, professional appearance
 
 ## References
 

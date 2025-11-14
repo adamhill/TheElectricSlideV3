@@ -96,18 +96,34 @@ struct SlideRulePicker: View {
     
     /// Initialize library with standard rules if database is empty
     private func initializeLibraryIfNeeded() {
-        if availableRules.isEmpty {
+        #if DEBUG
+        // In debug mode, always reinitialize to pick up changes during development
+        print("DEBUG: Force reinitializing slide rule library")
+        for rule in availableRules {
+            modelContext.delete(rule)
+        }
+        let standardRules = SlideRuleLibrary.standardRules()
+        for rule in standardRules {
+            modelContext.insert(rule)
+        }
+        UserDefaults.standard.set(SlideRuleLibrary.libraryVersion, forKey: "slideRuleLibraryVersion")
+        #else
+        // In production, check version and only reinitialize if changed
+        let storedVersion = UserDefaults.standard.integer(forKey: "slideRuleLibraryVersion")
+        let currentVersion = SlideRuleLibrary.libraryVersion
+        
+        if storedVersion != currentVersion || availableRules.isEmpty {
+            print("Library version changed (\(storedVersion) -> \(currentVersion)) or empty, reinitializing")
+            for rule in availableRules {
+                modelContext.delete(rule)
+            }
             let standardRules = SlideRuleLibrary.standardRules()
             for rule in standardRules {
                 modelContext.insert(rule)
             }
-            
-            do {
-                try modelContext.save()
-            } catch {
-                print("Failed to initialize slide rule library: \(error)")
-            }
+            UserDefaults.standard.set(currentVersion, forKey: "slideRuleLibraryVersion")
         }
+        #endif
     }
     
     /// Select first rule if none selected

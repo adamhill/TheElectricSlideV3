@@ -142,10 +142,7 @@ See `swift-docs/responsive-margin-implementation.md` for implementation details.
 **Device Detection (iPhone vs iPad/Mac):**
 - Use `@Environment(\.horizontalSizeClass)` (`.compact` = iPhone, `.regular` = iPad/Mac)
 - **Don't** use `UIDevice.current.userInterfaceIdiom` in view bodies
-- See `swift-docs/device-specific-breakpoints-implementation.md` for implementation
-- **Implementation**: `StaticHeaderSection` conditionally shows `FlipButton` (iPhone) vs segmented picker (iPad/Mac)
-- **iPhone behavior**: Shows single side only (front or back), starts on front, round flip button inline with cursor selector
-- **iPad/Mac behavior**: Shows all elements (front/back/both selector), current full UI preserved
+- See `swift-docs/device-specific-breakpoints-plan.md` for patterns
 
 **View Hierarchy:**
 - `ContentView` → `StaticHeaderSection` + `DynamicSlideRuleContent`

@@ -10,7 +10,6 @@ This document chronicles the performance optimization journey for [`ContentView.
 - **User Experience:** Dramatically improved slider responsiveness with "buttery smooth" performance
 
 **Key Success:** Phase 1 (Observable Hot/Cold Property Pattern) - The modulo-3 throttling combined with hot/cold property separation delivered the major hitch reduction
-**Original Success:** Action 1 (Cached Balanced Properties) - Eliminated redundant StatorView updates
 **Failed Experiments:**
 - Action 3 (Gesture Refactoring) - Reverted due to performance degradation
 ## Performance Metrics: Updates vs Hitches
@@ -26,7 +25,6 @@ The optimization goal: **Reduce view updates to reduce hitches and improve respo
 | Optimization Stage | Hitches | View Updates (ContentView) | Improvement |
 |-------------------|---------|---------------------------|-------------|
 | **Initial (after @MainActor fix)** | 97-120 | ~400-500 | Baseline |
-| **After Action 1 (Cached Properties)** | 97-120 | ~400-500 | No hitch improvement |
 | **After Phase 1 Part A (Internal Cache + Modulo-3)** | **28** | ~230 | **77% hitch reduction** ✅ |
 | **After Phase 1 Part B (Hot/Cold Properties)** | **18** | ~230 | **Additional 36% reduction** ✅ |
 | **Current State** | **18** | ~230 | **85% total hitch reduction** ✅ |
@@ -48,9 +46,8 @@ The data shows that reducing view updates from 400-500 to ~230 (50% reduction) r
 ## Table of Contents
 
 1. [Initial Problem: @MainActor Annotation](#initial-problem-mainactor-annotation)
-2. [Action 1: Cached Balanced Properties](#action-1-cached-balanced-properties)
-3. [Action 3: Attempted Gesture Refactoring](#action-3-attempted-gesture-refactoring)
-4. [Phase 1: Observable Hot/Cold Property Pattern](#phase-1-observable-hotcold-property-pattern)
+2. [Action 3: Attempted Gesture Refactoring](#action-3-attempted-gesture-refactoring)
+3. [Phase 1: Observable Hot/Cold Property Pattern](#phase-1-observable-hotcold-property-pattern)
 5. [Phase 2: View Extraction Attempt](#phase-2-view-extraction-attempt)
 6. [Phase 3: Circular Dependency Fix Attempt](#phase-3-circular-dependency-fix-attempt)
 7. [Key Learnings](#key-learnings)
@@ -93,64 +90,7 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
 
 ---
 
-## Action 1: Cached Balanced Properties
-
-### Problem Statement
-
-When displaying both front and back sides of a slide rule simultaneously, [`updateBalancedComponents()`](../TheElectricSlide/ContentView.swift:629) was being called on every body evaluation, recalculating spacer scales to balance different scale counts between sides.
-
-**Performance Impact:**
-- Redundant calculations during every render
-- Unnecessary object allocations
-- [`StatorView`](../TheElectricSlide/ContentView.swift:395) updates even when balance hadn't changed
-
-### Implementation
-
-Moved balanced components from computed properties to cached `@State` variables:
-
-```swift
-@State private var balancedFrontTopStator: Stator = Stator(...)
-@State private var balancedFrontSlide: Slide = Slide(...)
-@State private var balancedFrontBottomStator: Stator = Stator(...)
-@State private var balancedBackTopStator: Stator? = nil
-@State private var balancedBackSlide: Slide? = nil
-@State private var balancedBackBottomStator: Stator? = nil
-```
-
-**Update Strategy:**
-- Call [`updateBalancedComponents()`](../TheElectricSlide/ContentView.swift:629) only when dependencies change
-- Triggered by [`onChange(of: viewMode)`](../TheElectricSlide/ContentView.swift:897)
-- Triggered by [`onChange(of: selectedRuleId)`](../TheElectricSlide/ContentView.swift:904) (via [`parseAndUpdateSlideRule()`](../TheElectricSlide/ContentView.swift:1062))
-
-```swift
-.onAppear {
-    cursorState.setSlideRuleProvider(self)
-    cursorState.enableReadings = true
-    loadCurrentRule()
-    updateBalancedComponents()
-}
-.onChange(of: viewMode) { _, _ in
-    updateBalancedComponents()
-}
-.onChange(of: selectedRuleId) { oldValue, newValue in
-    parseAndUpdateSlideRule()
-    sliderOffset = 0
-    sliderBaseOffset = 0
-    saveCurrentRule()
-}
-```
-
-### Results
-
-**Measured Impact:**
-- ✅ Eliminated [`StatorView`](../TheElectricSlide/ContentView.swift:395) extra updates during slider drag
-- ✅ No recalculation during body evaluation
-- ✅ Balanced components only update when actually needed
-
-**Why This Helped:**
-1. **Prevented Recalculation:** Spacer scale creation moved from every body evaluation to explicit update points
-2. **Stable View Identity:** [`StatorView`](../TheElectricSlide/ContentView.swift:395) inputs remain constant during drag gestures
-3. **Better Equatable Performance:** Combined with [`View.equatable()`](https://developer.apple.com/documentation/swiftui/view/equatable()), SwiftUI can skip body evaluations
+> **Historical Note:** An "Action 1: Cached Balanced Properties" section was documented here describing scale balancing functionality, but this feature was never implemented in the production codebase. The documentation has been archived to [`swift-docs/historical/scale-balancing-feature-removed.md`](swift-docs/historical/scale-balancing-feature-removed.md). The actual performance improvements came from Phase 1 (Observable Hot/Cold Property Pattern).
 
 ---
 
@@ -255,7 +195,7 @@ SideView(...)
 
 ### Problem Statement
 
-After Action 1 (Cached Balanced Properties), 97-120 hitches remained during cursor dragging, with ~400-500 view updates occurring. Instruments revealed that [`CursorState`](../TheElectricSlide/Cursor/CursorState.swift) updates were cascading through the Observable system, triggering excessive view updates even when display values hadn't changed meaningfully.
+The initial baseline showed 97-120 hitches during cursor dragging, with ~400-500 view updates occurring. Instruments revealed that [`CursorState`](../TheElectricSlide/Cursor/CursorState.swift) updates were cascading through the Observable system, triggering excessive view updates even when display values hadn't changed meaningfully.
 
 **Performance Impact:**
 - 97-120 hitches (actual frame drops) during continuous cursor drag
@@ -800,11 +740,6 @@ struct MyView: View {
 
 ✅ **@MainActor Fix:** [`Dimensions`](../TheElectricSlide/ContentView.swift:19) struct properly implements `nonisolated` `Equatable` and `@unchecked Sendable`
 
-✅ **Action 1 (Cached Balanced Properties):** Eliminated redundant [`updateBalancedComponents()`](../TheElectricSlide/ContentView.swift:629) calls
-- Balanced components stored in `@State` variables
-- Updates only when `viewMode` or `selectedRuleId` changes
-- [`StatorView`](../TheElectricSlide/ContentView.swift:395) remains stable during drag gestures
-
 ✅ **Phase 1 (Observable Hot/Cold Property Pattern):** Reduced hitches by 85%, view updates by 50%
 - Implemented `@ObservationIgnored` for internal state in [`CursorState`](../TheElectricSlide/Cursor/CursorState.swift)
 - Added modulo-3 update pattern for throttled publishing
@@ -838,7 +773,7 @@ struct MyView: View {
 - **Key Success:** Phase 1 Observable hot/cold property pattern
 
 **During Drag Gestures:**
-- ✅ [`StatorView`](../TheElectricSlide/ContentView.swift:395) (top/bottom): No updates (stable balanced components)
+- ✅ [`StatorView`](../TheElectricSlide/ContentView.swift:395) (top/bottom): No updates (stable components)
 - ✅ [`SlideView`](../TheElectricSlide/ContentView.swift:445): Smooth updates with `.interactiveSpring()` animation
 - ✅ [`CursorState`](../TheElectricSlide/Cursor/CursorState.swift): Internal state updates continuously, publishes every 3rd update
 - ✅ [`CursorReadingsDisplayView`](../TheElectricSlide/Cursor/CursorReadingsDisplayView.swift): Updates only when readings change meaningfully
@@ -846,9 +781,7 @@ struct MyView: View {
 - ✅ No unnecessary rendering layers
 
 **During View Mode Changes:**
-- ✅ [`updateBalancedComponents()`](../TheElectricSlide/ContentView.swift:629) called appropriately
 - ✅ All views update as expected
-- ✅ Balanced scale spacers computed once per change
 
 ### What We Learned
 
@@ -871,12 +804,7 @@ struct MyView: View {
 #### 1. Profile Complex Scales in Instruments
 **Goal:** Measure rendering time for scales with 200+ tick marks (LL1, LL2, LL3)
 
-### Action Correlation to Hitch Improvements
-
-**Action 1 (Cached Properties):**
-- View updates: Eliminated StatorView extra updates
-- Hitches: No change (97-120 remained)
-- Lesson: Update reduction doesn't always reduce hitches if updates aren't on critical path
+### Phase Correlation to Hitch Improvements
 
 **Phase 1A (Internal Cache + Modulo-3):**
 - View updates: ~400-500 → ~230 (50% reduction)
@@ -910,12 +838,12 @@ Canvas { context, size in
 - ⚠️ May not be needed if current performance is acceptable
 
 #### 3. Monitor Memory with Instruments
-**Goal:** Ensure cached balanced components don't cause memory issues
+**Goal:** Ensure performance optimizations don't cause memory issues
 
 **Metrics to Track:**
 - Memory usage when switching view modes
 - Allocations during rule changes
-- Retained size of balanced component arrays
+- Retained size of component arrays
 
 #### 4. Consider Performance Budget
 **Goal:** Define acceptable performance thresholds

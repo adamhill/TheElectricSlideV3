@@ -794,6 +794,245 @@ struct StandardScalesExoticTests {
         }
     }
     
+    // MARK: - Double-Length Tangent Scales (T1/T2)
+    
+    @Suite("T1/T2 Double-Length Tangent Scales")
+    struct DoubleTangentScalesTests {
+        
+        @Test("T1 scale has correct basic properties")
+        func t1ScaleBasicProperties() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            
+            #expect(t1.name == "T1")
+            #expect(t1.beginValue == 5.7)
+            #expect(t1.endValue == 45.0)
+            #expect(t1.scaleLengthInPoints == 250.0)
+            #expect(t1.tickDirection == .up)
+        }
+        
+        @Test("T1 scale uses TangentFunction with multiplier 10")
+        func t1ScaleFunctionType() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            #expect(t1.function is TangentFunction)
+            
+            // Verify multiplier by checking transform behavior
+            let testValue = 30.0
+            let transform = t1.function.transform(testValue)
+            let expected = log10(10.0 * tan(testValue * .pi / 180.0))
+            #expect(abs(transform - expected) < 1e-9)
+        }
+        
+        @Test("T1 scale boundary values match expected tangent range",
+              arguments: [(5.7, 0.1), (45.0, 1.0)])
+        func t1ScaleBoundaryValues(angle: Double, expectedTan: Double) {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            
+            // Verify that T1 covers tan 0.1 to 1.0
+            let actualTan = tan(angle * .pi / 180.0)
+            #expect(abs(actualTan - expectedTan) < 0.01,
+                   "T1 at \(angle)° should have tan ≈ \(expectedTan)")
+            
+            // Verify position calculation
+            let pos = ScaleCalculator.normalizedPosition(for: angle, on: t1)
+            #expect(pos >= 0.0 && pos <= 1.0,
+                   "T1 position for \(angle)° should be normalized")
+        }
+        
+        @Test("T1 scale mathematical correctness at key angles",
+              arguments: [5.7, 10.0, 20.0, 30.0, 45.0])
+        func t1ScaleMathematicalCorrectness(angle: Double) {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            
+            // Transform should match TangentFunction formula
+            let transform = t1.function.transform(angle)
+            let expected = log10(tan(angle * .pi / 180.0) * 10.0)
+            
+            #expect(abs(transform - expected) < 1e-9,
+                   "T1 scale transform for \(angle)° should match tangent formula")
+        }
+        
+        @Test("T1 scale round-trip accuracy maintains angle precision")
+        func t1ScaleRoundTripAccuracy() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            let testAngles = [5.7, 10.0, 15.0, 20.0, 30.0, 40.0, 45.0]
+            
+            for angle in testAngles {
+                let pos = ScaleCalculator.normalizedPosition(for: angle, on: t1)
+                let recovered = ScaleCalculator.value(at: pos, on: t1)
+                
+                #expect(abs(recovered - angle) < 0.1,
+                       "T1 round-trip failed for angle \(angle)°")
+            }
+        }
+        
+        @Test("T2 scale has correct basic properties")
+        func t2ScaleBasicProperties() {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            #expect(t2.name == "T2")
+            #expect(t2.beginValue == 45.0)
+            #expect(t2.endValue == 84.3)
+            #expect(t2.scaleLengthInPoints == 250.0)
+            #expect(t2.tickDirection == .up)
+        }
+        
+        @Test("T2 scale uses TangentFunction with multiplier 10")
+        func t2ScaleFunctionType() {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            #expect(t2.function is TangentFunction)
+            
+            // Verify multiplier by checking transform behavior
+            let testValue = 60.0
+            let transform = t2.function.transform(testValue)
+            let expected = log10(10.0 * tan(testValue * .pi / 180.0))
+            #expect(abs(transform - expected) < 1e-9)
+        }
+        
+        @Test("T2 scale boundary values match extended tangent range",
+              arguments: [(45.0, 1.0), (84.3, 10.0)])
+        func t2ScaleBoundaryValues(angle: Double, expectedTan: Double) {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            // Verify that T2 covers tan 1.0 to 10.0
+            let actualTan = tan(angle * .pi / 180.0)
+            #expect(abs(actualTan - expectedTan) < 0.1,
+                   "T2 at \(angle)° should have tan ≈ \(expectedTan)")
+            
+            // Verify position calculation
+            let pos = ScaleCalculator.normalizedPosition(for: angle, on: t2)
+            #expect(pos >= 0.0 && pos <= 1.0,
+                   "T2 position for \(angle)° should be normalized")
+        }
+        
+        @Test("T2 scale mathematical correctness at key angles",
+              arguments: [45.0, 50.0, 60.0, 70.0, 84.3])
+        func t2ScaleMathematicalCorrectness(angle: Double) {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            // Transform should match TangentFunction formula
+            let transform = t2.function.transform(angle)
+            let expected = log10(tan(angle * .pi / 180.0) * 10.0)
+            
+            #expect(abs(transform - expected) < 1e-9,
+                   "T2 scale transform for \(angle)° should match tangent formula")
+        }
+        
+        @Test("T2 scale round-trip accuracy maintains angle precision")
+        func t2ScaleRoundTripAccuracy() {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            let testAngles = [45.0, 50.0, 55.0, 60.0, 70.0, 80.0, 84.3]
+            
+            for angle in testAngles {
+                let pos = ScaleCalculator.normalizedPosition(for: angle, on: t2)
+                let recovered = ScaleCalculator.value(at: pos, on: t2)
+                
+                #expect(abs(recovered - angle) < 0.5,
+                       "T2 round-trip failed for angle \(angle)°")
+            }
+        }
+        
+        @Test("T1 and T2 scales combine to cover full tangent range")
+        func t1T2CombinedCoverage() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            // T1 ends where T2 begins
+            #expect(t1.endValue == t2.beginValue,
+                   "T1 end should match T2 begin at 45°")
+            
+            // Combined they cover 5.7° to 84.3°
+            #expect(t1.beginValue == 5.7)
+            #expect(t2.endValue == 84.3)
+            
+            // Together they span full practical tangent range
+            let combinedAngleSpan = t2.endValue - t1.beginValue
+            #expect(abs(combinedAngleSpan - 78.6) < 0.1,
+                   "Combined T1+T2 should span 78.6°")
+        }
+        
+        @Test("T1 and T2 use same function type")
+        func t1T2SameFunctionType() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            #expect(t1.function is TangentFunction)
+            #expect(t2.function is TangentFunction)
+        }
+        
+        @Test("T1 scale logarithmic distribution matches C scale at tan values")
+        func t1LogarithmicDistribution() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            let cScale = StandardScales.cScale(length: 250.0)
+            
+            // At 5.7°: tan ≈ 0.1, should align with 0.1 on extended C scale
+            let angle5_7 = 5.7
+            let tan5_7 = tan(angle5_7 * .pi / 180.0) * 10.0  // Multiply by 10 for C scale range
+            
+            let t1Pos = ScaleCalculator.normalizedPosition(for: angle5_7, on: t1)
+            let cPos = ScaleCalculator.normalizedPosition(for: tan5_7, on: cScale)
+            
+            #expect(abs(t1Pos - cPos) < 0.01,
+                   "T1 at \(angle5_7)° should align with tan value \(tan5_7) on C scale")
+        }
+        
+        @Test("T2 scale logarithmic distribution extends C scale range")
+        func t2LogarithmicDistribution() {
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            // At 60°: tan ≈ 1.732, position should reflect log distribution
+            let angle60 = 60.0
+            let tan60 = tan(angle60 * .pi / 180.0)
+            
+            let t2Pos = ScaleCalculator.normalizedPosition(for: angle60, on: t2)
+            
+            // Position should be in valid range
+            #expect(t2Pos >= 0.0 && t2Pos <= 1.0,
+                   "T2 position at 60° should be normalized")
+            
+            // tan(60°) ≈ 1.732, log10(1.732*10) ≈ 1.238
+            // On T2 scale from 45° (tan 1.0) to 84.3° (tan 10.0):
+            // Position = (log10(tan(60°)*10) - log10(1.0*10)) / (log10(10.0*10) - log10(1.0*10))
+            // Position = (1.238 - 1.0) / (2.0 - 1.0) = 0.238
+            let expectedPos = (log10(tan60 * 10.0) - log10(1.0 * 10.0)) / (log10(10.0 * 10.0) - log10(1.0 * 10.0))
+            #expect(abs(t2Pos - expectedPos) < 0.01,
+                   "T2 at 60° should have position ≈ \(expectedPos)")
+        }
+        
+        @Test("T1 and T2 scales can be looked up by name")
+        func t1T2ScaleLookup() {
+            let t1 = StandardScales.scale(named: "T1", length: 250.0)
+            let t2 = StandardScales.scale(named: "T2", length: 250.0)
+            
+            #expect(t1 != nil, "T1 scale should be retrievable by name")
+            #expect(t2 != nil, "T2 scale should be retrievable by name")
+            
+            #expect(t1?.name == "T1")
+            #expect(t2?.name == "T2")
+        }
+        
+        @Test("T1 and T2 scales generate ticks without errors")
+        func t1T2ScaleTickGeneration() {
+            let t1 = StandardScales.t1Scale(length: 250.0)
+            let t2 = StandardScales.t2Scale(length: 250.0)
+            
+            let t1Generated = GeneratedScale(definition: t1)
+            let t2Generated = GeneratedScale(definition: t2)
+            
+            #expect(!t1Generated.tickMarks.isEmpty, "T1 should generate tick marks")
+            #expect(!t2Generated.tickMarks.isEmpty, "T2 should generate tick marks")
+        }
+        
+        @Test("T1 and T2 scales work with different scale lengths",
+              arguments: [100.0, 250.0, 500.0, 1000.0])
+        func t1T2ScalesCustomLengths(length: Double) {
+            let t1 = StandardScales.t1Scale(length: length)
+            let t2 = StandardScales.t2Scale(length: length)
+            
+            #expect(t1.scaleLengthInPoints == length)
+            #expect(t2.scaleLengthInPoints == length)
+        }
+    }
+    
     // MARK: - Scale Lookup Integration
     
     @Suite("Exotic Scale Lookup by Name")

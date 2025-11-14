@@ -854,6 +854,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL3")
+            .withFormula("eˣ")
             .withFunction(ll3Function)
             .withRange(begin: 2.74, end: 21000.0)
             .withLength(length)
@@ -1357,7 +1358,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL2")
-            .withFormula("log₁₀(ln(x)×10)")
+            .withFormula("e⁰·¹ˣ")
             .withFunction(ll2Function)
             .withRange(begin: 1.105, end: 2.72)  // e^0.1 to e^1
             .withLength(length)
@@ -1417,7 +1418,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL1")
-            .withFormula("log₁₀(ln(x)×100)")
+            .withFormula("e⁰·⁰¹ˣ")
             .withFunction(ll1Function)
             .withRange(begin: 1.0101, end: 1.105)  // e^0.01 to e^0.1
             .withLength(length)
@@ -1473,7 +1474,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL0")
-            .withFormula("log₁₀(ln(x)×1000)")
+            .withFormula("e⁰·⁰⁰¹ˣ")
             .withFunction(ll0Function)
             .withRange(begin: 1.001, end: 1.0101)  // e^0.001 to e^0.01
             .withLength(length)
@@ -1537,7 +1538,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL03")
-            .withFormula("log₁₀(−ln(x))")
+            .withFormula("e⁻ˣ")
             .withFunction(ll03Function)
             .withRange(begin: 0.00005, end: 0.368)  // e^-10 to e^-1
             .withLength(length)
@@ -1614,7 +1615,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL02")
-            .withFormula("log₁₀(−ln(x)×10)")
+            .withFormula("e⁻⁰·¹ˣ")
             .withFunction(ll02Function)
             .withRange(begin: 0.368, end: 0.905)  // e^-1 to e^-0.1
             .withLength(length)
@@ -1682,7 +1683,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL01")
-            .withFormula("log₁₀(−ln(x)×100)")
+            .withFormula("e⁻⁰·⁰¹ˣ")
             .withFunction(ll01Function)
             .withRange(begin: 0.905, end: 0.990)  // e^-0.1 to e^-0.01
             .withLength(length)
@@ -1737,7 +1738,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL00")
-            .withFormula("log₁₀(−ln(x)×1000)")
+            .withFormula("e⁻⁰·⁰⁰¹ˣ")
             .withFunction(ll00Function)
             .withRange(begin: 0.990, end: 0.999)  // e^-0.01 to e^-0.001
             .withLength(length)

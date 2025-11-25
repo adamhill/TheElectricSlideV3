@@ -11,11 +11,23 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - List available simulators: `mcp_xcodebuildmcp_list_sims`
   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
   - Interactive testing with UI feedback
+  - **Recommended test devices:**
+    - iOS: iPhone 17 Pro Max
+    - iPadOS: iPad 13-inch (M5)
+    - macOS: My Mac (native)
+  - Use `mcp_xcodebuildmcp_screenshot` to capture UI state
+  - Use `mcp_xcodebuildmcp_describe_ui` to inspect accessibility hierarchy and UI element structure
+  - Use `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text` to interact with simulator
+  - **Accessibility annotations**: Add `.accessibilityLabel()` and `.accessibilityIdentifier()` to UI elements for better visibility in describe_ui output
 - ✅ **Package Development**: Direct `swift` commands for `SlideRuleCoreV3`
   - `swift test` - Run package tests
   - `swift build` - Build package
   - `swift test --filter .fast` - Run tagged tests
 - ✅ **Full debugging** with Xcode, Instruments, breakpoints
+- ✅ **Apple Documentation Access**: Use MCP servers for API lookup
+  - `mcp_sosumi_searchAppleDocumentation` / `mcp_sosumi_fetchAppleDocumentation` - Apple Developer docs and HIG
+  - `mcp_apple-docs_*` tools - Comprehensive Apple API documentation, WWDC videos, sample code
+  - `mcp_dash-api_search_documentation` - Search installed Dash docsets (Swift, SwiftUI, UIKit, etc.)
 
 ### Remote Agents (Cloud/Sandbox Environments)
 **Limited Access** - Focus on calculation engine:
@@ -274,21 +286,39 @@ static func generateCombinations() -> [String] {
 // List available iOS simulators
 mcp_xcodebuildmcp_list_sims({ enabled: true })
 
-// Build and run on iOS simulator (iPhone 16)
-mcp_xcodebuildmcp_build_run_ios_sim({
-    projectPath: "/path/to/TheElectricSlide.xcodeproj",
+// Build and run on iOS simulator (iPhone 17 Pro Max - recommended)
+mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
     scheme: "TheElectricSlide",
-    platform: "iOS Simulator",
-    simulatorName: "iPhone 16"
+    simulatorName: "iPhone 17 Pro Max"
 })
 
-// Build and run on macOS
+// Build and run on iPad simulator (iPad 13-inch M5 - recommended)
+mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
+    scheme: "TheElectricSlide",
+    simulatorName: "iPad 13-inch (M5)"
+})
+
+// Build and run on macOS (My Mac - native)
 mcp_xcodebuildmcp_build_run_mac_proj({
-    projectPath: "/path/to/TheElectricSlide.xcodeproj",
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
     scheme: "TheElectricSlide"
 })
 
-// Take screenshot of running simulator
+// Interactive simulator testing workflow:
+// 1. Take screenshot to observe current state
+mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
+
+// 2. Inspect UI hierarchy and accessibility elements
+mcp_xcodebuildmcp_describe_ui({ simulatorUuid: "<uuid>" })
+
+// 3. Interact with UI elements
+mcp_xcodebuildmcp_tap({ simulatorUuid: "<uuid>", x: 200, y: 300 })
+mcp_xcodebuildmcp_swipe({ simulatorUuid: "<uuid>", x1: 100, y1: 400, x2: 300, y2: 400 })
+mcp_xcodebuildmcp_type_text({ simulatorUuid: "<uuid>", text: "test input" })
+
+// 4. Take another screenshot to verify changes
 mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
 ```
 
@@ -360,7 +390,20 @@ swift test --filter .fast
 - `swift-docs/cursor-reading-quick-reference.md` - Cursor interaction patterns
 - `reference/api-examples/initial-README.md` - API usage examples
 
-**External References:**
+**External References (Use MCP Servers):**
+- **Sosumi MCP**: `mcp_sosumi_searchAppleDocumentation` / `mcp_sosumi_fetchAppleDocumentation`
+  - Search and fetch Apple Developer documentation and Human Interface Guidelines
+  - Example: Search for "SwiftUI onGeometryChange", "Canvas rendering", "SwiftData persistence"
+- **Apple Docs MCP**: `mcp_apple-docs_*` tools
+  - `mcp_apple-docs_get_apple_doc_content` - Detailed API documentation pages
+  - `mcp_apple-docs_find_related_apis` - Discover related APIs and alternatives
+  - `mcp_apple-docs_get_platform_compatibility` - Check API availability across OS versions
+  - `mcp_apple-docs_get_sample_code` - Browse Apple sample code projects
+  - Use for: WWDC session lookup, framework updates, migration guides
+- **Dash API MCP**: `mcp_dash-api_search_documentation`
+  - Search locally installed Dash docsets (Swift, SwiftUI, UIKit, Foundation, etc.)
+  - Faster than online searches for standard APIs
+  - Use `mcp_dash-api_list_installed_docsets` to see available documentation
 - WWDC 2024: SwiftUI Essentials (`onGeometryChange`)
 - Swift Testing documentation: https://developer.apple.com/documentation/testing
 
@@ -371,3 +414,12 @@ swift test --filter .fast
 3. **Performance context:** Read `swift-docs/swift-sliderule-rendering-improvements.md` solutions 1-5
 4. **Testing patterns:** Check existing tests in `SlideRuleCoreV3Tests/` for @Suite/@Test examples
 5. **Rendering flow:** Trace `ContentView.swift` → `StatorView`/`SlideView` → `ScaleView` → Canvas
+6. **Interactive testing workflow:**
+   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim_name_proj` with "iPhone 17 Pro Max"
+   - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
+   - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
+   - Verify: Take another screenshot to confirm expected behavior
+7. **API documentation lookup:**
+   - Quick search: `mcp_sosumi_searchAppleDocumentation` for Swift/SwiftUI APIs
+   - Detailed docs: `mcp_apple-docs_get_apple_doc_content` for full API references
+   - Local docsets: `mcp_dash-api_search_documentation` for fast offline lookup

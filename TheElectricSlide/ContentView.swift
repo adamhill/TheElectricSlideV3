@@ -19,10 +19,10 @@ nonisolated(unsafe) private let kMediumBreakpoint: CGFloat = 320
 
 /// Margin widths for each responsive tier
 /// Progressively smaller margins accommodate narrower screens while maintaining readability
-nonisolated(unsafe) private let kExtraLargeMargin: CGFloat = 64
-nonisolated(unsafe) private let kLargeMargin: CGFloat = 56
-nonisolated(unsafe) private let kMediumMargin: CGFloat = 48
-nonisolated(unsafe) private let kSmallMargin: CGFloat = 40
+nonisolated(unsafe) private let kExtraLargeMargin: CGFloat = 72
+nonisolated(unsafe) private let kLargeMargin: CGFloat = 64
+nonisolated(unsafe) private let kMediumMargin: CGFloat = 56
+nonisolated(unsafe) private let kSmallMargin: CGFloat = 48
 
 // NOTE:
 // `onGeometryChange(for:)` requires the value type to be usable across isolation domains.
@@ -72,12 +72,22 @@ enum LayoutTier: Sendable {
         }
     }
     
-    /// Font size for this tier
-    nonisolated var font: Font {
+    /// Font size for scale names (left margin) - always bold
+    nonisolated var nameFont: Font {
         switch self {
-        case .extraLarge: return .body
-        case .large: return .callout
-        case .medium: return .caption
+        case .extraLarge: return .caption.weight(.bold)
+        case .large: return .caption.weight(.bold)
+        case .medium: return .caption2.weight(.bold)
+        case .small: return .caption2.weight(.bold)
+        }
+    }
+    
+    /// Font size for formulas (right margin) - slightly smaller than names
+    nonisolated var formulaFont: Font {
+        switch self {
+        case .extraLarge: return .caption
+        case .large: return .caption
+        case .medium: return .caption2
         case .small: return .caption2
         }
     }
@@ -97,12 +107,69 @@ extension LayoutTier: Equatable {
 
 // MARK: - View Mode
 
+/// Represents the viewing mode for displaying slide rule sides.
+/// The available modes are device-dependent:
+/// - Compact devices (iPhone, Apple Watch) support only single-side views: .front or .back
+/// - Regular devices (iPad, Mac, Vision Pro) support all modes: .front, .back, and .both
 enum ViewMode: String, CaseIterable, Identifiable {
     case front = "Front"
     case back = "Back"
     case both = "Both"
     
     var id: String { rawValue }
+    
+    // MARK: - Device-Aware Mode Selection
+    
+    /// Returns the list of view modes available for a given device category.
+    ///
+    /// Compact devices (phone, watch) are restricted to single-side views only,
+    /// while regular devices (pad, mac, vision) can display multiple sides simultaneously.
+    ///
+    /// - Parameter category: The device category to query
+    /// - Returns: Array of available ViewMode cases for the device
+    ///
+    /// ## Examples
+    /// ```swift
+    /// ViewMode.availableModes(for: .phone)   // [.front, .back]
+    /// ViewMode.availableModes(for: .pad)     // [.front, .back, .both]
+    /// ViewMode.availableModes(for: .watch)   // [.front, .back]
+    /// ```
+    static func availableModes(for category: DeviceCategory) -> [ViewMode] {
+        switch category {
+        case .phone, .watch:
+            // Compact devices: single-side only
+            return [.front, .back]
+        case .pad, .mac, .vision:
+            // Regular devices: all options including both sides
+            return [.front, .back, .both]
+        }
+    }
+    
+    /// Constrains the current view mode to be compatible with the given device category.
+    ///
+    /// If the current mode is `.both` and the device is a compact device (phone or watch),
+    /// this method returns `.front` as a fallback. Otherwise, it returns the current mode unchanged.
+    ///
+    /// This ensures that the view mode is always valid for the current device's capabilities.
+    ///
+    /// - Parameter category: The device category to constrain for
+    /// - Returns: A ViewMode that is guaranteed to be available on the device
+    ///
+    /// ## Examples
+    /// ```swift
+    /// ViewMode.both.constrained(for: .phone)   // Returns .front (fallback)
+    /// ViewMode.both.constrained(for: .pad)     // Returns .both (unchanged)
+    /// ViewMode.front.constrained(for: .phone)  // Returns .front (unchanged)
+    /// ```
+    func constrained(for category: DeviceCategory) -> ViewMode {
+        // If current mode is .both and device doesn't support multi-side view,
+        // fall back to .front
+        if self == .both && !category.supportsMultiSideView {
+            return .front
+        }
+        // Otherwise, current mode is valid for this device
+        return self
+    }
 }
 
 // MARK: - Cursor Display Mode
@@ -174,7 +241,8 @@ struct ScaleView: View {
     let height: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
@@ -190,7 +258,7 @@ struct ScaleView: View {
             }()
             
             Text(generatedScale.definition.name)
-                .font(marginFont)
+                .font(nameFont)
                 .foregroundColor(scaleLabelColor)
                 .frame(width: leftMarginWidth, alignment: .trailing)
             
@@ -215,7 +283,7 @@ struct ScaleView: View {
             
             // Formula label on the right (left-aligned with responsive width)
             Text(generatedScale.definition.formula)
-                .font(marginFont)
+                .font(formulaFont)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
                 .frame(width: rightMarginWidth, alignment: .leading)
@@ -289,7 +357,7 @@ struct ScaleView: View {
                 context.stroke(
                     tickPath,
                     with: .color(tickColor),
-                    lineWidth: tick.style.lineWidth / 1.5
+                    lineWidth: tick.style.lineWidth / 1.25
                 )
             }
             
@@ -570,7 +638,8 @@ struct StatorView: View, Equatable {
     let scaleHeight: CGFloat // Configurable height per scale
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     
     // ✅ Equatable conformance - only compare properties that affect rendering
@@ -599,7 +668,8 @@ struct StatorView: View, Equatable {
                     height: scaleHeight,
                     leftMarginWidth: leftMarginWidth,
                     rightMarginWidth: rightMarginWidth,
-                    marginFont: marginFont
+                    nameFont: nameFont,
+                    formulaFont: formulaFont
                 )
             }
         }
@@ -635,7 +705,8 @@ struct SlideView: View, Equatable {
     let scaleHeight: CGFloat // Configurable height per scale
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
@@ -662,7 +733,8 @@ struct SlideView: View, Equatable {
                     height: scaleHeight,
                     leftMarginWidth: leftMarginWidth,
                     rightMarginWidth: rightMarginWidth,
-                    marginFont: marginFont
+                    nameFont: nameFont,
+                    formulaFont: formulaFont
                 )
             }
         }
@@ -694,7 +766,8 @@ struct SideView: View, Equatable {
     let scaleHeight: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     let sliderOffset: CGFloat
     let cursorState: CursorState?
     let onDragChanged: (DragGesture.Value) -> Void
@@ -725,7 +798,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -740,7 +814,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont
+                nameFont: nameFont,
+                formulaFont: formulaFont
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -761,7 +836,8 @@ struct SideView: View, Equatable {
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                marginFont: marginFont,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
                 cursorState: cursorState
             )
             .equatable()
@@ -769,75 +845,15 @@ struct SideView: View, Equatable {
         }
     }
 }
-// MARK: - StaticHeaderSection
-
-struct StaticHeaderSection: View, Equatable {
-    @Binding var selectedRule: SlideRuleDefinitionModel?
-    @Binding var viewMode: ViewMode
-    @Binding var cursorDisplayMode: CursorDisplayMode
-    let hasBackSide: Bool
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            SlideRulePicker(currentRule: $selectedRule)
-            
-            Divider()
-            
-            // View Mode Picker
-            HStack {
-                Spacer()
-                Picker("View Mode", selection: $viewMode) {
-                    ForEach(ViewMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .disabled(!hasBackSide && (viewMode == .back || viewMode == .both))
-                Spacer()
-            }
-            
-            // Cursor Display Mode Picker
-            HStack {
-                Spacer()
-                Picker("Cursor Display", selection: $cursorDisplayMode) {
-                    ForEach(CursorDisplayMode.allCases) { mode in
-                        Text(mode.displayText).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                .padding(.horizontal)
-                .padding(.top, 4)
-                Spacer()
-            }
-        }
-    }
-    
-    static func == (lhs: StaticHeaderSection, rhs: StaticHeaderSection) -> Bool {
-        // Only compare values that affect rendering
-        lhs.selectedRule?.id == rhs.selectedRule?.id &&
-        lhs.viewMode == rhs.viewMode &&
-        lhs.hasBackSide == rhs.hasBackSide &&
-        lhs.cursorDisplayMode == rhs.cursorDisplayMode
-    }
-}
-
 // MARK: - DynamicSlideRuleContent
 
 struct DynamicSlideRuleContent: View {
     // Dependencies from ContentView
     let viewMode: ViewMode
-    let balancedFrontTopStator: Stator
-    let balancedFrontSlide: Slide
-    let balancedFrontBottomStator: Stator
-    let balancedBackTopStator: Stator?
-    let balancedBackSlide: Slide?
-    let balancedBackBottomStator: Stator?
+    let slideRule: SlideRule
     let calculatedDimensions: Dimensions
-    let marginFont: Font
+    let nameFont: Font
+    let formulaFont: Font
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
     let cursorDisplayMode: CursorDisplayMode
@@ -846,7 +862,7 @@ struct DynamicSlideRuleContent: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
                 VStack(spacing: 4) {
@@ -862,14 +878,15 @@ struct DynamicSlideRuleContent: View {
                     
                     SideView(
                         side: .front,
-                        topStator: balancedFrontTopStator,
-                        slide: balancedFrontSlide,
-                        bottomStator: balancedFrontBottomStator,
+                        topStator: slideRule.frontTopStator,
+                        slide: slideRule.frontSlide,
+                        bottomStator: slideRule.frontBottomStator,
                         width: calculatedDimensions.width,
                         scaleHeight: calculatedDimensions.scaleHeight,
                         leftMarginWidth: calculatedDimensions.leftMarginWidth,
                         rightMarginWidth: calculatedDimensions.rightMarginWidth,
-                        marginFont: marginFont,
+                        nameFont: nameFont,
+                        formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -890,15 +907,28 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
+                // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
+                // Creates a natural vertical flip effect when switching sides
+                // - New view slides up from the bottom with fade-in
+                // - Old view slides up to the top with fade-out
+                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
             }
-
-            Spacer().frame(height: 5)
+            
+            // Spacing between front and back sides when showing both
+            if viewMode == .both && slideRule.backTopStator != nil {
+                Spacer()
+                    .frame(height: 40)
+            }
 
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
-               let backTop = balancedBackTopStator,
-               let backSlide = balancedBackSlide,
-               let backBottom = balancedBackBottomStator {
+               let backTop = slideRule.backTopStator,
+               let backSlide = slideRule.backSlide,
+               let backBottom = slideRule.backBottomStator {
                 VStack(spacing: 4) {
                     SideView(
                         side: .back,
@@ -909,7 +939,8 @@ struct DynamicSlideRuleContent: View {
                         scaleHeight: calculatedDimensions.scaleHeight,
                         leftMarginWidth: calculatedDimensions.leftMarginWidth,
                         rightMarginWidth: calculatedDimensions.rightMarginWidth,
-                        marginFont: marginFont,
+                        nameFont: nameFont,
+                        formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         onDragChanged: handleDragChanged,
@@ -939,10 +970,20 @@ struct DynamicSlideRuleContent: View {
                         .frame(maxWidth: calculatedDimensions.width)
                     }
                 }
+                // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
+                // Creates a natural vertical flip effect when switching sides
+                // - New view slides up from the bottom with fade-in
+                // - Old view slides up to the top with fade-out
+                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .padding(.bottom, 40)
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
         }
@@ -950,16 +991,204 @@ struct DynamicSlideRuleContent: View {
 }
 
 
+// MARK: - Platform Color Helpers
+
+#if os(iOS)
+private func systemBackgroundColor() -> Color {
+    Color(uiColor: .systemBackground)
+}
+#else
+private func systemBackgroundColor() -> Color {
+    Color(nsColor: .windowBackgroundColor)
+}
+#endif
+
+// MARK: - Sidebar View (List of Slide Rules)
+
+struct SlideRuleSidebarView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Binding var selectedRule: SlideRuleDefinitionModel?
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    let availableRules: [SlideRuleDefinitionModel]
+    let onRuleSelected: (SlideRuleDefinitionModel) -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Cursor Display Mode Picker at top
+            VStack(spacing: 8) {
+                Text("Cursor Display")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                Picker("Cursor Display", selection: $cursorDisplayMode) {
+                    ForEach(CursorDisplayMode.allCases) { mode in
+                        Text(mode.displayText).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            .padding()
+            .background(systemBackgroundColor())
+            
+            Divider()
+            
+            // List of slide rules
+            List(availableRules, selection: $selectedRule) { rule in
+                Button {
+                    onRuleSelected(rule)
+                } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                    // Icon
+                    Image(systemName: rule.circularSpec != nil ? "circle.hexagongrid.circle" : "ruler.fill")
+                        .font(.title2)
+                        .foregroundColor(.accentColor)
+                        .frame(width: 30)
+                    
+                    // Details
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(rule.name)
+                            .font(.headline)
+                        
+                        Text(rule.ruleDescription)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+            }
+            .navigationTitle("Slide Rules")
+            #if os(macOS)
+            .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 400)
+            #endif
+            .onAppear {
+                initializeLibraryIfNeeded()
+            }
+        }
+    }
+    
+    /// Initialize library with standard rules if database is empty
+    private func initializeLibraryIfNeeded() {
+        if availableRules.isEmpty {
+            let standardRules = SlideRuleLibrary.standardRules()
+            for rule in standardRules {
+                modelContext.insert(rule)
+            }
+            
+            do {
+                try modelContext.save()
+            } catch {
+                print("Failed to initialize slide rule library: \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Detail View (Slide Rule Visualization)
+
+struct SlideRuleDetailView: View {
+    @Binding var viewMode: ViewMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    let deviceCategory: DeviceCategory
+    let currentSlideRule: SlideRule
+    
+    @Binding var calculatedDimensions: Dimensions
+    @Binding var sliderOffset: CGFloat
+    let cursorState: CursorState
+    
+    let handleDragChanged: (DragGesture.Value) -> Void
+    let handleDragEnded: (DragGesture.Value) -> Void
+    let totalScaleHeight: (RuleSide) -> CGFloat
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header controls (ViewMode picker for iPad/Mac)
+            // NOTE: Cursor Display picker is now in the sidebar
+            if deviceCategory.supportsMultiSideView {
+                VStack(spacing: 0) {
+                    Divider()
+                    
+                    combinedPickersSection()
+                    
+                    Divider()
+                }
+                .background(systemBackgroundColor())
+                .allowsHitTesting(true)
+                .zIndex(100)
+            }
+            
+            // Dynamic content - responds to sliderOffset
+            DynamicSlideRuleContent(
+                viewMode: viewMode,
+                slideRule: currentSlideRule,
+                calculatedDimensions: calculatedDimensions,
+                nameFont: calculatedDimensions.tier.nameFont,
+                formulaFont: calculatedDimensions.tier.formulaFont,
+                sliderOffset: $sliderOffset,
+                cursorState: cursorState,
+                cursorDisplayMode: cursorDisplayMode,
+                handleDragChanged: handleDragChanged,
+                handleDragEnded: handleDragEnded,
+                totalScaleHeight: totalScaleHeight
+            )
+            .overlay(alignment: .bottomTrailing) {
+                // Floating flip button for compact devices (iPhone, Apple Watch)
+                if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
+                    Color.clear
+                        .allowsHitTesting(false)
+                        .overlay(alignment: .bottomTrailing) {
+                            FlipButton(viewMode: $viewMode)
+                                .padding(20)
+                        }
+                }
+            }
+        }
+    }
+    
+    /// View Mode picker section for regular devices (iPad, Mac, Vision Pro)
+    @ViewBuilder
+    private func combinedPickersSection() -> some View {
+        let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
+            mode == .front || (currentSlideRule.backTopStator != nil)
+        }
+        
+        HStack(spacing: 16) {
+            Spacer()
+            
+            // View Mode Picker (Front | Back | Both)
+            Picker("View Mode", selection: $viewMode) {
+                ForEach(availableModes) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            .allowsHitTesting(true)
+            
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+}
+
 // MARK: - ContentView
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Query private var currentRuleQuery: [CurrentSlideRule]
+    @Query(sort: \SlideRuleDefinitionModel.sortOrder) private var availableRules: [SlideRuleDefinitionModel]
     
     @State private var sliderOffset: CGFloat = 0
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
+    @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     // ✅ State for calculated dimensions - only updates when window size changes
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64, tier: .extraLarge)
@@ -972,31 +1201,6 @@ struct ContentView: View {
     // Parsed slide rule from definition - published state to trigger re-renders
     @State private var currentSlideRule: SlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
     
-    // ✅ Cached balanced components - updated only when dependencies change
-    @State private var balancedFrontTopStator: Stator = Stator(name: "", scales: [], heightInPoints: 0, showBorder: false)
-    @State private var balancedFrontSlide: Slide = Slide(name: "", scales: [], heightInPoints: 0, showBorder: false)
-    @State private var balancedFrontBottomStator: Stator = Stator(name: "", scales: [], heightInPoints: 0, showBorder: false)
-    @State private var balancedBackTopStator: Stator? = nil
-    @State private var balancedBackSlide: Slide? = nil
-    @State private var balancedBackBottomStator: Stator? = nil
-    
-    // ✅ Helper to create a blank spacer scale for balancing
-    private func createSpacerScale(length: Double) -> GeneratedScale {
-        let spacerDefinition = ScaleDefinition(
-            name: "",
-            formula: "",
-            function: LinearFunction(),
-            beginValue: 1.0,
-            endValue: 10.0,
-            scaleLengthInPoints: length,
-            layout: .linear,
-            tickDirection: .up,
-            subsections: [],
-            showBaseline: false,
-            formulaTracking: 1.0
-        )
-        return GeneratedScale(definition: spacerDefinition)
-    }
     
     // Scale height configuration
     private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
@@ -1013,153 +1217,6 @@ struct ContentView: View {
     // Access current slide rule (now a @State variable, not computed)
     private var slideRule: SlideRule {
         currentSlideRule
-    }
-    
-    // ✅ Update cached balanced components - called when currentSlideRule or viewMode changes
-    private func updateBalancedComponents() {
-        // Front top stator
-        if viewMode == .both, let backTop = slideRule.backTopStator {
-            let frontCount = slideRule.frontTopStator.scales.count
-            let backCount = backTop.scales.count
-            
-            if frontCount < backCount {
-                let spacersNeeded = backCount - frontCount
-                var balancedScales = slideRule.frontTopStator.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedFrontTopStator = Stator(
-                    name: slideRule.frontTopStator.name,
-                    scales: balancedScales,
-                    heightInPoints: slideRule.frontTopStator.heightInPoints,
-                    showBorder: slideRule.frontTopStator.showBorder
-                )
-            } else {
-                balancedFrontTopStator = slideRule.frontTopStator
-            }
-        } else {
-            balancedFrontTopStator = slideRule.frontTopStator
-        }
-        
-        // Front slide
-        if viewMode == .both, let backSlide = slideRule.backSlide {
-            let frontCount = slideRule.frontSlide.scales.count
-            let backCount = backSlide.scales.count
-            
-            if frontCount < backCount {
-                let spacersNeeded = backCount - frontCount
-                var balancedScales = slideRule.frontSlide.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedFrontSlide = Slide(
-                    name: slideRule.frontSlide.name,
-                    scales: balancedScales,
-                    heightInPoints: slideRule.frontSlide.heightInPoints,
-                    showBorder: slideRule.frontSlide.showBorder
-                )
-            } else {
-                balancedFrontSlide = slideRule.frontSlide
-            }
-        } else {
-            balancedFrontSlide = slideRule.frontSlide
-        }
-        
-        // Front bottom stator
-        if viewMode == .both, let backBottom = slideRule.backBottomStator {
-            let frontCount = slideRule.frontBottomStator.scales.count
-            let backCount = backBottom.scales.count
-            
-            if frontCount < backCount {
-                let spacersNeeded = backCount - frontCount
-                var balancedScales = slideRule.frontBottomStator.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedFrontBottomStator = Stator(
-                    name: slideRule.frontBottomStator.name,
-                    scales: balancedScales,
-                    heightInPoints: slideRule.frontBottomStator.heightInPoints,
-                    showBorder: slideRule.frontBottomStator.showBorder
-                )
-            } else {
-                balancedFrontBottomStator = slideRule.frontBottomStator
-            }
-        } else {
-            balancedFrontBottomStator = slideRule.frontBottomStator
-        }
-        
-        // Back top stator
-        if viewMode == .both, let backTop = slideRule.backTopStator {
-            let frontCount = slideRule.frontTopStator.scales.count
-            let backCount = backTop.scales.count
-            
-            if backCount < frontCount {
-                let spacersNeeded = frontCount - backCount
-                var balancedScales = backTop.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedBackTopStator = Stator(
-                    name: backTop.name,
-                    scales: balancedScales,
-                    heightInPoints: backTop.heightInPoints,
-                    showBorder: backTop.showBorder
-                )
-            } else {
-                balancedBackTopStator = backTop
-            }
-        } else {
-            balancedBackTopStator = slideRule.backTopStator
-        }
-        
-        // Back slide
-        if viewMode == .both, let backSlide = slideRule.backSlide {
-            let frontCount = slideRule.frontSlide.scales.count
-            let backCount = backSlide.scales.count
-            
-            if backCount < frontCount {
-                let spacersNeeded = frontCount - backCount
-                var balancedScales = backSlide.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedBackSlide = Slide(
-                    name: backSlide.name,
-                    scales: balancedScales,
-                    heightInPoints: backSlide.heightInPoints,
-                    showBorder: backSlide.showBorder
-                )
-            } else {
-                balancedBackSlide = backSlide
-            }
-        } else {
-            balancedBackSlide = slideRule.backSlide
-        }
-        
-        // Back bottom stator
-        if viewMode == .both, let backBottom = slideRule.backBottomStator {
-            let frontCount = slideRule.frontBottomStator.scales.count
-            let backCount = backBottom.scales.count
-            
-            if backCount < frontCount {
-                let spacersNeeded = frontCount - backCount
-                var balancedScales = backBottom.scales
-                for _ in 0..<spacersNeeded {
-                    balancedScales.append(createSpacerScale(length: slideRule.totalLengthInPoints))
-                }
-                balancedBackBottomStator = Stator(
-                    name: backBottom.name,
-                    scales: balancedScales,
-                    heightInPoints: backBottom.heightInPoints,
-                    showBorder: backBottom.showBorder
-                )
-            } else {
-                balancedBackBottomStator = backBottom
-            }
-        } else {
-            balancedBackBottomStator = slideRule.backBottomStator
-        }
     }
     
     // Calculate total number of scales based on view mode
@@ -1207,31 +1264,98 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private nonisolated func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
+    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth - (padding * 2)
         let maxHeight = availableHeight - (padding * 2)
         
         // Determine layout tier based on available width
         let tier = LayoutTier.from(availableWidth: availableWidth)
-        let leftMarginWidth = tier.marginWidth
-        let rightMarginWidth = tier.marginWidth
+        
+        // On iPhone, use asymmetric margins to maximize space on the side without Dynamic Island
+        let leftMarginWidth: CGFloat
+        let rightMarginWidth: CGFloat
+        
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            // iPhone: NavigationSplitView collapses to single stack, so we have full width available
+            // Left margin must accommodate scale names (e.g., "LL00", "CI", "CIF")
+            // Minimum 28pt for scale names in bold caption2 font
+            let orientation = UIDevice.current.orientation
+            
+            switch orientation {
+            case .landscapeLeft:
+                // Dynamic Island on RIGHT in landscapeLeft
+                // Left needs space for scale names (28pt min), right accommodates Dynamic Island
+                leftMarginWidth = 28
+                rightMarginWidth = 20
+            case .landscapeRight:
+                // Dynamic Island on LEFT in landscapeRight
+                // Left needs space for both scale names AND Dynamic Island
+                leftMarginWidth = 32
+                rightMarginWidth = 12
+            default:
+                // Portrait or unknown: use balanced margins with scale name space
+                leftMarginWidth = 28
+                rightMarginWidth = 28
+            }
+        } else {
+            // iPad: Keep symmetric margins based on tier (already sufficient)
+            leftMarginWidth = tier.marginWidth
+            rightMarginWidth = tier.marginWidth
+        }
+        #else
+        // macOS/other: Keep symmetric margins
+        leftMarginWidth = tier.marginWidth
+        rightMarginWidth = tier.marginWidth
+        #endif
         
         // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
         let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
         
+        // Calculate local values instead of accessing @State properties
+        let localSideGapCount: Int
+        if viewMode == .both && currentSlideRule.backTopStator != nil {
+            localSideGapCount = 1
+        } else {
+            localSideGapCount = 0
+        }
+        
+        let localLabelHeight: CGFloat
+        if viewMode == .both && currentSlideRule.backTopStator != nil {
+            localLabelHeight = 30
+        } else {
+            localLabelHeight = 0
+        }
+        
+        // Calculate total scale count locally
+        var localTotalScaleCount = 0
+        if viewMode == .front || viewMode == .both {
+            localTotalScaleCount += currentSlideRule.frontTopStator.scales.count +
+                                     currentSlideRule.frontSlide.scales.count +
+                                     currentSlideRule.frontBottomStator.scales.count
+        }
+        if (viewMode == .back || viewMode == .both),
+           let backTop = currentSlideRule.backTopStator,
+           let backSlide = currentSlideRule.backSlide,
+           let backBottom = currentSlideRule.backBottomStator {
+            localTotalScaleCount += backTop.scales.count +
+                                     backSlide.scales.count +
+                                     backBottom.scales.count
+        }
+        
         // Account for spacing between sides and labels
-        let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
+        let totalSpacingHeight = (CGFloat(localSideGapCount) * sideSpacing) + localLabelHeight
         let availableHeightForScales = maxHeight - totalSpacingHeight
         
         // Calculate scale height based on available height
         let calculatedScaleHeight = min(
-            availableHeightForScales / CGFloat(totalScaleCount),
+            availableHeightForScales / CGFloat(localTotalScaleCount),
             maxScaleHeight
         )
         let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
         
         // Calculate total height needed for all scales
-        let totalHeight = scaleHeight * CGFloat(totalScaleCount) + totalSpacingHeight
+        let totalHeight = scaleHeight * CGFloat(localTotalScaleCount) + totalSpacingHeight
         
         // Calculate width based on aspect ratio
         let widthFromAspectRatio = totalHeight * targetAspectRatio
@@ -1260,13 +1384,13 @@ struct ContentView: View {
         
         switch side {
         case .front:
-            stator = balancedFrontTopStator
-            slide = balancedFrontSlide
-            bottomStator = balancedFrontBottomStator
+            stator = slideRule.frontTopStator
+            slide = slideRule.frontSlide
+            bottomStator = slideRule.frontBottomStator
         case .back:
-            guard let backTop = balancedBackTopStator,
-                  let backSlide = balancedBackSlide,
-                  let backBottom = balancedBackBottomStator else {
+            guard let backTop = slideRule.backTopStator,
+                  let backSlide = slideRule.backSlide,
+                  let backBottom = slideRule.backBottomStator else {
                 return 0
             }
             stator = backTop
@@ -1281,50 +1405,99 @@ struct ContentView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Static header - isolated from sliderOffset changes
-            StaticHeaderSection(
+        NavigationSplitView {
+            // SIDEBAR: List of available slide rules
+            SlideRuleSidebarView(
                 selectedRule: $selectedRuleDefinition,
-                viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
-                hasBackSide: currentSlideRule.backTopStator != nil
+                availableRules: availableRules,
+                onRuleSelected: { rule in
+                    selectedRuleDefinition = rule
+                    selectedRuleId = rule.id
+                }
             )
-            .equatable()
-            
-            // Dynamic content - responds to sliderOffset
-            DynamicSlideRuleContent(
-                viewMode: viewMode,
-                balancedFrontTopStator: balancedFrontTopStator,
-                balancedFrontSlide: balancedFrontSlide,
-                balancedFrontBottomStator: balancedFrontBottomStator,
-                balancedBackTopStator: balancedBackTopStator,
-                balancedBackSlide: balancedBackSlide,
-                balancedBackBottomStator: balancedBackBottomStator,
-                calculatedDimensions: calculatedDimensions,
-                marginFont: calculatedDimensions.tier.font,
-                sliderOffset: $sliderOffset,
-                cursorState: cursorState,
-                cursorDisplayMode: cursorDisplayMode,
-                handleDragChanged: handleDragChanged,
-                handleDragEnded: handleDragEnded,
-                totalScaleHeight: totalScaleHeight
-            )
+        } detail: {
+            // DETAIL: Slide rule visualization
+            if selectedRuleDefinition != nil {
+                SlideRuleDetailView(
+                    viewMode: $viewMode,
+                    cursorDisplayMode: $cursorDisplayMode,
+                    deviceCategory: deviceCategory,
+                    currentSlideRule: currentSlideRule,
+                    calculatedDimensions: $calculatedDimensions,
+                    sliderOffset: $sliderOffset,
+                    cursorState: cursorState,
+                    handleDragChanged: handleDragChanged,
+                    handleDragEnded: handleDragEnded,
+                    totalScaleHeight: totalScaleHeight
+                )
+                .onGeometryChange(for: Dimensions.self) { proxy in
+                    let size = proxy.size
+                    return calculateDimensions(
+                        availableWidth: size.width,
+                        availableHeight: size.height
+                    )
+                } action: { newDimensions in
+                    calculatedDimensions = newDimensions
+                }
+            } else {
+                // Empty state when no rule selected
+                ContentUnavailableView(
+                    "Select a Slide Rule",
+                    systemImage: "ruler",
+                    description: Text("Choose a slide rule from the sidebar to begin")
+                )
+            }
         }
-        .onGeometryChange(for: Dimensions.self) { proxy in
-            let size = proxy.size
-            return calculateDimensions(
-                availableWidth: size.width,
-                availableHeight: size.height
-            )
-        } action: { newDimensions in
-            calculatedDimensions = newDimensions
-        }
+        .navigationSplitViewStyle(.prominentDetail)
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
+            // Initialize device category
+            deviceCategory = DeviceDetection.currentDeviceCategory()
+            #if DEBUG
+            print("[ViewMode] Device category initialized: \(deviceCategory.rawValue)")
+            #endif
+            
+            // CRITICAL: Constrain viewMode to device capabilities on launch
+            let constrainedMode = viewMode.constrained(for: deviceCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining on launch: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
+            
             loadCurrentRule()
-            updateBalancedComponents()
+            
+            #if os(iOS)
+            // Start listening for orientation changes
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            #endif
         }
+        .onDisappear {
+            #if os(iOS)
+            // Stop listening for orientation changes
+            UIDevice.current.endGeneratingDeviceOrientationNotifications()
+            #endif
+        }
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            // Force recalculation when orientation changes (triggers onGeometryChange)
+            // The geometry will be the same, but we need to recalculate margins based on new orientation
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                #if DEBUG
+                print("[Orientation] Device orientation changed, recalculating dimensions")
+                #endif
+                // Trigger dimension recalculation by forcing the geometry change handler
+                let currentSize = CGSize(width: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8,
+                                        height: CGFloat(totalScaleCount) * calculatedDimensions.scaleHeight)
+                let newDimensions = calculateDimensions(availableWidth: currentSize.width + (padding * 2), 
+                                                       availableHeight: currentSize.height + (padding * 2))
+                calculatedDimensions = newDimensions
+            }
+        }
+        #endif
         .onChange(of: selectedRuleDefinition) { oldValue, newValue in
             print("🔄 selectedRuleDefinition changed (object)")
             selectedRuleId = newValue?.id
@@ -1337,8 +1510,33 @@ struct ContentView: View {
             sliderBaseOffset = 0
             saveCurrentRule()
         }
-        .onChange(of: viewMode) { _, _ in
-            updateBalancedComponents()
+        .onChange(of: horizontalSizeClass) { _, _ in
+            // Re-detect device category when size class changes
+            deviceCategory = DeviceDetection.currentDeviceCategory()
+            #if DEBUG
+            print("[ViewMode] Horizontal size class changed, device category updated: \(deviceCategory.rawValue)")
+            #endif
+            
+            // Constrain viewMode to device capabilities after size class change
+            let constrainedMode = viewMode.constrained(for: deviceCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining after size class change: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
+        }
+        .onChange(of: deviceCategory) { oldCategory, newCategory in
+            #if DEBUG
+            print("[ViewMode] Device category changed: \(oldCategory.rawValue) → \(newCategory.rawValue)")
+            #endif
+            let constrainedMode = viewMode.constrained(for: newCategory)
+            if constrainedMode != viewMode {
+                #if DEBUG
+                print("[ViewMode] Constraining after device category change: \(viewMode.rawValue) → \(constrainedMode.rawValue)")
+                #endif
+                viewMode = constrainedMode
+            }
         }
     }
     
@@ -1399,14 +1597,12 @@ struct ContentView: View {
         do {
             let parsed = try definition.parseSlideRule(scaleLength: 1000)
             currentSlideRule = parsed
-            updateBalancedComponents()
             print("✅ Successfully loaded slide rule: \(definition.name)")
             print("   Front scales: \(parsed.frontTopStator.scales.count) + \(parsed.frontSlide.scales.count) + \(parsed.frontBottomStator.scales.count)")
         } catch {
             print("❌ Failed to parse slide rule '\(definition.name)': \(error)")
             // Fallback to basic rule
             currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
-            updateBalancedComponents()
         }
     }
 }
@@ -1420,18 +1616,18 @@ extension ContentView: SlideRuleProvider {
             return nil
         }
         return (
-            topStator: balancedFrontTopStator,
-            slide: balancedFrontSlide,
-            bottomStator: balancedFrontBottomStator
+            topStator: currentSlideRule.frontTopStator,
+            slide: currentSlideRule.frontSlide,
+            bottomStator: currentSlideRule.frontBottomStator
         )
     }
     
     func getBackScaleData() -> (topStator: Stator, slide: Slide, bottomStator: Stator)? {
         // Only return data if back side is visible
         guard viewMode == .back || viewMode == .both,
-              let backTop = balancedBackTopStator,
-              let backSlide = balancedBackSlide,
-              let backBottom = balancedBackBottomStator else {
+              let backTop = currentSlideRule.backTopStator,
+              let backSlide = currentSlideRule.backSlide,
+              let backBottom = currentSlideRule.backBottomStator else {
             return nil
         }
         return (backTop, backSlide, backBottom)

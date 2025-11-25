@@ -193,12 +193,12 @@ struct FontConfig {
         /// Overall opacity of the gradient
         var opacity: Double
         
-        /// Default gradient: subtle dark to clear from left to right
+        /// Default gradient: subtle yellow to clear from left to right
         static let `default` = GradientConfig(
             colors: [
-                Color.black.opacity(0.3),
-                Color.black.opacity(0.15),
-                Color.black.opacity(0.05),
+                Color.yellow.opacity(0.3),
+                Color.yellow.opacity(0.15),
+                Color.yellow.opacity(0.05),
                 Color.clear
             ],
             startPoint: .leading,

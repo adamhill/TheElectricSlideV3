@@ -733,6 +733,80 @@ public enum StandardScales {
             .build()
     }
     
+    /// T1 scale: First half of double-length tangent scale from 5.7° to 45°
+    /// Pickett N3 Powerlog variant: covers tan 0.1 to 1.0
+    /// This is the first section of a split tangent scale that provides double precision
+    public static func t1Scale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("T1")
+            .withFormula("∡tan")
+            .withFunction(TangentFunction(multiplier: 10.0))
+            .withRange(begin: 5.7, end: 45)
+            .withLength(length)
+            .withTickDirection(.up)
+            .withSubsections([
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: 0.05° marks where tan() changes rapidly, readable to ~0.02°
+                // Historical: T1 scale (double-length variant) provides extended precision for small to medium angles
+                ScaleSubsection(
+                    startValue: 6.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Coarser marks as tan() increases rapidly, 0.1° → readable to ~0.05°
+                ScaleSubsection(
+                    startValue: 10.0,
+                    tickIntervals: [5.0, 1.0, 0.5, 0.1],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.angle
+                )
+            ])
+            .build()
+    }
+    
+    /// T2 scale: Second half of double-length tangent scale from 45° to 84.3°
+    /// Pickett N3 Powerlog variant: covers tan 1.0 to 10.0
+    /// This is the second section of a split tangent scale that extends the range
+    public static func t2Scale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("T2")
+            .withFormula("∡tan")
+            .withFunction(TangentFunction(multiplier: 10.0))
+            .withRange(begin: 45, end: 84.3)
+            .withLength(length)
+            .withTickDirection(.up)
+            .withSubsections([
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Medium angle range where tan() steepens, 0.5° → readable to ~0.2°
+                // Historical: T2 scale (double-length variant) covers steep tangent range 45°-84.3°
+                ScaleSubsection(
+                    startValue: 45.0,
+                    tickIntervals: [5.0, 1.0, 0.5],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: Steep angle range where tan() approaches infinity, 1.0° → readable to ~0.5°
+                ScaleSubsection(
+                    startValue: 60.0,
+                    tickIntervals: [5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.angle
+                ),
+                // Cursor Precision: 1 decimal (from 1.0 quaternary interval)
+                // Mathematical: Very steep near 84.3° (tan ≈ 10), 1.0° marks for visibility
+                ScaleSubsection(
+                    startValue: 75.0,
+                    tickIntervals: [5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.angle
+                )
+            ])
+            .build()
+    }
+    
     /// ST scale: Small angle tangent (for small angles where tan x ≈ x)
     public static func stScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
@@ -1535,6 +1609,8 @@ public enum StandardScales {
         
         case "S": return sScale(length: length)
         case "T": return tScale(length: length)
+        case "T1": return t1Scale(length: length)
+        case "T2": return t2Scale(length: length)
         case "ST": return stScale(length: length)
         case "L": return lScale(length: length)
         case "LN": return lnScale(length: length)
@@ -1588,9 +1664,13 @@ public enum StandardScales {
         case "Q3": return q3Scale(length: length)
         
         // Hyperbolic scales
-        case "SH","Sh1": return shScale(length: length)
+        case "SH": return shScale(length: length)
+        case "SH1": return sh1Scale(length: length)
+        case "SH2": return sh2Scale(length: length)
         case "CH": return chScale(length: length)
-        case "Th": return thScale(length: length)
+        case "TH": return thScale(length: length)
+        case "H1": return h1Scale(length: length)
+        case "H2": return h2Scale(length: length)
         
         // Power scales
         case "PA": return paScale(length: length)

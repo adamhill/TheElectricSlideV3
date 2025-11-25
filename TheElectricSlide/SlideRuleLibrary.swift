@@ -10,6 +10,10 @@ import Foundation
 /// Factory for creating standard slide rule definitions based on the PostScript reference
 struct SlideRuleLibrary {
     
+    /// Current version of the slide rule library
+    /// Increment this when adding/removing/modifying rules
+    static let libraryVersion = 2  // Changed from 1 to 2 for Pickett N3
+    
     /// All standard slide rule definitions from the PostScript engine
     static func standardRules() -> [SlideRuleDefinitionModel] {
         [
@@ -19,6 +23,7 @@ struct SlideRuleLibrary {
             ultralog(),
             keLon(),
             dsp01(),
+            pickettN3Powerlog(),
             circularCR3(),
             circularCR3P(),
             circularCR3Combined(),
@@ -112,6 +117,19 @@ struct SlideRuleLibrary {
             slideMM: 16,
             bottomStatorMM: 13,
             sortOrder: 5
+        )
+    }
+    
+    /// Pickett N3 Powerlog - Exponential
+    static func pickettN3Powerlog() -> SlideRuleDefinitionModel {
+        SlideRuleDefinitionModel(
+            name: "Pickett N3 Powerlog",
+            description: "Sophisticated dual-base duplex slide rule with 32 scales, featuring extended-precision square root, cube root, and tangent scales. Includes comprehensive log-log scales (LL0-LL3±) with extended range for exponential calculations. One of Pickett's most powerful general-purpose scientific computing rules.",
+            definitionString: "(K A [ B ST S T1 T2- CI C ] D DI : LL00 LL00- LL01 LL1- DF [ CF CIF Ln L CI C ] D LL02 LL2- LL03 LL3-)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: 6
         )
     }
     

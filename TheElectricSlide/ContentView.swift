@@ -641,10 +641,13 @@ struct StatorView: View, Equatable {
     let nameFont: Font
     let formulaFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
+    let ruleId: UUID?  // Track rule identity for view updates
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     // Note: cursorState is not compared (it's a reference)
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -707,9 +710,12 @@ struct SlideView: View, Equatable {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
+    let ruleId: UUID?  // Track rule identity for view updates
     
     // ✅ Equatable conformance - only compare properties that affect rendering
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -770,13 +776,16 @@ struct SideView: View, Equatable {
     let formulaFont: Font
     let sliderOffset: CGFloat
     let cursorState: CursorState?
+    let ruleId: UUID?  // Track rule identity for view updates
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: Closures and cursorState are not compared in Equatable
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -785,6 +794,11 @@ struct SideView: View, Equatable {
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
+    }
+    
+    /// Unique identifier string combining side and rule ID for child view identity
+    private var idPrefix: String {
+        "\(side.rawValue)-\(ruleId?.uuidString ?? "default")"
     }
     
     var body: some View {
@@ -800,10 +814,11 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState
+                cursorState: cursorState,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
-            .id("\(side.rawValue)-topStator")
+            .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
             
             // Slide (Movable)
             SlideView(
@@ -815,7 +830,8 @@ struct SideView: View, Equatable {
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
-                formulaFont: formulaFont
+                formulaFont: formulaFont,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -825,7 +841,7 @@ struct SideView: View, Equatable {
                     .onEnded(onDragEnded)
             )
             .animation(.interactiveSpring(), value: sliderOffset)
-            .id("\(side.rawValue)-slide")
+            .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
             
             // Bottom Stator (Fixed)
             StatorView(
@@ -838,10 +854,11 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState
+                cursorState: cursorState,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
-            .id("\(side.rawValue)-bottomStator")
+            .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
     }
 }
@@ -851,6 +868,7 @@ struct DynamicSlideRuleContent: View {
     // Dependencies from ContentView
     let viewMode: ViewMode
     let slideRule: SlideRule
+    let ruleId: UUID?  // Track rule identity for view updates
     let calculatedDimensions: Dimensions
     let nameFont: Font
     let formulaFont: Font
@@ -889,10 +907,12 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
+                        ruleId: ruleId,  // Pass rule ID for identity tracking
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
@@ -943,10 +963,12 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
+                        ruleId: ruleId,  // Pass rule ID for identity tracking
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
@@ -1094,6 +1116,7 @@ struct SlideRuleDetailView: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     let deviceCategory: DeviceCategory
     let currentSlideRule: SlideRule
+    let ruleId: UUID?  // Track rule identity for view updates
     
     @Binding var calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
@@ -1124,6 +1147,7 @@ struct SlideRuleDetailView: View {
             DynamicSlideRuleContent(
                 viewMode: viewMode,
                 slideRule: currentSlideRule,
+                ruleId: ruleId,
                 calculatedDimensions: calculatedDimensions,
                 nameFont: calculatedDimensions.tier.nameFont,
                 formulaFont: calculatedDimensions.tier.formulaFont,
@@ -1424,6 +1448,7 @@ struct ContentView: View {
                     cursorDisplayMode: $cursorDisplayMode,
                     deviceCategory: deviceCategory,
                     currentSlideRule: currentSlideRule,
+                    ruleId: selectedRuleId,
                     calculatedDimensions: $calculatedDimensions,
                     sliderOffset: $sliderOffset,
                     cursorState: cursorState,

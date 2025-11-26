@@ -234,11 +234,12 @@ struct FontConfig {
     }
     
     /// Create a SwiftUI Font from this configuration
+    /// Always uses monospacedDigit() for proper decimal point alignment
     func makeFont() -> Font {
         if let name = name {
-            return .custom(name, size: size)
+            return .custom(name, size: size).monospacedDigit()
         } else {
-            return .system(size: size, weight: weight, design: design)
+            return .system(size: size, weight: weight, design: design).monospacedDigit()
         }
     }
 }

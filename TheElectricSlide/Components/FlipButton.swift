@@ -75,6 +75,9 @@ struct FlipButton: View {
         .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(accessibilityHint)
+        .accessibilityIdentifier("flipButton")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityValue("Currently showing \(viewMode.rawValue) side")
     }
     
     // MARK: - Actions

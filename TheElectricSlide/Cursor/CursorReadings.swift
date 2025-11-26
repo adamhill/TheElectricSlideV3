@@ -203,22 +203,46 @@ extension CursorState {
             overallPosition: overallPosition
         )
     }
-    
     /// Format value for cursor reading display using specified decimal places
+    /// Pads integer portion for decimal point alignment across all readings
     /// - Parameters:
     ///   - value: The value to format
     ///   - decimalPlaces: Number of decimal places (from scale definition)
-    /// - Returns: Formatted string for display
+    /// - Returns: Formatted string for display with padded integer portion for alignment
+    ///
+    /// Output alignment (with 2-character integer padding):
+    /// ```
+    ///  0.123  (values < 1)
+    ///  5.678  (values 1-9)
+    /// 12.345  (values 10-99)
+    /// 105.678  (values 100+, no padding)
+    /// ```
     private func formatValueForCursor(
         value: Double,
         decimalPlaces: Int
     ) -> String {
         // Handle non-finite values
         guard value.isFinite else {
-            return "—"  // Em dash for undefined/infinite
+            return "  —"  // Em dash with padding for undefined/infinite
         }
         
-        // Format with specified decimal places
-        return String(format: "%.\(decimalPlaces)f", value)
+        // Format with at least 3 decimal places (ensure minimum padding for alignment)
+        let effectiveDecimalPlaces = max(3, decimalPlaces)
+        let formatted = String(format: "%.\(effectiveDecimalPlaces)f", value)
+        
+        // Find the decimal point position to determine integer part length
+        if let decimalIndex = formatted.firstIndex(of: ".") {
+            let integerPart = String(formatted[..<decimalIndex])
+            let decimalPart = String(formatted[decimalIndex...])
+            
+            // Pad integer part to 2 characters for alignment
+            // This handles values from 0.xxx to 99.xxx (most common on slide rules)
+            // Values 100+ will have no padding but still align at the decimal point
+            let paddedInteger = String(repeating: " ", count: max(0, 2 - integerPart.count)) + integerPart
+            return paddedInteger + decimalPart
+        }
+        
+        // Fallback for values without decimal point (shouldn't happen with format specifier)
+        return String(repeating: " ", count: max(0, 2 - formatted.count)) + formatted
     }
 }

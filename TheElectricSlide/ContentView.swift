@@ -878,14 +878,39 @@ struct DynamicSlideRuleContent: View {
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let totalScaleHeight: (RuleSide) -> CGFloat
+    let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
+    let deviceCategory: DeviceCategory  // For layout decisions
     
     var body: some View {
         VStack(spacing: 0) {
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
-                VStack(spacing: 4) {
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
+                VStack(spacing: 2) {
+                    // Rule name and side indicator (always shown on compact devices, optional on regular)
+                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                        HStack(spacing: 8) {
+                            Text(ruleName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text("Front")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .accessibilityLabel("Current slide rule: \(ruleName), Front side")
+                        .accessibilityIdentifier("slideRuleNameHeader_front")
+                    }
+                    
+                    // Cursor readings display above slide rule (iPhone: front values only, iPad/Mac: all visible sides)
+                    // On iPhone, show front readings when front side is visible
+                    let shouldShowFrontReadings = !deviceCategory.supportsMultiSideView
+                    // On iPad/Mac, show all readings from visible sides
+                    let shouldShowAllReadings = deviceCategory.supportsMultiSideView
+                    
+                    if shouldShowFrontReadings || shouldShowAllReadings {
                         CursorReadingsDisplayView(
                             readings: cursorState.currentReadings?.frontReadings ?? [],
                             side: .front
@@ -949,7 +974,25 @@ struct DynamicSlideRuleContent: View {
                let backTop = slideRule.backTopStator,
                let backSlide = slideRule.backSlide,
                let backBottom = slideRule.backBottomStator {
-                VStack(spacing: 4) {
+                VStack(spacing: 2) {
+                    // Rule name and side indicator (always shown on compact devices, optional on regular)
+                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                        HStack(spacing: 8) {
+                            Text(ruleName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text("Back")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .accessibilityLabel("Current slide rule: \(ruleName), Back side")
+                        .accessibilityIdentifier("slideRuleNameHeader_back")
+                    }
+                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -982,8 +1025,14 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients
                         )
                     }
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
+                    
+                    // On iPhone, show back cursor readings BELOW the slide rule
+                    // On iPhone, show back readings when back side is visible
+                    let shouldShowBackReadings = !deviceCategory.supportsMultiSideView
+                    // On iPad/Mac, show all readings from visible sides
+                    let shouldShowAllBackReadings = deviceCategory.supportsMultiSideView
+                    
+                    if shouldShowBackReadings || shouldShowAllBackReadings {
                         CursorReadingsDisplayView(
                             readings: cursorState.currentReadings?.backReadings ?? [],
                             side: .back
@@ -1117,6 +1166,7 @@ struct SlideRuleDetailView: View {
     let deviceCategory: DeviceCategory
     let currentSlideRule: SlideRule
     let ruleId: UUID?  // Track rule identity for view updates
+    let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     
     @Binding var calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
@@ -1156,17 +1206,17 @@ struct SlideRuleDetailView: View {
                 cursorDisplayMode: cursorDisplayMode,
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
-                totalScaleHeight: totalScaleHeight
+                totalScaleHeight: totalScaleHeight,
+                selectedRuleDefinition: selectedRuleDefinition,
+                deviceCategory: deviceCategory
             )
             .overlay(alignment: .bottomTrailing) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
+                // Positioned at bottom-right with padding that respects safe area insets
                 if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
-                    Color.clear
-                        .allowsHitTesting(false)
-                        .overlay(alignment: .bottomTrailing) {
-                            FlipButton(viewMode: $viewMode)
-                                .padding(20)
-                        }
+                    FlipButton(viewMode: $viewMode)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
                 }
             }
         }
@@ -1180,17 +1230,32 @@ struct SlideRuleDetailView: View {
         }
         
         HStack(spacing: 16) {
+            // Slide rule name label
+            if let ruleName = selectedRuleDefinition?.name {
+                Text(ruleName)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Current slide rule: \(ruleName)")
+                    .accessibilityIdentifier("currentSlideRuleName")
+            }
+            
             Spacer()
             
             // View Mode Picker (Front | Back | Both)
             Picker("View Mode", selection: $viewMode) {
                 ForEach(availableModes) { mode in
                     Text(mode.rawValue).tag(mode)
+                        .accessibilityLabel("\(mode.rawValue) side")
+                        .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
                 }
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 300)
             .allowsHitTesting(true)
+            .accessibilityLabel("View mode selector")
+            .accessibilityIdentifier("viewModePicker")
+            .accessibilityValue(viewMode.rawValue)
+            .accessibilityHint("Select which side of the slide rule to display")
             
             Spacer()
         }
@@ -1449,6 +1514,7 @@ struct ContentView: View {
                     deviceCategory: deviceCategory,
                     currentSlideRule: currentSlideRule,
                     ruleId: selectedRuleId,
+                    selectedRuleDefinition: selectedRuleDefinition,
                     calculatedDimensions: $calculatedDimensions,
                     sliderOffset: $sliderOffset,
                     cursorState: cursorState,
@@ -1562,6 +1628,13 @@ struct ContentView: View {
                 #endif
                 viewMode = constrainedMode
             }
+        }
+        .onChange(of: viewMode) { oldValue, newValue in
+            #if DEBUG
+            print("[ViewMode] View mode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
+            #endif
+            // Update cursor readings when view mode changes to reflect new visible scales
+            cursorState.updateReadings()
         }
     }
     

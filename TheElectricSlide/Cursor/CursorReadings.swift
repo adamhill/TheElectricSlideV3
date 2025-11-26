@@ -204,18 +204,24 @@ extension CursorState {
         )
     }
     /// Format value for cursor reading display using specified decimal places
-    /// Pads integer portion for decimal point alignment across all readings
+    /// Strips trailing zeros and pads integer portion for decimal point alignment
     /// - Parameters:
     ///   - value: The value to format
     ///   - decimalPlaces: Number of decimal places (from scale definition)
     /// - Returns: Formatted string for display with padded integer portion for alignment
     ///
+    /// Trailing zero stripping rules:
+    /// - "2.000" → "2"
+    /// - "2.500" → "2.5"
+    /// - "2.340" → "2.34"
+    /// - "2.345" → "2.345" (no change if non-zero at end)
+    ///
     /// Output alignment (with 2-character integer padding):
     /// ```
-    ///  0.123  (values < 1)
-    ///  5.678  (values 1-9)
-    /// 12.345  (values 10-99)
-    /// 105.678  (values 100+, no padding)
+    ///  0.1   (values < 1)
+    ///  5.67  (values 1-9)
+    /// 12     (values 10-99, exact graduation)
+    /// 105.6  (values 100+, no padding)
     /// ```
     private func formatValueForCursor(
         value: Double,
@@ -226,11 +232,21 @@ extension CursorState {
             return "  —"  // Em dash with padding for undefined/infinite
         }
         
-        // Format with at least 3 decimal places (ensure minimum padding for alignment)
-        let effectiveDecimalPlaces = max(3, decimalPlaces)
-        let formatted = String(format: "%.\(effectiveDecimalPlaces)f", value)
+        // Use configurable minimum decimal places from precision constants
+        let effectiveDecimalPlaces = max(CursorValuePrecision.defaultCursorDecimalPlaces, decimalPlaces)
+        var formatted = String(format: "%.\(effectiveDecimalPlaces)f", value)
         
-        // Find the decimal point position to determine integer part length
+        // Strip trailing zeros after decimal point
+        // "2.000" → "2", "2.500" → "2.5", "2.340" → "2.34"
+        while formatted.contains(".") && (formatted.hasSuffix("0") || formatted.hasSuffix(".")) {
+            if formatted.hasSuffix(".") {
+                formatted.removeLast()
+                break
+            }
+            formatted.removeLast()
+        }
+        
+        // Pad integer part for alignment
         if let decimalIndex = formatted.firstIndex(of: ".") {
             let integerPart = String(formatted[..<decimalIndex])
             let decimalPart = String(formatted[decimalIndex...])
@@ -240,9 +256,10 @@ extension CursorState {
             // Values 100+ will have no padding but still align at the decimal point
             let paddedInteger = String(repeating: " ", count: max(0, 2 - integerPart.count)) + integerPart
             return paddedInteger + decimalPart
+        } else {
+            // No decimal point (value like "2" or "123" after stripping)
+            let paddedInteger = String(repeating: " ", count: max(0, 2 - formatted.count)) + formatted
+            return paddedInteger
         }
-        
-        // Fallback for values without decimal point (shouldn't happen with format specifier)
-        return String(repeating: " ", count: max(0, 2 - formatted.count)) + formatted
     }
 }

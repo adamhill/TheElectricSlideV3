@@ -67,6 +67,21 @@ public enum CursorValuePrecision {
     /// - Exponential amplification of intermediate errors
     public static let nestedTranscendentalTolerance: Double = 1e-10
     
+    // MARK: - Cursor Display Configuration
+    
+    /// Default number of decimal places for cursor readings at standard zoom.
+    ///
+    /// This value establishes the minimum precision displayed in cursor readings
+    /// when the scale-provided decimal places would result in fewer digits.
+    /// Setting to 2 follows physical slide rule reading conventions where
+    /// values like "2" are preferred over "2.000" for exact graduations.
+    ///
+    /// # Usage
+    /// ```swift
+    /// let effectiveDecimalPlaces = max(CursorValuePrecision.defaultCursorDecimalPlaces, scaleDecimalPlaces)
+    /// ```
+    public static let defaultCursorDecimalPlaces: Int = 2
+    
     // MARK: - Display Precision Tolerances
     
     /// Tolerance for display formatting verification.

@@ -916,7 +916,7 @@ struct DynamicSlideRuleContent: View {
                             side: .front
                         )
                         .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
+                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
                     }
                     
                     SideView(
@@ -1038,7 +1038,7 @@ struct DynamicSlideRuleContent: View {
                             side: .back
                         )
                         .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
+                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
                     }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)

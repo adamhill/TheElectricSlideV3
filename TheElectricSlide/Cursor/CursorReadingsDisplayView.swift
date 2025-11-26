@@ -49,7 +49,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                         readingView(for: reading)
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 0)
                 .padding(.vertical, 4)
             }
             .frame(height: 56)
@@ -62,7 +62,7 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// - Parameter reading: The scale reading to display
     /// - Returns: View showing "scalename: value" with italicized value
     private func readingView(for reading: ScaleReading) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 0.5) {
             // Scale name in regular font
             Text(reading.scaleName)
                 .font(.system(size: 12, weight: .bold).monospaced())

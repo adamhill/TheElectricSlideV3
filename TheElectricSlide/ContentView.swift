@@ -1210,13 +1210,13 @@ struct SlideRuleDetailView: View {
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
             )
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
-                // Positioned at bottom-right with padding that respects safe area insets
+                // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
                 if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
                     FlipButton(viewMode: $viewMode)
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
+                        .padding(.leading, 16)
+                        .padding(.bottom, 16)
                 }
             }
         }

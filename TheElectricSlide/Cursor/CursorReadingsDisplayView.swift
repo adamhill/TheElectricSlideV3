@@ -44,7 +44,7 @@ struct CursorReadingsDisplayView: View, Equatable {
         } else {
             // Horizontal flow of readings
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: 2) {
                     ForEach(readings) { reading in
                         readingView(for: reading)
                     }
@@ -58,52 +58,94 @@ struct CursorReadingsDisplayView: View, Equatable {
         }
     }
     
-    /// Creates a single reading display element
-    /// - Parameter reading: The scale reading to display
-    /// - Returns: View showing "scalename: value" with italicized value
-    private func readingView(for reading: ScaleReading) -> some View {
-        HStack(spacing: 0.5) {
-            // Scale name in regular font
-            Text(reading.scaleName)
-                .font(.system(size: 12, weight: .bold).monospaced())
-                .foregroundStyle(.primary)
+    /// Returns fixed cell width optimized for each scale's name + typical value length
+    /// - Width is FIXED for a given scale (no jumping)
+    /// - Different scales have different widths based on their value range
+    private func cellWidth(for scaleName: String) -> CGFloat {
+        // Character width estimate: ~7pt per monospace char at size 11-12
+        // Plus 12pt padding (6pt each side)
+        let charWidth: CGFloat = 7
+        let padding: CGFloat = 12
+        
+        switch scaleName {
+        // Tighter 1-char names: C, D, S, T (values stay compact)
+        case "C", "D", "S", "T":
+            // 1 char name + space + 5 chars value = 6 chars
+            return charWidth * 7 + padding  // ~61pt
             
-            // Separator
-            Text(":")
-                .font(.system(size: 12, weight: .bold).monospaced())
-                .foregroundStyle(.secondary)
+        // Simple 1-char names with small values (1-10 range: "X.XX" = 4 chars)
+        case "A", "B", "K":
+            // 1 char name + space + 5 chars value = 6 chars
+            // K goes to 1000 but formatted as "999.9" = 5 chars
+            return charWidth * 7 + padding  // ~61pt
             
-            // Value with adaptive tracking to compress long decimals
-            // Prevents ellipsis truncation while maintaining readability
-            Text(reading.displayValue)
-                .font(.system(size: 12, weight: .regular).monospaced())
-                .italic()
-                .tracking(trackingAmount(for: reading.displayValue))
-                .fixedSize(horizontal: true, vertical: false)
-                .foregroundStyle(.primary)
+        // L scale needs extra width to prevent wrapping
+        case "L":
+            // 1 char name + space + 5 chars value = 6 chars, but needs +2 extra for visual spacing
+            return charWidth * 9 + padding  // ~75pt
+            
+        // Tighter 2-char names: CI
+        case "CI":
+            // 2 char name + space + 5 chars value = 7 chars
+            return charWidth * 8 + padding  // ~68pt
+            
+        // ST scale needs extra width (+2 multiplier from CI)
+        case "ST":
+            // 2 char name + space + 5 chars value = 7 chars + extra for visual spacing
+            return charWidth * 10 + padding  // ~82pt
+            
+        // 2-char names with small values
+        case "DI", "CF", "DF", "BI":
+            // 2 char name + space + 5 chars value = 7 chars
+            return charWidth * 8 + padding  // ~68pt
+            
+        // 3-char names
+        case "CIF":
+            // 3 char name + space + 5 chars value = 8 chars
+            return charWidth * 9 + padding  // ~75pt
+            
+        // LL scales (3-4 char names with longer values)
+        case "LL1", "LL3":
+            // 3 char name + space + 7 chars value = 10 chars
+            return charWidth * 11 + padding  // ~89pt
+            
+        // LL2 needs extra width to prevent clipping on K&E 4081
+        case "LL2":
+            // 3 char name + space + 7 chars value = 10 chars + extra to prevent overlap with FlipButton
+            return charWidth * 14 + padding  // ~110pt
+            
+        case "LL01", "LL02", "LL03", "LL00":
+            // 4 char name + space + 7 chars value = 11 chars
+            return charWidth * 12 + padding  // ~96pt
+            
+        default:
+            // Fallback for unknown scales
+            return charWidth * 10 + padding  // ~82pt
         }
     }
     
-    /// Calculates adaptive font tracking based on value length
-    /// - Parameter value: The display value string
-    /// - Returns: Negative tracking amount for compression (0 to -1.5)
-    ///
-    /// Longer values get more compression to fit without truncation:
-    /// - 5 chars or less: No compression (0)
-    /// - 6-7 chars: Slight compression (-0.5)
-    /// - 8-9 chars: More compression (-1.0)
-    /// - 10+ chars: Maximum compression (-1.5)
-    private func trackingAmount(for value: String) -> CGFloat {
-        let length = value.count
-        if length <= 5 {
-            return 0 // Normal spacing
-        } else if length <= 7 {
-            return -0.5 // Slight compression
-        } else if length <= 9 {
-            return -1.0 // More compression
-        } else {
-            return -1.5 // Maximum compression for very long values
+    /// Creates a single reading display element with per-scale fixed width
+    /// - Parameter reading: The scale reading to display
+    /// - Returns: View showing label and value with pill-styled background
+    private func readingView(for reading: ScaleReading) -> some View {
+        HStack(spacing: 2) {
+            Text(reading.scaleName)
+                .font(.system(size: 11, weight: .medium, design: .monospaced).smallCaps())
+                .foregroundStyle(.secondary)
+            
+            Text(reading.displayValue)
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Color.accentColor.opacity(0.85))
+                .contentTransition(.numericText())
+                .animation(.snappy(duration: 0.2), value: reading.displayValue)
         }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .frame(width: cellWidth(for: reading.scaleName), alignment: .leading)  // PER-SCALE FIXED WIDTH, left-aligned
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.accentColor.opacity(0.08))
+        )
     }
 }
 

@@ -182,6 +182,23 @@ struct CursorValueRoundTripTests {
             )
         }
     }
+    @Test("DIF scale round-trip: position → value → position")
+    @Test("DIF scale round-trip: position → value → position")
+    func difScaleRoundTrip() {
+        let difScale = StandardScales.difScale()
+        
+        for position in CursorValuePrecision.standardTestPositions {
+            let value = ScaleCalculator.value(at: position, on: difScale)
+            let computedPosition = ScaleCalculator.normalizedPosition(for: value, on: difScale)
+            
+            let error = abs(computedPosition - position)
+            #expect(
+                error < CursorValuePrecision.roundTripPositionTolerance,
+                "DIF scale round-trip failed at position \(position): error = \(error)"
+            )
+        }
+    }
+    
     
     // MARK: - Linear Scale (L)
     

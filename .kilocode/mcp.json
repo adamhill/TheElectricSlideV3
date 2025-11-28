@@ -1,70 +1,76 @@
 {
-  "mcpServers": {
-    "sosumi": {
-      "type": "streamable-http",
-      "url": "https://sosumi.ai/mcp",
-      "alwaysAllow": [
-        "searchAppleDocumentation",
-        "fetchAppleDocumentation"
-      ]
-    },
-    "tavily": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "tavily-mcp@0.2.3"
-      ],
-      "env": {
-        "TAVILY_API_KEY": "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"
-      },
-      "alwaysAllow": [
-        "tavily-search",
-        "tavily-extract",
-        "tavily-crawl",
-        "tavily-map"
-      ],
-      "disabled": true
-    },
-    "XcodeBuildMCP": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "xcodebuildmcp@latest"
-      ],
-      "env": {
-        "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
-      },
-      "alwaysAllow": [
-        "build_device",
-        "clean",
-        "discover_projs",
-        "get_app_bundle_id",
-        "get_device_app_path",
-        "discover_tools",
-        "build_run_macos",
-        "build_sim",
-        "install_app_sim",
-        "launch_app_logs_sim",
-        "list_schemes",
-        "screenshot",
-        "list_sims",
-        "build_run_sim",
-        "open_sim",
-        "describe_ui"
-      ]
-    },
-    "dash-api": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/Kapeli/dash-mcp-server.git",
-        "dash-mcp-server"
-      ],
-      "alwaysAllow": [
-        "list_installed_docsets",
-        "search_documentation",
-        "enable_docset_fts"
-      ]
+    "mcpServers": {
+        "sosumi": {
+            "type": "streamable-http",
+            "url": "https://sosumi.ai/mcp",
+            "alwaysAllow": [
+                "searchAppleDocumentation",
+                "fetchAppleDocumentation"
+            ]
+        },
+        "tavily": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "tavily-mcp@0.2.3"
+            ],
+            "env": {
+                "TAVILY_API_KEY": "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"
+            },
+            "alwaysAllow": [
+                "tavily-search",
+                "tavily-extract",
+                "tavily-crawl",
+                "tavily-map"
+            ],
+            "disabled": false
+        },
+        "XcodeBuildMCP": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "xcodebuildmcp@latest"
+            ],
+            "env": {
+                "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
+            },
+            "alwaysAllow": [
+                "build_device",
+                "clean",
+                "discover_projs",
+                "get_app_bundle_id",
+                "get_device_app_path",
+                "discover_tools",
+                "build_run_macos",
+                "build_sim",
+                "install_app_sim",
+                "launch_app_logs_sim",
+                "list_schemes",
+                "screenshot",
+                "list_sims",
+                "build_run_sim",
+                "open_sim",
+                "describe_ui",
+                "build_macos",
+                "tap",
+                "get_sim_app_path",
+                "launch_app_sim",
+                "gesture",
+                "swipe"
+            ]
+        },
+        "dash-api": {
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+https://github.com/Kapeli/dash-mcp-server.git",
+                "dash-mcp-server"
+            ],
+            "alwaysAllow": [
+                "list_installed_docsets",
+                "search_documentation",
+                "enable_docset_fts"
+            ]
+        }
     }
-  }
 }

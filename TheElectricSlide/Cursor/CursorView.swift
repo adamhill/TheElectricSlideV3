@@ -271,7 +271,7 @@ struct CursorView: View {
     static let cursorWidth: CGFloat = 144
     
     /// Height of the drag handle (positioned ABOVE the slide rule)
-    static let handleHeight: CGFloat = 32
+    static let handleHeight: CGFloat = 16
     
     // MARK: - Body
     
@@ -286,15 +286,11 @@ struct CursorView: View {
                     VStack(spacing: 2) {
                         Rectangle()
                             .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
+                            .frame(width: 30, height: 2)
                             .cornerRadius(1)
                         Rectangle()
                             .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
-                            .cornerRadius(1)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
+                            .frame(width: 30, height: 2)
                             .cornerRadius(1)
                     }
                 )

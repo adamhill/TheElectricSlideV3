@@ -42,17 +42,29 @@ struct CursorReadingsDisplayView: View, Equatable {
                 .foregroundStyle(.secondary)
                 .frame(height: 24)
         } else {
-            // Horizontal flow of readings
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(readings) { reading in
-                        readingView(for: reading)
+            // Horizontal flow of readings with side indicator
+            HStack(spacing: 4) {
+                // F/B indicator on the left
+                Text(side == .front ? "F" : "B")
+                    .font(.system(size: 10, weight: .bold).monospaced())
+                    .foregroundStyle(side == .front ? .blue : .green)
+                    .frame(width: 12, alignment: .center)
+                    .padding(.leading, 4)
+                
+                // Readings scroll view - maximize horizontal space
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(readings) { reading in
+                            readingView(for: reading)
+                        }
                     }
+                    .padding(.horizontal, 0)
+                    .padding(.vertical, 0)
                 }
-                .padding(.horizontal, 0)
-                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity)  // Maximize horizontal space
             }
-            .frame(height: 56)
+            .frame(height: 20)
+            .padding(.vertical, 0)
             .background(backgroundColor.opacity(0.5))
             .cornerRadius(4)
         }
@@ -136,8 +148,6 @@ struct CursorReadingsDisplayView: View, Equatable {
             Text(reading.displayValue)
                 .font(.system(size: 12, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Color.accentColor.opacity(0.85))
-                .contentTransition(.numericText())
-                .animation(.snappy(duration: 0.2), value: reading.displayValue)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)

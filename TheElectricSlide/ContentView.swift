@@ -215,6 +215,30 @@ enum CursorDisplayMode: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Cursor Reading Cycle Mode
+
+/// Defines which side's readings to display in the cursor readings area
+/// - currentSide: Show only the current side's readings (front or back)
+/// - oppositeSide: Show only the opposite side's readings
+/// - both: Show both sides' readings stacked vertically
+/// - none: Show nothing (collapsed)
+enum CursorReadingCycleMode: String, CaseIterable {
+    case currentSide
+    case oppositeSide
+    case both
+    case none
+    
+    /// Get next cycle mode (4-state cycle)
+    func next() -> CursorReadingCycleMode {
+        switch self {
+        case .currentSide: return .oppositeSide
+        case .oppositeSide: return .both
+        case .both: return .none
+        case .none: return .currentSide
+        }
+    }
+}
+
 // MARK: - Rule Side
 
 /// Represents which side of the slide rule is being displayed
@@ -875,6 +899,7 @@ struct DynamicSlideRuleContent: View {
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
     let cursorDisplayMode: CursorDisplayMode
+    @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let totalScaleHeight: (RuleSide) -> CGFloat
@@ -883,41 +908,35 @@ struct DynamicSlideRuleContent: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Consolidated cursor readings display - centered under title
+            // Shows readings based on cycle mode with tap-to-cycle gesture
+            VStack(spacing: 2) {
+                // Rule name and side indicator (always shown on compact devices)
+                if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                    HStack(spacing: 8) {
+                        Text(ruleName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text("•")
+                            .foregroundStyle(.secondary)
+                        Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 1)
+                    .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                    .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
+                }
+                
+                // Cursor readings with tap-to-cycle - compact stacked layout
+                cursorReadingsDisplayArea()
+                    .padding(.horizontal, 8)
+            }
+            
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
                 VStack(spacing: 2) {
-                    // Rule name and side indicator (always shown on compact devices, optional on regular)
-                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
-                        HStack(spacing: 8) {
-                            Text(ruleName)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text("•")
-                                .foregroundStyle(.secondary)
-                            Text("Front")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 1)
-                        .accessibilityLabel("Current slide rule: \(ruleName), Front side")
-                        .accessibilityIdentifier("slideRuleNameHeader_front")
-                    }
-                    
-                    // Cursor readings display above slide rule (iPhone: front values only, iPad/Mac: all visible sides)
-                    // On iPhone, show front readings when front side is visible
-                    let shouldShowFrontReadings = !deviceCategory.supportsMultiSideView
-                    // On iPad/Mac, show all readings from visible sides
-                    let shouldShowAllReadings = deviceCategory.supportsMultiSideView
-                    
-                    if shouldShowFrontReadings || shouldShowAllReadings {
-                        CursorReadingsDisplayView(
-                            readings: cursorState.currentReadings?.frontReadings ?? [],
-                            side: .front
-                        )
-                        .equatable()
-                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
-                    }
                     
                     SideView(
                         side: .front,
@@ -975,24 +994,6 @@ struct DynamicSlideRuleContent: View {
                let backSlide = slideRule.backSlide,
                let backBottom = slideRule.backBottomStator {
                 VStack(spacing: 2) {
-                    // Rule name and side indicator (always shown on compact devices, optional on regular)
-                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
-                        HStack(spacing: 8) {
-                            Text(ruleName)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text("•")
-                                .foregroundStyle(.secondary)
-                            Text("Back")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 1)
-                        .accessibilityLabel("Current slide rule: \(ruleName), Back side")
-                        .accessibilityIdentifier("slideRuleNameHeader_back")
-                    }
-                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -1025,21 +1026,6 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients
                         )
                     }
-                    
-                    // On iPhone, show back cursor readings BELOW the slide rule
-                    // On iPhone, show back readings when back side is visible
-                    let shouldShowBackReadings = !deviceCategory.supportsMultiSideView
-                    // On iPad/Mac, show all readings from visible sides
-                    let shouldShowAllBackReadings = deviceCategory.supportsMultiSideView
-                    
-                    if shouldShowBackReadings || shouldShowAllBackReadings {
-                        CursorReadingsDisplayView(
-                            readings: cursorState.currentReadings?.backReadings ?? [],
-                            side: .back
-                        )
-                        .equatable()
-                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
-                    }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
                 // Creates a natural vertical flip effect when switching sides
@@ -1059,6 +1045,93 @@ struct DynamicSlideRuleContent: View {
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
         }
+    }
+    
+    // MARK: - Cursor Readings Display Area with Tap-to-Cycle
+    
+    /// Creates the cursor readings display with tap-to-cycle functionality
+    /// Cycles through 4 states: currentSide → oppositeSide → both → none → repeat
+    @ViewBuilder
+    private func cursorReadingsDisplayArea() -> some View {
+        let frontReadings = cursorState.currentReadings?.frontReadings ?? []
+        let backReadings = cursorState.currentReadings?.backReadings ?? []
+        let hasBackSide = slideRule.backTopStator != nil
+        
+        // Determine which readings to show based on cycle mode and current view mode
+        // For single-side view modes (.front or .back), cycle mode determines display
+        // For .both view mode, always show both sides (no cycling)
+        let (shouldShowFront, shouldShowBack): (Bool, Bool) = {
+            switch viewMode {
+            case .both:
+                // In "both" view mode, always show both sides
+                return (true, hasBackSide)
+            case .front:
+                // Currently viewing front side
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (true, false)  // Show front only
+                case .oppositeSide:
+                    return (false, hasBackSide)  // Show back only (if exists)
+                case .both:
+                    return (true, hasBackSide)  // Show both
+                case .none:
+                    return (false, false)  // Show nothing
+                }
+            case .back:
+                // Currently viewing back side
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (false, true)  // Show back only
+                case .oppositeSide:
+                    return (true, false)  // Show front only
+                case .both:
+                    return (true, true)  // Show both
+                case .none:
+                    return (false, false)  // Show nothing
+                }
+            }
+        }()
+        
+        // Stacked layout with tap gesture - negative spacing for tight rows
+        VStack(spacing: -4) {
+            if shouldShowFront {
+                CursorReadingsDisplayView(
+                    readings: frontReadings,
+                    side: .front
+                )
+                .equatable()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 0)
+            }
+            
+            if shouldShowBack {
+                CursorReadingsDisplayView(
+                    readings: backReadings,
+                    side: .back
+                )
+                .equatable()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 0)
+            }
+            
+            // Show placeholder only when in "none" mode to maintain some tap target
+            if cursorReadingCycleMode == .none && viewMode != .both {
+                Color.clear
+                    .frame(height: 12)  // Minimal height for tap target
+            }
+        }
+        .frame(minHeight: 50)  // CRITICAL: Maintain consistent minimum height across all cycle modes
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Tap to cycle: only when not in "both" view mode
+            if viewMode != .both {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    cursorReadingCycleMode = cursorReadingCycleMode.next()
+                }
+            }
+        }
+        // Subtle opacity feedback on tap
+        .opacity(viewMode == .both ? 1.0 : 0.95)
     }
 }
 
@@ -1164,6 +1237,7 @@ struct SlideRuleSidebarView: View {
 struct SlideRuleDetailView: View {
     @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
+    @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let deviceCategory: DeviceCategory
     let currentSlideRule: SlideRule
     let ruleId: UUID?  // Track rule identity for view updates
@@ -1205,6 +1279,7 @@ struct SlideRuleDetailView: View {
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
                 cursorDisplayMode: cursorDisplayMode,
+                cursorReadingCycleMode: $cursorReadingCycleMode,
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
                 totalScaleHeight: totalScaleHeight,
@@ -1278,6 +1353,7 @@ struct ContentView: View {
     @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
     @State private var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
+    @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     // ✅ State for calculated dimensions - only updates when window size changes
 
@@ -1354,7 +1430,7 @@ struct ContentView: View {
     }
     
     // Helper function to calculate responsive dimensions
-    private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
+    nonisolated private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
         let maxWidth = availableWidth
         let maxHeight = availableHeight - (padding * 2)
         
@@ -1512,6 +1588,7 @@ struct ContentView: View {
                 SlideRuleDetailView(
                     viewMode: $viewMode,
                     cursorDisplayMode: $cursorDisplayMode,
+                    cursorReadingCycleMode: $cursorReadingCycleMode,
                     deviceCategory: deviceCategory,
                     currentSlideRule: currentSlideRule,
                     ruleId: selectedRuleId,
@@ -1710,10 +1787,8 @@ struct ContentView: View {
 
 extension ContentView: SlideRuleProvider {
     func getFrontScaleData() -> (topStator: Stator, slide: Slide, bottomStator: Stator)? {
-        // Only return data if front side is visible
-        guard viewMode == .front || viewMode == .both else {
-            return nil
-        }
+        // Always return front data - the view decides what to display
+        // This allows cursor readings to show opposite side or both sides
         return (
             topStator: currentSlideRule.frontTopStator,
             slide: currentSlideRule.frontSlide,
@@ -1722,9 +1797,9 @@ extension ContentView: SlideRuleProvider {
     }
     
     func getBackScaleData() -> (topStator: Stator, slide: Slide, bottomStator: Stator)? {
-        // Only return data if back side is visible
-        guard viewMode == .back || viewMode == .both,
-              let backTop = currentSlideRule.backTopStator,
+        // Always return back data if it exists - the view decides what to display
+        // This allows cursor readings to show opposite side or both sides
+        guard let backTop = currentSlideRule.backTopStator,
               let backSlide = currentSlideRule.backSlide,
               let backBottom = currentSlideRule.backBottomStator else {
             return nil

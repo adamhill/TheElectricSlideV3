@@ -396,7 +396,7 @@ swift test --filter .fast
   - Example: Search for "SwiftUI onGeometryChange", "Canvas rendering", "SwiftData persistence"
 - **Apple Docs MCP**: `mcp_apple-docs_*` tools
   - `mcp_apple-docs_get_apple_doc_content` - Detailed API documentation pages
-  - `mcp_apple-docs_find_related_apis` - Discover related APIs and alternatives
+  - `mcp_apple-docs_get_related_apis` - Discover related APIs and alternatives
   - `mcp_apple-docs_get_platform_compatibility` - Check API availability across OS versions
   - `mcp_apple-docs_get_sample_code` - Browse Apple sample code projects
   - Use for: WWDC session lookup, framework updates, migration guides

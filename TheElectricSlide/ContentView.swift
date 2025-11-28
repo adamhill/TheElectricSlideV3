@@ -1053,7 +1053,8 @@ struct DynamicSlideRuleContent: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 40)
+        .ignoresSafeArea(.container, edges: .horizontal)
+        .padding(.horizontal, deviceCategory == .phone ? 8 : 20)
         .padding(.bottom, 40)
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
@@ -1354,7 +1355,7 @@ struct ContentView: View {
     
     // Helper function to calculate responsive dimensions
     private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
-        let maxWidth = availableWidth - (padding * 2)
+        let maxWidth = availableWidth
         let maxHeight = availableHeight - (padding * 2)
         
         // Determine layout tier based on available width
@@ -1374,14 +1375,14 @@ struct ContentView: View {
             switch orientation {
             case .landscapeLeft:
                 // Dynamic Island on RIGHT in landscapeLeft
-                // Left needs space for scale names (28pt min), right accommodates Dynamic Island
-                leftMarginWidth = 28
-                rightMarginWidth = 20
+                // Left needs space for scale names, right can go tighter
+                leftMarginWidth = 20
+                rightMarginWidth = 8  // Restored from 4
             case .landscapeRight:
                 // Dynamic Island on LEFT in landscapeRight
-                // Left needs space for both scale names AND Dynamic Island
-                leftMarginWidth = 32
-                rightMarginWidth = 12
+                // Left needs space for scale names + Dynamic Island clearance, right minimal
+                leftMarginWidth = 24
+                rightMarginWidth = 4  // Restored from 0
             default:
                 // Portrait or unknown: use balanced margins with scale name space
                 leftMarginWidth = 28

@@ -28,6 +28,8 @@ struct SlideRulePicker: View {
                 } icon: {
                     Image(systemName: "ruler")
                 }
+                .accessibilityLabel("Current slide rule: \(currentRule?.name ?? "None selected")")
+                .accessibilityIdentifier("currentSlideRuleLabel")
                 
                 Spacer()
                 
@@ -40,6 +42,9 @@ struct SlideRulePicker: View {
                         .imageScale(.large)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isExpanded ? "Collapse slide rule list" : "Expand slide rule list")
+                .accessibilityIdentifier("slideRuleListToggle")
+                .accessibilityHint(isExpanded ? "Hides the list of available slide rules" : "Shows the list of available slide rules")
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -149,6 +154,7 @@ struct SlideRuleButton: View {
                     .font(.title2)
                     .foregroundColor(isSelected ? .white : .accentColor)
                     .frame(width: 30)
+                    .accessibilityHidden(true)  // Hide icon from VoiceOver (redundant with button label)
                 
                 // Details
                 VStack(alignment: .leading, spacing: 4) {
@@ -162,6 +168,7 @@ struct SlideRuleButton: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
+                .accessibilityElement(children: .combine)  // Combine name and description for VoiceOver
                 
                 Spacer()
                 
@@ -169,6 +176,7 @@ struct SlideRuleButton: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.white)
+                        .accessibilityHidden(true)  // Selection state is conveyed via button traits
                 }
             }
             .padding(.vertical, 8)
@@ -189,6 +197,11 @@ struct SlideRuleButton: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(rule.name). \(rule.ruleDescription)")
+        .accessibilityIdentifier("slideRuleButton_\(rule.name.replacingOccurrences(of: " ", with: "_"))")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityHint("Double tap to select this slide rule")
     }
 }
 

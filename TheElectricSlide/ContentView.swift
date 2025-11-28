@@ -641,10 +641,13 @@ struct StatorView: View, Equatable {
     let nameFont: Font
     let formulaFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
+    let ruleId: UUID?  // Track rule identity for view updates
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     // Note: cursorState is not compared (it's a reference)
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -707,9 +710,12 @@ struct SlideView: View, Equatable {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
+    let ruleId: UUID?  // Track rule identity for view updates
     
     // ✅ Equatable conformance - only compare properties that affect rendering
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -770,13 +776,16 @@ struct SideView: View, Equatable {
     let formulaFont: Font
     let sliderOffset: CGFloat
     let cursorState: CursorState?
+    let ruleId: UUID?  // Track rule identity for view updates
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: Closures and cursorState are not compared in Equatable
+    // ruleId is compared to force re-render when rule changes
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
+        lhs.ruleId == rhs.ruleId &&  // Compare rule ID to detect rule changes
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -785,6 +794,11 @@ struct SideView: View, Equatable {
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
+    }
+    
+    /// Unique identifier string combining side and rule ID for child view identity
+    private var idPrefix: String {
+        "\(side.rawValue)-\(ruleId?.uuidString ?? "default")"
     }
     
     var body: some View {
@@ -800,10 +814,11 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState
+                cursorState: cursorState,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
-            .id("\(side.rawValue)-topStator")
+            .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
             
             // Slide (Movable)
             SlideView(
@@ -815,7 +830,8 @@ struct SideView: View, Equatable {
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
-                formulaFont: formulaFont
+                formulaFont: formulaFont,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -825,7 +841,7 @@ struct SideView: View, Equatable {
                     .onEnded(onDragEnded)
             )
             .animation(.interactiveSpring(), value: sliderOffset)
-            .id("\(side.rawValue)-slide")
+            .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
             
             // Bottom Stator (Fixed)
             StatorView(
@@ -838,10 +854,11 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState
+                cursorState: cursorState,
+                ruleId: ruleId  // Pass rule ID for identity tracking
             )
             .equatable()
-            .id("\(side.rawValue)-bottomStator")
+            .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
     }
 }
@@ -851,6 +868,7 @@ struct DynamicSlideRuleContent: View {
     // Dependencies from ContentView
     let viewMode: ViewMode
     let slideRule: SlideRule
+    let ruleId: UUID?  // Track rule identity for view updates
     let calculatedDimensions: Dimensions
     let nameFont: Font
     let formulaFont: Font
@@ -860,20 +878,45 @@ struct DynamicSlideRuleContent: View {
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let totalScaleHeight: (RuleSide) -> CGFloat
+    let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
+    let deviceCategory: DeviceCategory  // For layout decisions
     
     var body: some View {
         VStack(spacing: 0) {
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
-                VStack(spacing: 4) {
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
+                VStack(spacing: 2) {
+                    // Rule name and side indicator (always shown on compact devices, optional on regular)
+                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                        HStack(spacing: 8) {
+                            Text(ruleName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text("Front")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .accessibilityLabel("Current slide rule: \(ruleName), Front side")
+                        .accessibilityIdentifier("slideRuleNameHeader_front")
+                    }
+                    
+                    // Cursor readings display above slide rule (iPhone: front values only, iPad/Mac: all visible sides)
+                    // On iPhone, show front readings when front side is visible
+                    let shouldShowFrontReadings = !deviceCategory.supportsMultiSideView
+                    // On iPad/Mac, show all readings from visible sides
+                    let shouldShowAllReadings = deviceCategory.supportsMultiSideView
+                    
+                    if shouldShowFrontReadings || shouldShowAllReadings {
                         CursorReadingsDisplayView(
                             readings: cursorState.currentReadings?.frontReadings ?? [],
                             side: .front
                         )
                         .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
+                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
                     }
                     
                     SideView(
@@ -889,10 +932,12 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
+                        ruleId: ruleId,  // Pass rule ID for identity tracking
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
@@ -929,7 +974,25 @@ struct DynamicSlideRuleContent: View {
                let backTop = slideRule.backTopStator,
                let backSlide = slideRule.backSlide,
                let backBottom = slideRule.backBottomStator {
-                VStack(spacing: 4) {
+                VStack(spacing: 2) {
+                    // Rule name and side indicator (always shown on compact devices, optional on regular)
+                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                        HStack(spacing: 8) {
+                            Text(ruleName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text("Back")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .accessibilityLabel("Current slide rule: \(ruleName), Back side")
+                        .accessibilityIdentifier("slideRuleNameHeader_back")
+                    }
+                    
                     SideView(
                         side: .back,
                         topStator: backTop,
@@ -943,10 +1006,12 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
+                        ruleId: ruleId,  // Pass rule ID for identity tracking
                         onDragChanged: handleDragChanged,
                         onDragEnded: handleDragEnded
                     )
                     .equatable()
+                    .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
@@ -960,14 +1025,20 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients
                         )
                     }
-                    // Cursor readings display above slide rule
-                    if cursorState.isEnabled {
+                    
+                    // On iPhone, show back cursor readings BELOW the slide rule
+                    // On iPhone, show back readings when back side is visible
+                    let shouldShowBackReadings = !deviceCategory.supportsMultiSideView
+                    // On iPad/Mac, show all readings from visible sides
+                    let shouldShowAllBackReadings = deviceCategory.supportsMultiSideView
+                    
+                    if shouldShowBackReadings || shouldShowAllBackReadings {
                         CursorReadingsDisplayView(
                             readings: cursorState.currentReadings?.backReadings ?? [],
                             side: .back
                         )
                         .equatable()
-                        .frame(maxWidth: calculatedDimensions.width)
+                        .frame(maxWidth: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8)
                     }
                 }
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch)
@@ -1094,6 +1165,8 @@ struct SlideRuleDetailView: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     let deviceCategory: DeviceCategory
     let currentSlideRule: SlideRule
+    let ruleId: UUID?  // Track rule identity for view updates
+    let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     
     @Binding var calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
@@ -1124,6 +1197,7 @@ struct SlideRuleDetailView: View {
             DynamicSlideRuleContent(
                 viewMode: viewMode,
                 slideRule: currentSlideRule,
+                ruleId: ruleId,
                 calculatedDimensions: calculatedDimensions,
                 nameFont: calculatedDimensions.tier.nameFont,
                 formulaFont: calculatedDimensions.tier.formulaFont,
@@ -1132,17 +1206,17 @@ struct SlideRuleDetailView: View {
                 cursorDisplayMode: cursorDisplayMode,
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
-                totalScaleHeight: totalScaleHeight
+                totalScaleHeight: totalScaleHeight,
+                selectedRuleDefinition: selectedRuleDefinition,
+                deviceCategory: deviceCategory
             )
-            .overlay(alignment: .bottomTrailing) {
+            .overlay(alignment: .bottomLeading) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
+                // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
                 if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
-                    Color.clear
-                        .allowsHitTesting(false)
-                        .overlay(alignment: .bottomTrailing) {
-                            FlipButton(viewMode: $viewMode)
-                                .padding(20)
-                        }
+                    FlipButton(viewMode: $viewMode)
+                        .padding(.leading, 16)
+                        .padding(.bottom, 16)
                 }
             }
         }
@@ -1156,17 +1230,32 @@ struct SlideRuleDetailView: View {
         }
         
         HStack(spacing: 16) {
+            // Slide rule name label
+            if let ruleName = selectedRuleDefinition?.name {
+                Text(ruleName)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Current slide rule: \(ruleName)")
+                    .accessibilityIdentifier("currentSlideRuleName")
+            }
+            
             Spacer()
             
             // View Mode Picker (Front | Back | Both)
             Picker("View Mode", selection: $viewMode) {
                 ForEach(availableModes) { mode in
                     Text(mode.rawValue).tag(mode)
+                        .accessibilityLabel("\(mode.rawValue) side")
+                        .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
                 }
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 300)
             .allowsHitTesting(true)
+            .accessibilityLabel("View mode selector")
+            .accessibilityIdentifier("viewModePicker")
+            .accessibilityValue(viewMode.rawValue)
+            .accessibilityHint("Select which side of the slide rule to display")
             
             Spacer()
         }
@@ -1424,6 +1513,8 @@ struct ContentView: View {
                     cursorDisplayMode: $cursorDisplayMode,
                     deviceCategory: deviceCategory,
                     currentSlideRule: currentSlideRule,
+                    ruleId: selectedRuleId,
+                    selectedRuleDefinition: selectedRuleDefinition,
                     calculatedDimensions: $calculatedDimensions,
                     sliderOffset: $sliderOffset,
                     cursorState: cursorState,
@@ -1537,6 +1628,13 @@ struct ContentView: View {
                 #endif
                 viewMode = constrainedMode
             }
+        }
+        .onChange(of: viewMode) { oldValue, newValue in
+            #if DEBUG
+            print("[ViewMode] View mode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
+            #endif
+            // Update cursor readings when view mode changes to reflect new visible scales
+            cursorState.updateReadings()
         }
     }
     

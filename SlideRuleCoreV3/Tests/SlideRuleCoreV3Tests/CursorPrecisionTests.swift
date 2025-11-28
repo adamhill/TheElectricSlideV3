@@ -1,7 +1,18 @@
+import Foundation
 import Testing
 @testable import SlideRuleCoreV3
 
 /// Tests for cursor precision API
+///
+/// These tests verify the cursor precision display logic, including:
+/// - Automatic precision calculation from tick intervals
+/// - Fixed precision overrides
+/// - Value formatting for cursor display
+///
+/// For mathematical precision of value calculations, see:
+/// - `CursorValueRoundTripTests` - Position → Value → Position accuracy
+/// - `CursorValueKnownValueTests` - Known mathematical values
+/// - `CursorValueBoundaryTests` - Scale boundary accuracy
 struct CursorPrecisionTests {
     
     // MARK: - Automatic Precision Calculation Tests
@@ -111,7 +122,7 @@ struct CursorPrecisionTests {
         #expect(decimals2 == 2)
     }
     
-    @Test("Format value for cursor display")
+    @Test("Format value for cursor display with explicit precision verification")
     func formatForCursorDisplay() {
         let scale = ScaleDefinition(
             name: "C",
@@ -129,9 +140,55 @@ struct CursorPrecisionTests {
             ]
         )
         
-        // Format a value with 3 decimal places
-        let formatted = scale.formatForCursor(value: 1.23456, at: 0.1, zoomLevel: 1.0)
-        #expect(formatted == "1.235" || formatted == "1.234") // Rounding may vary
+        // Test formatting with explicit expected value
+        // IEEE 754 rounding of 1.23456 to 3 decimal places should give 1.235
+        let testValue = 1.23456
+        let formatted = scale.formatForCursor(value: testValue, at: 0.1, zoomLevel: 1.0)
+        
+        // Verify the formatting is deterministic - standard IEEE rounding gives 1.235
+        #expect(formatted == "1.235", "Expected 1.23456 rounded to 3 places to be 1.235")
+        
+        // Verify the round-trip error is within expected formatting precision
+        // For 3 decimal places, max rounding error is 0.5 * 10^(-3) = 0.0005
+        // We use 0.001 as the tolerance to account for possible edge cases
+        if let parsedValue = Double(formatted) {
+            let roundTripError = abs(parsedValue - testValue)
+            let decimalPlaces = 3
+            let formattingTolerance = 0.5 * pow(10.0, Double(-decimalPlaces)) * 2.0  // 0.001 for 3 decimals
+            #expect(roundTripError < formattingTolerance,
+                    "Round-trip error (\(roundTripError)) should be < \(formattingTolerance) for \(decimalPlaces) decimal places")
+        }
+    }
+    
+    @Test("Format computed value at known position")
+    func formatComputedValueAtKnownPosition() {
+        let scale = ScaleDefinition(
+            name: "C",
+            formula: "x",
+            function: LogarithmicFunction(),
+            beginValue: 1.0,
+            endValue: 10.0,
+            scaleLengthInPoints: 250.0,
+            layout: .linear,
+            subsections: [
+                ScaleSubsection(
+                    startValue: 1.0,
+                    tickIntervals: [1, 0.1, 0.05, 0.01] // 3 decimals
+                )
+            ]
+        )
+        
+        // Use a known mathematical position: log10(2) ≈ 0.30103
+        let position = CursorValuePrecision.KnownValues.log10_2
+        
+        // First verify the computed value accuracy
+        let computedValue = ScaleCalculator.value(at: position, on: scale)
+        #expect(abs(computedValue - 2.0) < CursorValuePrecision.standardTolerance,
+                "Value at log10(2) should be 2.0 within standard tolerance")
+        
+        // Then verify the formatting is correct
+        let formatted = scale.formatForCursor(value: computedValue, at: position, zoomLevel: 1.0)
+        #expect(formatted == "2.000", "Value 2.0 formatted to 3 decimals should be 2.000")
     }
     
     @Test("Handle non-finite values gracefully")

@@ -319,6 +319,56 @@ public enum StandardScales {
             .build()
     }
     
+    /// Pickett 803 - DFm (a little different from the Poscrtipt Engine one)
+    /// DFm scale: D scale folded at log₁₀(e) (M to 10M)
+    /// Converts natural logarithms to base-10 logarithms
+    /// When cursor is on LL scale, D shows ln(x), and DFm shows log₁₀(x) = ln(x) × log₁₀(e)
+    public static func dfmScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("DFm")
+            .withFormula("Mx")
+            .withFunction(LogarithmicFunction())
+            .withRange(begin: .log10e, end: 10 * .log10e)
+            .withLength(length)
+            .withTickDirection(.down)
+            .withSubsections([
+                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
+                // Mathematical: Fine detail in M to 1.0 range, 0.005 marks → readable to ~0.002
+                // Historical: DFm scale for natural log to base-10 log conversion (K&E Model 803)
+                ScaleSubsection(
+                    startValue: Double.log10e,
+                    tickIntervals: [0.1, 0.05, 0.01, 0.005],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.oneDecimal
+                ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Standard C-scale-like precision, 0.05 marks → readable to ~0.02
+                ScaleSubsection(
+                    startValue: 1.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0]
+                ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Mid-range section maintains readable precision
+                ScaleSubsection(
+                    startValue: 2.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0]
+                ),
+                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
+                // Mathematical: Higher values with coarser intervals, 0.1 marks → readable to ~0.05
+                ScaleSubsection(
+                    startValue: 3.0,
+                    tickIntervals: [1.0, 0.5, 0.1],
+                    labelLevels: [0]
+                )
+            ])
+            .withLabelFormatter(StandardLabelFormatter.integer)
+            .addConstant(value: .log10e, label: "M", style: .major)
+            .addConstant(value: 1.0, label: "1", style: .major)
+            .build()
+    }
+    
     /// CIF scale: Inverted C scale folded at π (10π to π)
     /// Folded reciprocal scale for division operations
     public static func cifScale(length: Distance = 250.0) -> ScaleDefinition {
@@ -1602,6 +1652,8 @@ public enum StandardScales {
         case "CF": return cfScale(length: length)
             
         case "DF": return dfScale(length: length)
+        case "DFM", "DF/M", "DFm": return dfmScale(length: length) // Pickett 803 variant
+        case "DFMPSS": return dfmPostScriptScale(length: length) //DFm from the PS Engine
         case "CIF": return cifScale(length: length)
         case "DIF": return difScale(length: length)
         case "A": return aScale(length: length)
@@ -1685,4 +1737,5 @@ public enum StandardScales {
 
 extension Double {
     static let e = 2.718281828459045
+    static let log10e = 0.43429448190325176  // log₁₀(e) = 1/ln(10), also called "M" or modulus
 }

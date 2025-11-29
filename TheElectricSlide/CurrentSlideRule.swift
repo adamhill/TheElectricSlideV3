@@ -118,39 +118,39 @@ final class SlideRuleDefinitionModel {
     private func applyScaleNameOverrides(to rule: SlideRule) -> SlideRule {
         guard !scaleNameOverrides.isEmpty else { return rule }
         
-        // Helper function to override scale names in a Stator
-        func overrideStatorScales(_ stator: Stator) -> Stator {
-            let overriddenScales = stator.scales.map { generatedScale -> GeneratedScale in
-                let scaleName = generatedScale.definition.name
-                if let overrideName = scaleNameOverrides[scaleName] {
-                    // Create new definition with overridden name
-                    let newDefinition = ScaleDefinition(
-                        name: overrideName,
-                        formula: generatedScale.definition.formula,
-                        function: generatedScale.definition.function,
-                        beginValue: generatedScale.definition.beginValue,
-                        endValue: generatedScale.definition.endValue,
-                        scaleLengthInPoints: generatedScale.definition.scaleLengthInPoints,
-                        layout: generatedScale.definition.layout,
-                        tickDirection: generatedScale.definition.tickDirection,
-                        subsections: generatedScale.definition.subsections,
-                        defaultTickStyles: generatedScale.definition.defaultTickStyles,
-                        labelFormatter: generatedScale.definition.labelFormatter,
-                        labelColor: generatedScale.definition.labelColor,
-                        colorApplication: generatedScale.definition.colorApplication,
-                        constants: generatedScale.definition.constants,
-                        showBaseline: generatedScale.definition.showBaseline,
-                        formulaTracking: generatedScale.definition.formulaTracking
-                    )
-                    // Create new GeneratedScale with overridden definition
-                    return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
-                }
+        // Shared helper to override a single GeneratedScale
+        func overrideGeneratedScale(_ generatedScale: GeneratedScale) -> GeneratedScale {
+            let scaleName = generatedScale.definition.name
+            guard let overrideName = scaleNameOverrides[scaleName] else {
                 return generatedScale
             }
             
+            let newDefinition = ScaleDefinition(
+                name: overrideName,
+                formula: generatedScale.definition.formula,
+                function: generatedScale.definition.function,
+                beginValue: generatedScale.definition.beginValue,
+                endValue: generatedScale.definition.endValue,
+                scaleLengthInPoints: generatedScale.definition.scaleLengthInPoints,
+                layout: generatedScale.definition.layout,
+                tickDirection: generatedScale.definition.tickDirection,
+                subsections: generatedScale.definition.subsections,
+                defaultTickStyles: generatedScale.definition.defaultTickStyles,
+                labelFormatter: generatedScale.definition.labelFormatter,
+                labelColor: generatedScale.definition.labelColor,
+                colorApplication: generatedScale.definition.colorApplication,
+                constants: generatedScale.definition.constants,
+                showBaseline: generatedScale.definition.showBaseline,
+                formulaTracking: generatedScale.definition.formulaTracking
+            )
+            return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
+        }
+        
+        // Helper function to override scale names in a Stator
+        func overrideStatorScales(_ stator: Stator) -> Stator {
             return Stator(
                 name: stator.name,
-                scales: overriddenScales,
+                scales: stator.scales.map(overrideGeneratedScale),
                 heightInPoints: stator.heightInPoints,
                 showBorder: stator.showBorder
             )
@@ -158,37 +158,9 @@ final class SlideRuleDefinitionModel {
         
         // Helper function to override scale names in a Slide
         func overrideSlideScales(_ slide: Slide) -> Slide {
-            let overriddenScales = slide.scales.map { generatedScale -> GeneratedScale in
-                let scaleName = generatedScale.definition.name
-                if let overrideName = scaleNameOverrides[scaleName] {
-                    // Create new definition with overridden name
-                    let newDefinition = ScaleDefinition(
-                        name: overrideName,
-                        formula: generatedScale.definition.formula,
-                        function: generatedScale.definition.function,
-                        beginValue: generatedScale.definition.beginValue,
-                        endValue: generatedScale.definition.endValue,
-                        scaleLengthInPoints: generatedScale.definition.scaleLengthInPoints,
-                        layout: generatedScale.definition.layout,
-                        tickDirection: generatedScale.definition.tickDirection,
-                        subsections: generatedScale.definition.subsections,
-                        defaultTickStyles: generatedScale.definition.defaultTickStyles,
-                        labelFormatter: generatedScale.definition.labelFormatter,
-                        labelColor: generatedScale.definition.labelColor,
-                        colorApplication: generatedScale.definition.colorApplication,
-                        constants: generatedScale.definition.constants,
-                        showBaseline: generatedScale.definition.showBaseline,
-                        formulaTracking: generatedScale.definition.formulaTracking
-                    )
-                    // Create new GeneratedScale with overridden definition
-                    return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
-                }
-                return generatedScale
-            }
-            
             return Slide(
                 name: slide.name,
-                scales: overriddenScales,
+                scales: slide.scales.map(overrideGeneratedScale),
                 heightInPoints: slide.heightInPoints,
                 showBorder: slide.showBorder
             )

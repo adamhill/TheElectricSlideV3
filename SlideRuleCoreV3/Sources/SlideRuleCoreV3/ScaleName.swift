@@ -123,9 +123,9 @@ public enum ScaleName: String, CaseIterable, Sendable {
     // MARK: - Hemmi 266 Special Log-Log Scales
     
     case h266LL03 = "H266LL03"
-    case h266LL01 = "H266LL01^"
+    case h266LL01 = "H266LL01"
     case ll02B = "LL02B"
-    case ll2B = "LL2B-"
+    case ll2B = "LL2B"
     
     // MARK: - Human-Readable Description
     

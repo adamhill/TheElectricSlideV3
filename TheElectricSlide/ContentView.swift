@@ -1148,7 +1148,7 @@ struct DynamicSlideRuleContent: View {
             }
         }
         .accessibilityLabel("Cycle cursor reading mode")
-        .accessibilityHint("Tap to cycle between showing current side, opposite side, both sides, or no readings")
+        .accessibilityHint("Tap to cycle reading display modes")
         .accessibilityIdentifier("cursorReadingCycleToggle")
         // Subtle opacity feedback
         .opacity(0.95)

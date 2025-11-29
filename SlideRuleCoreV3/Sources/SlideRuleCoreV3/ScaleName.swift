@@ -247,16 +247,14 @@ public enum ScaleName: String, CaseIterable, Sendable {
     public static func lookup(_ name: String) -> ScaleName? {
         let normalized = name.uppercased()
         
-        // Check canonical names
-        if let direct = ScaleName(rawValue: normalized) {
-            return direct
+        // Check canonical names (case-insensitive)
+        for scale in ScaleName.allCases where scale.rawValue.uppercased() == normalized {
+            return scale
         }
         
         // Check aliases
-        for scale in ScaleName.allCases {
-            if scale.aliases.contains(where: { $0.uppercased() == normalized }) {
-                return scale
-            }
+        for scale in ScaleName.allCases where scale.aliases.contains(where: { $0.uppercased() == normalized }) {
+            return scale
         }
         
         return nil

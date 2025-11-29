@@ -58,10 +58,11 @@ struct CursorReadingsDisplayView: View, Equatable {
                             readingView(for: reading)
                         }
                     }
-                    .padding(.horizontal, 0)
-                    .padding(.vertical, 0)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
                 }
                 .frame(maxWidth: .infinity)  // Maximize horizontal space
+                .clipped()  // Prevent overflow
             }
             .frame(height: 20)
             .padding(.vertical, 0)

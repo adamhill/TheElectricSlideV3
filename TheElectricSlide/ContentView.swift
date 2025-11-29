@@ -1122,8 +1122,8 @@ struct DynamicSlideRuleContent: View {
                 .padding(.vertical, 0)
             }
             
-            // Show placeholder only when in "none" mode to maintain some tap target
-            if cursorReadingCycleMode == .none && viewMode != .both {
+            // Show placeholder when in "none" mode to maintain tap target
+            if cursorReadingCycleMode == .none {
                 Color.clear
                     .frame(height: 12)  // Minimal height for tap target
             }
@@ -1628,6 +1628,8 @@ struct ContentView: View {
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
+            // Set stator touched to show readings by default
+            cursorState.setStatorTouched()
             // Initialize device category
             deviceCategory = DeviceDetection.currentDeviceCategory()
             #if DEBUG
@@ -1683,6 +1685,8 @@ struct ContentView: View {
             parseAndUpdateSlideRule()
             sliderOffset = 0
             sliderBaseOffset = 0
+            // Force cursor readings update for new slide rule scales
+            cursorState.updateReadings()
             saveCurrentRule()
         }
         .onChange(of: horizontalSizeClass) { _, _ in
@@ -1770,6 +1774,7 @@ struct ContentView: View {
             // Use default rule
             print("⚠️ No definition selected, using default")
             currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
+            cursorState.updateReadings()
             return
         }
         
@@ -1781,10 +1786,14 @@ struct ContentView: View {
             currentSlideRule = parsed
             print("✅ Successfully loaded slide rule: \(definition.name)")
             print("   Front scales: \(parsed.frontTopStator.scales.count) + \(parsed.frontSlide.scales.count) + \(parsed.frontBottomStator.scales.count)")
+            
+            // Update cursor readings immediately after parsing new slide rule
+            cursorState.updateReadings()
         } catch {
             print("❌ Failed to parse slide rule '\(definition.name)': \(error)")
             // Fallback to basic rule
             currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
+            cursorState.updateReadings()
         }
     }
 }

@@ -72,7 +72,9 @@ struct SlideRuleLibrary {
             bottomStatorMM: 15,
             sortOrder: 1,
             scaleNameOverrides: [
-                "L": "dB L"  // Hemmi 266 labels L scale as "dB L"
+                "L": "dB L", // Hemmi 266 labels L scale as "dB L""
+                "H266LL01": "LL01",
+                "H266LL03": "LL03"
             ]
         )
     }

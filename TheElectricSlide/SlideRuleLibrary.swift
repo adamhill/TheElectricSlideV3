@@ -15,7 +15,8 @@ struct SlideRuleLibrary {
     /// Version 1: Initial library
     /// Version 2: Added Pickett N3
     /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
-    static let libraryVersion = 3
+    /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
+    static let libraryVersion = 4
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -72,9 +73,9 @@ struct SlideRuleLibrary {
             bottomStatorMM: 15,
             sortOrder: 1,
             scaleNameOverrides: [
-                "L": "dB L", // Hemmi 266 labels L scale as "dB L""
-                "H266LL01": "LL01",
-                "H266LL03": "LL03"
+                "L": "㏈ L", // Hemmi 266 labels L scale as "dB L""
+                "H266LL01": "L̅L̅1",
+                "H266LL03": "L̅L̅3"
             ]
         )
     }

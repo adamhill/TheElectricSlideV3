@@ -122,7 +122,7 @@ extension LayoutTier: Equatable {
 /// The available modes are device-dependent:
 /// - Compact devices (iPhone, Apple Watch) support only single-side views: .front or .back
 /// - Regular devices (iPad, Mac, Vision Pro) support all modes: .front, .back, and .both
-enum ViewMode: String, CaseIterable, Identifiable {
+enum ViewMode: String, CaseIterable, Identifiable, Sendable {
     case front = "Front"
     case back = "Back"
     case both = "Both"
@@ -189,7 +189,7 @@ enum ViewMode: String, CaseIterable, Identifiable {
 /// - gradients: Display only gradient overlay lines
 /// - values: Display only numerical reading values
 /// - both: Display both gradients and values
-enum CursorDisplayMode: String, CaseIterable, Identifiable {
+enum CursorDisplayMode: String, CaseIterable, Identifiable, Sendable {
     case gradients
     case values
     case both
@@ -233,7 +233,7 @@ enum CursorDisplayMode: String, CaseIterable, Identifiable {
 /// - oppositeSide: Show only the opposite side's readings
 /// - both: Show both sides' readings stacked vertically
 /// - none: Show nothing (collapsed)
-enum CursorReadingCycleMode: String, CaseIterable {
+enum CursorReadingCycleMode: String, CaseIterable, Sendable {
     case currentSide
     case oppositeSide
     case both

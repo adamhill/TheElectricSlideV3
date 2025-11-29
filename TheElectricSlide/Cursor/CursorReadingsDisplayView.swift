@@ -42,17 +42,30 @@ struct CursorReadingsDisplayView: View, Equatable {
                 .foregroundStyle(.secondary)
                 .frame(height: 24)
         } else {
-            // Horizontal flow of readings
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(readings) { reading in
-                        readingView(for: reading)
+            // Horizontal flow of readings with side indicator
+            HStack(spacing: 4) {
+                // F/B indicator on the left
+                Text(side == .front ? "F" : "B")
+                    .font(.system(size: 14, weight: .bold).monospaced())
+                    .foregroundStyle(side == .front ? .blue : .green)
+                    .frame(width: 18, alignment: .center)
+                    .padding(.leading, 4)
+                
+                // Readings scroll view - maximize horizontal space
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(readings) { reading in
+                            readingView(for: reading)
+                        }
                     }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
                 }
-                .padding(.horizontal, 0)
-                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity)  // Maximize horizontal space
+                .clipped()  // Prevent overflow
             }
-            .frame(height: 56)
+            .frame(height: 28)
+            .padding(.vertical, 0)
             .background(backgroundColor.opacity(0.5))
             .cornerRadius(4)
         }
@@ -62,10 +75,10 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// - Width is FIXED for a given scale (no jumping)
     /// - Different scales have different widths based on their value range
     private func cellWidth(for scaleName: String) -> CGFloat {
-        // Character width estimate: ~7pt per monospace char at size 11-12
-        // Plus 12pt padding (6pt each side)
-        let charWidth: CGFloat = 7
-        let padding: CGFloat = 12
+        // Character width estimate: ~8pt per monospace char at size 12-14 (iPad)
+        // Plus 14pt padding (7pt each side)
+        let charWidth: CGFloat = 8
+        let padding: CGFloat = 14
         
         switch scaleName {
         // Tighter 1-char names: C, D, S, T (values stay compact)
@@ -128,19 +141,17 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// - Parameter reading: The scale reading to display
     /// - Returns: View showing label and value with pill-styled background
     private func readingView(for reading: ScaleReading) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             Text(reading.scaleName)
-                .font(.system(size: 11, weight: .medium, design: .monospaced).smallCaps())
+                .font(.system(size: 12, weight: .medium, design: .monospaced).smallCaps())
                 .foregroundStyle(.secondary)
             
             Text(reading.displayValue)
-                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .font(.system(size: 14, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Color.accentColor.opacity(0.85))
-                .contentTransition(.numericText())
-                .animation(.snappy(duration: 0.2), value: reading.displayValue)
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
         .frame(width: cellWidth(for: reading.scaleName), alignment: .leading)  // PER-SCALE FIXED WIDTH, left-aligned
         .background(
             RoundedRectangle(cornerRadius: 4)

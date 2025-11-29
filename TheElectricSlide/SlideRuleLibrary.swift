@@ -12,11 +12,16 @@ struct SlideRuleLibrary {
     
     /// Current version of the slide rule library
     /// Increment this when adding/removing/modifying rules
-    static let libraryVersion = 2  // Changed from 1 to 2 for Pickett N3
+    /// Version 1: Initial library
+    /// Version 2: Added Pickett N3
+    /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
+    /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
+    static let libraryVersion = 4
     
     /// All standard slide rule definitions from the PostScript engine
+    /// Each rule is tagged with the current library version
     static func standardRules() -> [SlideRuleDefinitionModel] {
-        [
+        let rules = [
             keuffelEsser4081_3(),
             hemmi266(),
             hemmi266ThinkGeek(),
@@ -30,6 +35,12 @@ struct SlideRuleLibrary {
             basicDuplex(),
             mannheim(),
         ]
+        
+        // Tag all rules with current library version
+        return rules.map { rule in
+            rule.libraryVersion = libraryVersion
+            return rule
+        }
     }
     
     // MARK: - Linear Slide Rules
@@ -50,17 +61,22 @@ struct SlideRuleLibrary {
     }
     
     /// Hemmi 266 Standard
-    /// Front: LL03 LL01 LL02B LL2B- A [ B BI CI C ] D L- S T-
+    /// Front: H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank
     /// Back:  Electrical engineering scales
     static func hemmi266() -> SlideRuleDefinitionModel {
         SlideRuleDefinitionModel(
             name: "Hemmi 266",
             description: "Japanese precision slide rule with electrical engineering scales on the back.",
-            definitionString: "(K A [ B BI CI C ] D L- S T- : DF [ CF CIF CI C ] D)",
+            definitionString: "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
-            sortOrder: 1
+            sortOrder: 1,
+            scaleNameOverrides: [
+                "L": "㏈ L", // Hemmi 266 labels L scale as "dB L"
+                "H266LL01": "L̅L̅1",
+                "H266LL03": "L̅L̅3"
+            ]
         )
     }
     

@@ -42,6 +42,13 @@ final class SlideRuleDefinitionModel {
     /// Order for sorting
     var sortOrder: Int
     
+    /// Scale name overrides for custom display labels
+    /// Key: canonical scale name (e.g., "L"), Value: display name (e.g., "dB L")
+    var scaleNameOverrides: [String: String] = [:]
+    
+    /// Library version this rule was created/updated with
+    var libraryVersion: Int = 0
+    
     init(
         name: String,
         description: String,
@@ -51,7 +58,9 @@ final class SlideRuleDefinitionModel {
         bottomStatorMM: Double = 14,
         circularSpec: String? = nil,
         isFavorite: Bool = false,
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        scaleNameOverrides: [String: String] = [:],
+        libraryVersion: Int = 0
     ) {
         self.id = UUID()
         self.name = name
@@ -63,6 +72,8 @@ final class SlideRuleDefinitionModel {
         self.circularSpec = circularSpec
         self.isFavorite = isFavorite
         self.sortOrder = sortOrder
+        self.scaleNameOverrides = scaleNameOverrides
+        self.libraryVersion = libraryVersion
     }
     
     /// Parse this definition into a SlideRule
@@ -80,19 +91,102 @@ final class SlideRuleDefinitionModel {
             fullDefinition = definitionString
         }
         
+        var rule: SlideRule
         if circularSpec != nil {
-            return try RuleDefinitionParser.parseWithCircular(
+            rule = try RuleDefinitionParser.parseWithCircular(
                 fullDefinition,
                 dimensions: dimensions,
                 scaleLength: scaleLength
             )
         } else {
-            return try RuleDefinitionParser.parse(
+            rule = try RuleDefinitionParser.parse(
                 fullDefinition,
                 dimensions: dimensions,
                 scaleLength: scaleLength
             )
         }
+        
+        // Apply scale name overrides if any exist
+        if !scaleNameOverrides.isEmpty {
+            rule = applyScaleNameOverrides(to: rule)
+        }
+        
+        return rule
+    }
+    
+    /// Apply scale name overrides to a parsed slide rule
+    private func applyScaleNameOverrides(to rule: SlideRule) -> SlideRule {
+        guard !scaleNameOverrides.isEmpty else { return rule }
+        
+        // Shared helper to override a single GeneratedScale
+        func overrideGeneratedScale(_ generatedScale: GeneratedScale) -> GeneratedScale {
+            let scaleName = generatedScale.definition.name
+            guard let overrideName = scaleNameOverrides[scaleName] else {
+                return generatedScale
+            }
+            
+            let newDefinition = ScaleDefinition(
+                name: overrideName,
+                formula: generatedScale.definition.formula,
+                function: generatedScale.definition.function,
+                beginValue: generatedScale.definition.beginValue,
+                endValue: generatedScale.definition.endValue,
+                scaleLengthInPoints: generatedScale.definition.scaleLengthInPoints,
+                layout: generatedScale.definition.layout,
+                tickDirection: generatedScale.definition.tickDirection,
+                subsections: generatedScale.definition.subsections,
+                defaultTickStyles: generatedScale.definition.defaultTickStyles,
+                labelFormatter: generatedScale.definition.labelFormatter,
+                labelColor: generatedScale.definition.labelColor,
+                colorApplication: generatedScale.definition.colorApplication,
+                constants: generatedScale.definition.constants,
+                showBaseline: generatedScale.definition.showBaseline,
+                formulaTracking: generatedScale.definition.formulaTracking
+            )
+            return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
+        }
+        
+        // Helper function to override scale names in a Stator
+        func overrideStatorScales(_ stator: Stator) -> Stator {
+            return Stator(
+                name: stator.name,
+                scales: stator.scales.map(overrideGeneratedScale),
+                heightInPoints: stator.heightInPoints,
+                showBorder: stator.showBorder
+            )
+        }
+        
+        // Helper function to override scale names in a Slide
+        func overrideSlideScales(_ slide: Slide) -> Slide {
+            return Slide(
+                name: slide.name,
+                scales: slide.scales.map(overrideGeneratedScale),
+                heightInPoints: slide.heightInPoints,
+                showBorder: slide.showBorder
+            )
+        }
+        
+        // Apply overrides to front side
+        let newFrontTopStator = overrideStatorScales(rule.frontTopStator)
+        let newFrontSlide = overrideSlideScales(rule.frontSlide)
+        let newFrontBottomStator = overrideStatorScales(rule.frontBottomStator)
+        
+        // Apply overrides to back side (if it exists)
+        let newBackTopStator = rule.backTopStator.map { overrideStatorScales($0) }
+        let newBackSlide = rule.backSlide.map { overrideSlideScales($0) }
+        let newBackBottomStator = rule.backBottomStator.map { overrideStatorScales($0) }
+        
+        return SlideRule(
+            frontTopStator: newFrontTopStator,
+            frontSlide: newFrontSlide,
+            frontBottomStator: newFrontBottomStator,
+            backTopStator: newBackTopStator,
+            backSlide: newBackSlide,
+            backBottomStator: newBackBottomStator,
+            totalLengthInPoints: rule.totalLengthInPoints,
+            diameter: rule.diameter,
+            radialPositions: rule.radialPositions
+        )
     }
 }
 

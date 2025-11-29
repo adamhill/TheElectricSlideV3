@@ -55,7 +55,7 @@ struct CursorReadingDisplayConfig {
     static let `default` = CursorReadingDisplayConfig(
         scaleNameFont: FontConfig(
             name: nil,  // System font
-            size: 10,
+            size: 8,
             color: .black,
             weight: .regular,
             design: .default,
@@ -64,7 +64,7 @@ struct CursorReadingDisplayConfig {
         ),
         scaleValueFont: FontConfig(
             name: nil,  // System font
-            size: 10,
+            size: 8,
             color: .black,
             weight: .regular,
             design: .default,
@@ -78,7 +78,7 @@ struct CursorReadingDisplayConfig {
     static let large = CursorReadingDisplayConfig(
         scaleNameFont: FontConfig(
             name: nil,
-            size: 16,
+            size: 14,
             color: .black,
             weight: .bold,
             design: .default,
@@ -87,7 +87,7 @@ struct CursorReadingDisplayConfig {
         ),
         scaleValueFont: FontConfig(
             name: nil,
-            size: 14,
+            size: 12,
             color: .black,
             weight: .bold,
             design: .monospaced,
@@ -101,7 +101,7 @@ struct CursorReadingDisplayConfig {
     static let bold = CursorReadingDisplayConfig(
         scaleNameFont: FontConfig(
             name: nil,
-            size: 10,
+            size: 8,
             color: .black,
             weight: .bold,
             design: .default,
@@ -110,7 +110,7 @@ struct CursorReadingDisplayConfig {
         ),
         scaleValueFont: FontConfig(
             name: nil,
-            size: 10,
+            size: 8,
             color: .black,
             weight: .bold,
             design: .default,
@@ -124,7 +124,7 @@ struct CursorReadingDisplayConfig {
     static let monospaced = CursorReadingDisplayConfig(
         scaleNameFont: FontConfig(
             name: nil,
-            size: 10,
+            size: 8,
             color: .black,
             weight: .regular,
             design: .default,
@@ -133,7 +133,7 @@ struct CursorReadingDisplayConfig {
         ),
         scaleValueFont: FontConfig(
             name: nil,
-            size: 10,
+            size: 8,
             color: .black,
             weight: .regular,
             design: .monospaced,
@@ -271,7 +271,7 @@ struct CursorView: View {
     static let cursorWidth: CGFloat = 144
     
     /// Height of the drag handle (positioned ABOVE the slide rule)
-    static let handleHeight: CGFloat = 32
+    static let handleHeight: CGFloat = 16
     
     // MARK: - Body
     
@@ -286,15 +286,11 @@ struct CursorView: View {
                     VStack(spacing: 2) {
                         Rectangle()
                             .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
+                            .frame(width: 30, height: 2)
                             .cornerRadius(1)
                         Rectangle()
                             .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
-                            .cornerRadius(1)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 40, height: 2)
+                            .frame(width: 30, height: 2)
                             .cornerRadius(1)
                     }
                 )

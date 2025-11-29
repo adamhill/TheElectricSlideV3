@@ -20,7 +20,10 @@
                 "--",
                 "xcodebuildmcp"
             ],
-            "type": "stdio"
+            "type": "stdio",
+            "env": {
+                 "XCODEBUILDMCP_DYNAMIC_TOOLS": "true"
+  }
         },
         "apple-docs": {
             "type": "stdio",

@@ -183,7 +183,6 @@ struct CursorValueRoundTripTests {
         }
     }
     @Test("DIF scale round-trip: position → value → position")
-    @Test("DIF scale round-trip: position → value → position")
     func difScaleRoundTrip() {
         let difScale = StandardScales.difScale()
         

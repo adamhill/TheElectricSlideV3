@@ -146,15 +146,17 @@ struct Hemmi266LogLogScalesTests {
         }
         
         @Test("H266LL03 generates non-empty tick marks")
-        func h266ll03TickGeneration() {
+        func h266ll03TickGeneration() throws {
             let scale = StandardScales.h266LL03Scale(length: 250.0)
             let generated = GeneratedScale(definition: scale)
             
             #expect(!generated.tickMarks.isEmpty, "H266LL03 should generate tick marks")
             
             let values = generated.tickMarks.map { $0.value }
-            #expect(values.min()! >= 1.0, "Tick values should be within range")
-            #expect(values.max()! <= 50000.0, "Tick values should be within range")
+            let minValue = try #require(values.min(), "Should have tick values")
+            let maxValue = try #require(values.max(), "Should have tick values")
+            #expect(minValue >= 1.0, "Tick values should be within range")
+            #expect(maxValue <= 50000.0, "Tick values should be within range")
         }
         
         @Test("H266LL03 transform uses correct mathematical formula")

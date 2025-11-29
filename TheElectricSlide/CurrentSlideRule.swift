@@ -148,7 +148,7 @@ final class SlideRuleDefinitionModel {
         
         // Helper function to override scale names in a Stator
         func overrideStatorScales(_ stator: Stator) -> Stator {
-            Stator(
+            return Stator(
                 name: stator.name,
                 scales: stator.scales.map(overrideGeneratedScale),
                 heightInPoints: stator.heightInPoints,
@@ -158,7 +158,7 @@ final class SlideRuleDefinitionModel {
         
         // Helper function to override scale names in a Slide
         func overrideSlideScales(_ slide: Slide) -> Slide {
-            Slide(
+            return Slide(
                 name: slide.name,
                 scales: slide.scales.map(overrideGeneratedScale),
                 heightInPoints: slide.heightInPoints,

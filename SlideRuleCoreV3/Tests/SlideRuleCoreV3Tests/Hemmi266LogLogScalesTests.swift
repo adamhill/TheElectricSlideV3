@@ -323,15 +323,17 @@ struct Hemmi266LogLogScalesTests {
         }
         
         @Test("LL2B generates non-empty tick marks")
-        func ll2bTickGeneration() {
+        func ll2bTickGeneration() throws {
             let scale = StandardScales.ll2BScale_PostScriptAccurate(length: 250.0)
             let generated = GeneratedScale(definition: scale)
             
             #expect(!generated.tickMarks.isEmpty, "LL2B should generate tick marks")
             
             let values = generated.tickMarks.map { $0.value }
-            #expect(values.min()! >= 1.0, "Tick values should be within range")
-            #expect(values.max()! <= 20000.0, "Tick values should be within range")
+            let minValue = try #require(values.min(), "Should have tick values")
+            let maxValue = try #require(values.max(), "Should have tick values")
+            #expect(minValue >= 1.0, "Tick values should be within range")
+            #expect(maxValue <= 20000.0, "Tick values should be within range")
         }
         
         @Test("LL2B transform uses correct mathematical formula")

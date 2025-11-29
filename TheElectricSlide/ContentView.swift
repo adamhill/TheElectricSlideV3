@@ -74,19 +74,30 @@ enum LayoutTier: Sendable {
     
     /// Font size for scale names (left margin) - always bold
     nonisolated var nameFont: Font {
+        #if os(macOS)
+        // macOS: 2pt larger than standard
+        switch self {
+        case .extraLarge: return .system(size: 14, weight: .bold)  // caption ≈12pt + 2pt
+        case .large: return .system(size: 14, weight: .bold)
+        case .medium: return .system(size: 12, weight: .bold)  // caption2 ≈10pt + 2pt
+        case .small: return .system(size: 12, weight: .bold)
+        }
+        #else
+        // iOS/iPadOS: standard sizes
         switch self {
         case .extraLarge: return .caption.weight(.bold)
         case .large: return .caption.weight(.bold)
         case .medium: return .caption2.weight(.bold)
         case .small: return .caption2.weight(.bold)
         }
+        #endif
     }
     
     /// Font size for formulas (right margin) - slightly smaller than names
     nonisolated var formulaFont: Font {
         switch self {
-        case .extraLarge: return .caption
-        case .large: return .caption
+        case .extraLarge: return .caption.weight(.medium)
+        case .large: return .caption.weight(.medium)
         case .medium: return .caption2
         case .small: return .caption2
         }

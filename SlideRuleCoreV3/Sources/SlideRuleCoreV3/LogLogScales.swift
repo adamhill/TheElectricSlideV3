@@ -469,7 +469,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL2B")
-            .withFormula("log₁₀(ln(x)×10)/2")
+            .withFormula("e⁰·¹ˣ/²")
             .withFunction(ll2BFunction)
             .withRange(begin: 1.106, end: 20000.0)
             .withLength(length)
@@ -1797,7 +1797,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL02B")
-            .withFormula("log₁₀(−ln(x)×10)/2")
+            .withFormula("e⁻⁰·¹ˣ/²")
             .withFunction(ll02BFunction)
             .withRange(begin: 0.00005, end: 0.904)  // Extended range
             .withLength(length)
@@ -1858,7 +1858,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("LL00B")
-            .withFormula("log₁₀(−ln(x)×100)/2+0.5")
+            .withFormula("e⁻⁰·⁰¹ˣ/²")
             .withFunction(ll00BFunction)
             .withRange(begin: 0.900, end: 0.999)
             .withLength(length)
@@ -2008,7 +2008,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("H266LL03")
-            .withFormula("log₁₀(ln(x×10⁻⁹)×−0.1)/2")
+            .withFormula("e⁻⁰·¹ˣ×¹⁰⁻⁹")
             .withFunction(h266LL03Function)
             .withRange(begin: 1.0, end: 50000.0)  // Scale units, not physical values
             .withLength(length)

@@ -1679,6 +1679,12 @@ public enum StandardScales {
         case "LL02": return ll02Scale(length: length)
         case "LL03": return ll03Scale(length: length)
             
+        // Hemmi 266 Log-Log scales (specialized variants)
+        case "H266LL01": return h266LL01Scale(length: length)
+        case "H266LL03": return h266LL03Scale(length: length)
+        case "LL02B": return ll02BScale(length: length)
+        case "LL2B": return ll2BScale_PostScriptAccurate(length: length)
+            
         // NEW: B, BI, AI scales
         case "B": return bScale(length: length)
         case "BI": return biScale(length: length)
@@ -1727,6 +1733,22 @@ public enum StandardScales {
         // Power scales
         case "PA": return paScale(length: length)
         case "P": return pScale(length: length)
+        
+        // Electrical Engineering scales (Hemmi 266 Electronics and similar)
+        // Note: These use "ee" prefix to distinguish from standard scales with similar names
+        case "EEXL", "XL": return xlScale(length: length)
+        case "EEXC", "XC": return xcScale(length: length)
+        case "EEF": return fScale(length: length)
+        case "EER1", "R1EE": return eeReflectionCoefficientScale(length: length)
+        case "EER2", "R2EE": return eeReflectionCoefficient2Scale(length: length)
+        case "EEP": return eePowerRatioScale(length: length)
+        case "EEQ": return eePowerRatioInvertedScale(length: length)
+        case "EELI", "LI": return eeInductanceInvertedScale(length: length)
+        case "EECF": return eeCapacitanceFrequencyScale(length: length)
+        case "EECZ", "CZ": return czScale(length: length)
+        case "EEL": return eeInductanceScale(length: length)
+        case "EEZ", "Z": return zScale(length: length)
+        case "EEFO", "FO": return foScale(length: length)
             
         default: return nil
         }

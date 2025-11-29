@@ -74,10 +74,10 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// - Width is FIXED for a given scale (no jumping)
     /// - Different scales have different widths based on their value range
     private func cellWidth(for scaleName: String) -> CGFloat {
-        // Character width estimate: ~7pt per monospace char at size 11-12
-        // Plus 12pt padding (6pt each side)
-        let charWidth: CGFloat = 7
-        let padding: CGFloat = 12
+        // Character width estimate: ~6pt per monospace char at size 9-10
+        // Plus 10pt padding (5pt each side)
+        let charWidth: CGFloat = 6
+        let padding: CGFloat = 10
         
         switch scaleName {
         // Tighter 1-char names: C, D, S, T (values stay compact)
@@ -142,11 +142,11 @@ struct CursorReadingsDisplayView: View, Equatable {
     private func readingView(for reading: ScaleReading) -> some View {
         HStack(spacing: 2) {
             Text(reading.scaleName)
-                .font(.system(size: 11, weight: .medium, design: .monospaced).smallCaps())
+                .font(.system(size: 9, weight: .medium, design: .monospaced).smallCaps())
                 .foregroundStyle(.secondary)
             
             Text(reading.displayValue)
-                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .font(.system(size: 10, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Color.accentColor.opacity(0.85))
         }
         .padding(.horizontal, 4)

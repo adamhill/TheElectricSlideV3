@@ -99,36 +99,60 @@ struct SlideRulePicker: View {
         }
     }
     
-    /// Initialize library with standard rules if database is empty
+    /// Initialize or update library with standard rules
+    /// Detects version changes and updates modified rules
     private func initializeLibraryIfNeeded() {
-        #if DEBUG
-        // In debug mode, always reinitialize to pick up changes during development
-        print("DEBUG: Force reinitializing slide rule library")
-        for rule in availableRules {
-            modelContext.delete(rule)
-        }
         let standardRules = SlideRuleLibrary.standardRules()
-        for rule in standardRules {
-            modelContext.insert(rule)
-        }
-        UserDefaults.standard.set(SlideRuleLibrary.libraryVersion, forKey: "slideRuleLibraryVersion")
-        #else
-        // In production, check version and only reinitialize if changed
-        let storedVersion = UserDefaults.standard.integer(forKey: "slideRuleLibraryVersion")
-        let currentVersion = SlideRuleLibrary.libraryVersion
         
-        if storedVersion != currentVersion || availableRules.isEmpty {
-            print("Library version changed (\(storedVersion) -> \(currentVersion)) or empty, reinitializing")
-            for rule in availableRules {
-                modelContext.delete(rule)
-            }
-            let standardRules = SlideRuleLibrary.standardRules()
+        if availableRules.isEmpty {
+            // First time: insert all rules
+            print("📚 Initializing slide rule library (version \(SlideRuleLibrary.libraryVersion))")
             for rule in standardRules {
                 modelContext.insert(rule)
             }
-            UserDefaults.standard.set(currentVersion, forKey: "slideRuleLibraryVersion")
+        } else {
+            // Check if library version has changed
+            let maxExistingVersion = availableRules.map { $0.libraryVersion }.max() ?? 0
+            
+            if maxExistingVersion < SlideRuleLibrary.libraryVersion {
+                print("📚 Updating slide rule library: v\(maxExistingVersion) → v\(SlideRuleLibrary.libraryVersion)")
+                
+                // Create a lookup of existing rules by name
+                var existingRulesByName: [String: SlideRuleDefinitionModel] = [:]
+                for rule in availableRules {
+                    existingRulesByName[rule.name] = rule
+                }
+                
+                // Update or insert each standard rule
+                for standardRule in standardRules {
+                    if let existingRule = existingRulesByName[standardRule.name] {
+                        // Update existing rule with new definition
+                        print("  ↻ Updating: \(standardRule.name)")
+                        existingRule.ruleDescription = standardRule.ruleDescription
+                        existingRule.definitionString = standardRule.definitionString
+                        existingRule.topStatorMM = standardRule.topStatorMM
+                        existingRule.slideMM = standardRule.slideMM
+                        existingRule.bottomStatorMM = standardRule.bottomStatorMM
+                        existingRule.circularSpec = standardRule.circularSpec
+                        existingRule.sortOrder = standardRule.sortOrder
+                        existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
+                        existingRule.libraryVersion = standardRule.libraryVersion
+                        // Preserve user's favorite status
+                    } else {
+                        // New rule: insert it
+                        print("  + Adding: \(standardRule.name)")
+                        modelContext.insert(standardRule)
+                    }
+                }
+            }
         }
-        #endif
+        
+        do {
+            try modelContext.save()
+            print("✅ Slide rule library synchronized")
+        } catch {
+            print("❌ Failed to save slide rule library: \(error)")
+        }
     }
     
     /// Select first rule if none selected

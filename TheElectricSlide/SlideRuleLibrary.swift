@@ -12,11 +12,15 @@ struct SlideRuleLibrary {
     
     /// Current version of the slide rule library
     /// Increment this when adding/removing/modifying rules
-    static let libraryVersion = 2  // Changed from 1 to 2 for Pickett N3
+    /// Version 1: Initial library
+    /// Version 2: Added Pickett N3
+    /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
+    static let libraryVersion = 3
     
     /// All standard slide rule definitions from the PostScript engine
+    /// Each rule is tagged with the current library version
     static func standardRules() -> [SlideRuleDefinitionModel] {
-        [
+        let rules = [
             keuffelEsser4081_3(),
             hemmi266(),
             hemmi266ThinkGeek(),
@@ -30,6 +34,12 @@ struct SlideRuleLibrary {
             basicDuplex(),
             mannheim(),
         ]
+        
+        // Tag all rules with current library version
+        return rules.map { rule in
+            rule.libraryVersion = libraryVersion
+            return rule
+        }
     }
     
     // MARK: - Linear Slide Rules
@@ -60,7 +70,10 @@ struct SlideRuleLibrary {
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
-            sortOrder: 1
+            sortOrder: 1,
+            scaleNameOverrides: [
+                "L": "dB L"  // Hemmi 266 labels L scale as "dB L"
+            ]
         )
     }
     

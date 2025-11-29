@@ -1147,6 +1147,9 @@ struct DynamicSlideRuleContent: View {
                 cursorReadingCycleMode = cursorReadingCycleMode.next()
             }
         }
+        .accessibilityLabel("Cycle cursor reading mode")
+        .accessibilityHint("Tap to cycle reading display modes")
+        .accessibilityIdentifier("cursorReadingCycleToggle")
         // Subtle opacity feedback
         .opacity(0.95)
     }

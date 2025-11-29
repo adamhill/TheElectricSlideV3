@@ -1058,13 +1058,21 @@ struct DynamicSlideRuleContent: View {
         let hasBackSide = slideRule.backTopStator != nil
         
         // Determine which readings to show based on cycle mode and current view mode
-        // For single-side view modes (.front or .back), cycle mode determines display
-        // For .both view mode, always show both sides (no cycling)
+        // Cycle mode controls display for all view modes, allowing selective reading visibility
         let (shouldShowFront, shouldShowBack): (Bool, Bool) = {
             switch viewMode {
             case .both:
-                // In "both" view mode, always show both sides
-                return (true, hasBackSide)
+                // In "both" view mode, respect cycle mode for selective display
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (true, false)  // Show front only
+                case .oppositeSide:
+                    return (false, hasBackSide)  // Show back only (if exists)
+                case .both:
+                    return (true, hasBackSide)  // Show both
+                case .none:
+                    return (false, false)  // Show nothing
+                }
             case .front:
                 // Currently viewing front side
                 switch cursorReadingCycleMode {
@@ -1123,15 +1131,13 @@ struct DynamicSlideRuleContent: View {
         .frame(minHeight: 50)  // CRITICAL: Maintain consistent minimum height across all cycle modes
         .contentShape(Rectangle())
         .onTapGesture {
-            // Tap to cycle: only when not in "both" view mode
-            if viewMode != .both {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    cursorReadingCycleMode = cursorReadingCycleMode.next()
-                }
+            // Tap to cycle through all display states, regardless of view mode
+            withAnimation(.easeInOut(duration: 0.2)) {
+                cursorReadingCycleMode = cursorReadingCycleMode.next()
             }
         }
-        // Subtle opacity feedback on tap
-        .opacity(viewMode == .both ? 1.0 : 0.95)
+        // Subtle opacity feedback
+        .opacity(0.95)
     }
 }
 

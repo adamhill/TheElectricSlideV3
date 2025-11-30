@@ -1173,9 +1173,19 @@ private func systemBackgroundColor() -> Color {
 struct SlideRuleSidebarView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var selectedRule: SlideRuleDefinitionModel?
+    @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
     let availableRules: [SlideRuleDefinitionModel]
+    let hasBackSide: Bool
+    let deviceCategory: DeviceCategory
     let onRuleSelected: (SlideRuleDefinitionModel) -> Void
+    
+    /// Available view modes based on device category and slide rule capabilities
+    private var availableModes: [ViewMode] {
+        ViewMode.availableModes(for: deviceCategory).filter { mode in
+            mode == .front || hasBackSide
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1195,6 +1205,24 @@ struct SlideRuleSidebarView: View {
             }
             .padding()
             .background(systemBackgroundColor())
+
+            Divider()
+            
+            // View Mode Picker (Front | Back | Both)
+            Picker("View Mode", selection: $viewMode) {
+                ForEach(availableModes) { mode in
+                    Text(mode.rawValue).tag(mode)
+                        .accessibilityLabel("\(mode.rawValue) side")
+                        .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 300)
+            .allowsHitTesting(true)
+            .accessibilityLabel("View mode selector")
+            .accessibilityIdentifier("viewModePicker")
+            .accessibilityValue(viewMode.rawValue)
+            .accessibilityHint("Select which side of the slide rule to display")
             
             Divider()
             
@@ -1386,24 +1414,6 @@ struct SlideRuleDetailView: View {
                     .accessibilityLabel("Current slide rule: \(ruleName)")
                     .accessibilityIdentifier("currentSlideRuleName")
             }
-            
-            Spacer()
-            
-            // View Mode Picker (Front | Back | Both)
-            Picker("View Mode", selection: $viewMode) {
-                ForEach(availableModes) { mode in
-                    Text(mode.rawValue).tag(mode)
-                        .accessibilityLabel("\(mode.rawValue) side")
-                        .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            .allowsHitTesting(true)
-            .accessibilityLabel("View mode selector")
-            .accessibilityIdentifier("viewModePicker")
-            .accessibilityValue(viewMode.rawValue)
-            .accessibilityHint("Select which side of the slide rule to display")
             
             Spacer()
         }
@@ -1647,8 +1657,11 @@ struct ContentView: View {
             // SIDEBAR: List of available slide rules
             SlideRuleSidebarView(
                 selectedRule: $selectedRuleDefinition,
+                viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
                 availableRules: availableRules,
+                hasBackSide: currentSlideRule.backTopStator != nil,
+                deviceCategory: deviceCategory,
                 onRuleSelected: { rule in
                     selectedRuleDefinition = rule
                     selectedRuleId = rule.id

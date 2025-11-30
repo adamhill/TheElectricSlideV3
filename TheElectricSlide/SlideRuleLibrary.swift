@@ -16,12 +16,14 @@ struct SlideRuleLibrary {
     /// Version 2: Added Pickett N3
     /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
     /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
-    static let libraryVersion = 4
+    /// Version 5: Added Pickett N-16 ES Electronic with 32 specialized scales
+    static let libraryVersion = 5
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
     static func standardRules() -> [SlideRuleDefinitionModel] {
         let rules = [
+            pickettN16ESElectronic(),
             keuffelEsser4081_3(),
             hemmi266(),
             hemmi266ThinkGeek(),
@@ -44,6 +46,42 @@ struct SlideRuleLibrary {
     }
     
     // MARK: - Linear Slide Rules
+    
+    /// Pickett N-16 ES Electronic Slide Rule (circa 1960)
+    /// Professional electronics slide rule with 32 specialized scales
+    /// Designed by Chan Street for RF engineering, filter design, and impedance matching
+    /// Front: SH1 SH2 TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln
+    /// Back:  Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ
+    static func pickettN16ESElectronic() -> SlideRuleDefinitionModel {
+        SlideRuleDefinitionModel(
+            name: "Pickett N-16 ES Electronic",
+            description: """
+                Professional electronics slide rule with 32 specialized scales designed by Chan Street (circa 1960). \
+                Features revolutionary four-decade component scales (picofarads to farads, nanohenries to henries), \
+                reciprocal square root embedding for direct resonant frequency calculation (f = 1/(2π√LC)), and \
+                simultaneous triple reading (gain, phase, dB) for filter response. Eye-Saver yellow aluminum coating \
+                (5600Å wavelength). Used extensively in Apollo space program, color television development, RF engineering, \
+                and impedance matching. Includes decimal keeper to prevent magnitude errors across extreme component value ranges. \
+                Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
+                phase/gain/dB scales for complete filter characterization from single cursor position.
+                """,
+            definitionString: "(SH1 SH2 TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: 0,
+            scaleNameOverrides: [
+                "D": "D/Q",          // Decimal keeper with Q-factor dual mode
+                "L": "C/L",          // Combined capacitance/inductance scale
+                "Cos": "cos",        // Lowercase for clarity
+                "CosΘ": "cos Θ",     // Phase power factor with Greek letter
+                "Θ": "θ",            // Phase angle (lowercase Greek)
+                "λ": "λ",            // Wavelength (lowercase Greek)
+                "ω": "ω",            // Angular frequency (lowercase Greek)
+                "τ": "τ"             // Time constant (lowercase Greek)
+            ]
+        )
+    }
     
     /// Keuffel and Esser Log-Log Duplex Decitrig (4081-3)
     /// Front: LL01 K A [ B | T ST S ] D L- LL1-

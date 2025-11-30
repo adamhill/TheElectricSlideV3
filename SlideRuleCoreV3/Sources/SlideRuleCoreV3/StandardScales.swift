@@ -1749,6 +1749,31 @@ public enum StandardScales {
         case "EEL": return eeInductanceScale(length: length)
         case "EEZ", "Z": return zScale(length: length)
         case "EEFO", "FO": return foScale(length: length)
+        
+        // MARK: - Pickett N-16 ES Electronic Scales
+        // Component value scales (four-decade)
+        case "LR", "N16LR", "N16-LR": return n16esLrScale(length: length)
+        case "CR", "N16CR", "N16-CR": return n16esCrScale(length: length)
+        case "C/L", "CL", "N16CL", "N16-CL": return n16esClScale(length: length)
+        
+        // Frequency and wavelength scales
+        case "N16F", "N16-F": return n16esFrequencyScale(length: length)
+        case "Λ", "LAMBDA", "N16LAMBDA", "N16-LAMBDA", "N16Λ": return n16esWavelengthScale(length: length)
+        case "Ω", "OMEGA", "N16OMEGA", "N16-OMEGA", "N16Ω": return n16esOmegaScale(length: length)
+        
+        // Filter response scales (coordinated triple reading)
+        case "Θ", "THETA", "N16THETA", "N16-THETA", "N16Θ": return n16esThetaScale(length: length)
+        case "COS Θ", "COSΘ", "COS THETA", "COSTHETA", "N16COSTHETA", "N16-COSTHETA":
+            return n16esCosThetaScale(length: length)
+        case "DB", "N16DB", "N16-DB": return n16esDecibelPowerScale(length: length)
+        case "DBV", "N16DBV", "N16-DBV": return n16esDecibelVoltageScale(length: length)
+        
+        // Utility scales
+        case "D/Q", "DQ", "N16DQ", "N16-DQ": return n16esDecimalKeeperScale(length: length)
+        case "N16Q", "N16-Q", "QFACTOR": return n16esQFactorScale(length: length)
+        
+        // Time constant scale
+        case "Τ", "TAU", "N16TAU", "N16-TAU", "N16Τ": return n16esTimeConstantScale(length: length)
             
         default: return nil
         }

@@ -16,7 +16,8 @@ struct SlideRuleLibrary {
     /// Version 2: Added Pickett N3
     /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
     /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
-    static let libraryVersion = 4
+    /// Version 5: Added Pickett N-16 ES Electronic slide rule
+    static let libraryVersion = 5
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -29,6 +30,7 @@ struct SlideRuleLibrary {
             keLon(),
             dsp01(),
             pickettN3Powerlog(),
+            pickettN16ES(),
             circularCR3(),
             circularCR3P(),
             circularCR3Combined(),
@@ -146,6 +148,34 @@ struct SlideRuleLibrary {
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 6
+        )
+    }
+    
+    /// Pickett N-16 ES Electronic - Professional Electronics Slide Rule
+    /// Front: SH1, SH2, TH, DF [ CF, L, S, ST, T1 T2, CI, C ] D, LL3, LL2, LL1, Ln
+    /// Back:  Θ, db, D/Q, XL, Xc [ C/L, F, λ, ω, τ, Cr ] Lr, db, CosΘ
+    static func pickettN16ES() -> SlideRuleDefinitionModel {
+        SlideRuleDefinitionModel(
+            name: "Pickett N-16 ES Electronic",
+            description: """
+            Professional 32-scale electronics slide rule designed by Chan Street (circa 1960) for \
+            RF engineering, filter design, and AC circuit analysis. Manufactured by Pickett Industries \
+            (Alhambra, California). Featured revolutionary four-decade component scales (Lr, Cr) with \
+            embedded reciprocal functions for direct f = 1/(2π√LC) resonance calculation. The "-ES" \
+            Eye-Saver yellow aluminum construction (5600Å wavelength) reduced eye strain. Used during \
+            the Apollo space program for S-band RF calculations and antenna design. Simultaneous \
+            triple reading of gain, phase, and dB from single cursor position.
+            """,
+            definitionString: "(SH1 SH2 TH DF [ CF L S ST T1 T2 CI C ] D LL3 LL2 LL1 Ln : Θ db D/Q XL Xc [ C/L N16F λ ω τ Cr ] Lr db CosΘ)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: 7,
+            scaleNameOverrides: [
+                "db": "dB",           // Decibel notation
+                "CosΘ": "cos Θ",      // Cosine of phase
+                "N16F": "F"           // Frequency scale display name
+            ]
         )
     }
     

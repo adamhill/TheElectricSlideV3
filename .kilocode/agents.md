@@ -5,17 +5,66 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 
 ## Agent Capabilities: Local vs Remote
 
-### Local Agents (Running on Developer's Machine)
-**Full Access** - Can build, run, and test everything:
-- ✅ **App Development**: Use Xcodebuild MCP server to list simulators, build, and run `TheElectricSlide` app
-  - List available simulators: `mcp_xcodebuildmcp_list_sims`
-  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
-  - Interactive testing with UI feedback
-- ✅ **Package Development**: Direct `swift` commands for `SlideRuleCoreV3`
-  - `swift test` - Run package tests
-  - `swift build` - Build package
-  - `swift test --filter .fast` - Run tagged tests
-- ✅ **Full debugging** with Xcode, Instruments, breakpoints
+## Development Workflows
+
+### Building (Local Agents)
+
+**Using Xcodebuild MCP Server (Recommended for Local Agents):**
+```swift
+// List available iOS simulators
+mcp_xcodebuildmcp_list_sims({ enabled: true })
+
+// Build and run on iOS simulator (iPhone 17 Pro Max - recommended)
+mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
+    scheme: "TheElectricSlide",
+    simulatorName: "iPhone 17 Pro Max"
+})
+
+// Build and run on iPad simulator (iPad 13-inch M5 - recommended)
+mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
+    scheme: "TheElectricSlide",
+    simulatorName: "iPad 13-inch (M5)"
+})
+
+// Build and run on macOS (My Mac - native)
+mcp_xcodebuildmcp_build_run_mac_proj({
+    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
+    scheme: "TheElectricSlide"
+})
+
+// Interactive simulator testing workflow:
+// 1. Take screenshot to observe current state
+mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
+
+// 2. Inspect UI hierarchy and accessibility elements
+mcp_xcodebuildmcp_describe_ui({ simulatorUuid: "<uuid>" })
+
+// 3. Interact with UI elements
+mcp_xcodebuildmcp_tap({ simulatorUuid: "<uuid>", x: 200, y: 300 })
+mcp_xcodebuildmcp_swipe({ simulatorUuid: "<uuid>", x1: 100, y1: 400, x2: 300, y2: 400 })
+mcp_xcodebuildmcp_type_text({ simulatorUuid: "<uuid>", text: "test input" })
+
+// 4. Take another screenshot to verify changes
+mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
+```
+
+**Using Terminal Commands:**
+```bash
+# Xcode project (not workspace)
+open TheElectricSlide.xcodeproj
+
+# Command line build (app + tests)
+xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide
+
+# Swift package tests only (fast iteration - works for remote agents)
+cd SlideRuleCoreV3
+swift test
+
+# Run specific test suite with tags
+swift test --filter .fast
+```
 
 ### Remote Agents (Cloud/Sandbox Environments)
 **Limited Access** - Focus on calculation engine:

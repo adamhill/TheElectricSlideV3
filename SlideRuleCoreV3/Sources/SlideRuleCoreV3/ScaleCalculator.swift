@@ -495,6 +495,10 @@ public struct ScaleCalculator: Sendable {
         return allTicks
     }
     
+    /// Maximum number of iterations allowed for tick generation
+    /// Prevents runaway loops from misconfigured scale ranges
+    private static let maxTickIterations = 100_000
+    
     /// Generate ticks for a single subsection using modulo algorithm
     private static func generateSubsectionTicksModulo(
         subsection: ScaleSubsection,
@@ -530,6 +534,14 @@ public struct ScaleCalculator: Sendable {
         let incrementInt = toIntegerSpace(finestInterval, xfactor: xfactor)
         
         guard incrementInt > 0 else {
+            return []
+        }
+        
+        // DEFENSIVE: Check iteration count before starting
+        // Prevents runaway memory consumption from misconfigured scale ranges
+        let iterationCount = abs(endInt - startInt) / incrementInt + 1
+        guard iterationCount <= maxTickIterations else {
+            print("WARNING: ScaleCalculator refusing to generate \(iterationCount) ticks for subsection starting at \(subsection.startValue). Maximum allowed is \(maxTickIterations). Check scale range configuration.")
             return []
         }
         

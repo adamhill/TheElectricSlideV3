@@ -20,6 +20,7 @@ import SlideRuleCoreV3
 // - ScaleView (Components/ScaleView.swift)
 // - StatorView (Components/StatorView.swift)
 // - SlideView (Components/SlideView.swift)
+// - SideView (Components/SideView.swift)
 
 // MARK: - Pan Position Modifier
 
@@ -32,125 +33,6 @@ struct PanPositionModifier: ViewModifier {
         content
             .offset(offset)
             .animation(nil, value: offset)  // Explicitly disable animation
-    }
-}
-
-// MARK: - SideView Component (renders complete side: top stator, slide, bottom stator)
-
-struct SideView: View, Equatable {
-    let side: RuleSide
-    let topStator: Stator
-    let slide: Slide
-    let bottomStator: Stator
-    let width: CGFloat
-    let scaleHeight: CGFloat
-    let leftMarginWidth: CGFloat
-    let rightMarginWidth: CGFloat
-    let nameFont: Font
-    let formulaFont: Font
-    let sliderOffset: CGFloat
-    let cursorState: CursorState?
-    let ruleId: UUID?  // Track rule identity for view updates
-    let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let onDragChanged: (DragGesture.Value) -> Void
-    let onDragEnded: (DragGesture.Value) -> Void
-    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
-    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
-    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
-    
-    // ✅ Equatable conformance - only compare properties affecting rendering
-    // Note: Closures and cursorState are not compared in Equatable
-    // ruleId is compared to force re-render when rule changes
-    static func == (lhs: SideView, rhs: SideView) -> Bool {
-        lhs.side == rhs.side &&
-        lhs.ruleId == rhs.ruleId &&  // Compare rule ID to detect rule changes
-        lhs.width == rhs.width &&
-        lhs.scaleHeight == rhs.scaleHeight &&
-        lhs.leftMarginWidth == rhs.leftMarginWidth &&
-        lhs.rightMarginWidth == rhs.rightMarginWidth &&
-        lhs.sliderOffset == rhs.sliderOffset &&
-        lhs.currentZoomScale == rhs.currentZoomScale &&
-        lhs.topStator.scales.count == rhs.topStator.scales.count &&
-        lhs.slide.scales.count == rhs.slide.scales.count &&
-        lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
-    }
-    
-    /// Unique identifier string combining side and rule ID for child view identity
-    private var idPrefix: String {
-        "\(side.rawValue)-\(ruleId?.uuidString ?? "default")"
-    }
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Top Stator (Fixed)
-            StatorView(
-                stator: topStator,
-                width: width,
-                backgroundColor: .white,
-                borderColor: side.borderColor,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                cursorState: cursorState,
-                ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
-                onPanEnded: onPanEnded,  // Pan gesture end
-                onResetZoom: onResetZoom  // Triple-tap to reset zoom
-            )
-            .equatable()
-            .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
-            
-            // Slide (Movable) - triple-tap to reset zoom
-            SlideView(
-                slide: slide,
-                width: width,
-                backgroundColor: .white,
-                borderColor: .orange,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                ruleId: ruleId  // Pass rule ID for identity tracking
-            )
-            .equatable()
-            .offset(x: sliderOffset)
-            .onTapGesture(count: 3) {
-                // Triple-tap to reset zoom to 1.0×
-                onResetZoom?()
-            }
-            .gesture(
-                DragGesture()
-                    .onChanged(onDragChanged)
-                    .onEnded(onDragEnded)
-            )
-            .animation(.interactiveSpring(), value: sliderOffset)
-            .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
-            
-            // Bottom Stator (Fixed)
-            StatorView(
-                stator: bottomStator,
-                width: width,
-                backgroundColor: .white,
-                borderColor: side.borderColor,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                cursorState: cursorState,
-                ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
-                onPanEnded: onPanEnded,  // Pan gesture end
-                onResetZoom: onResetZoom  // Triple-tap to reset zoom
-            )
-            .equatable()
-            .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
-        }
     }
 }
 // MARK: - DynamicSlideRuleContent

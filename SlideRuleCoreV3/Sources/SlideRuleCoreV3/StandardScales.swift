@@ -1749,6 +1749,30 @@ public enum StandardScales {
         case "EEL": return eeInductanceScale(length: length)
         case "EEZ", "Z": return zScale(length: length)
         case "EEFO", "FO": return foScale(length: length)
+        
+        // Pickett N-16 ES Electronic Scales
+        // Component value scales (four-decade span)
+        case "LR": return inductanceReciprocalScale(length: length)
+        case "CR": return capacitanceReciprocalScale(length: length)
+        case "PICKETTL", "C/L": return pickettLScale(length: length)
+        
+        // Frequency and wavelength scales
+        case "F": return fScale(length: length)
+        case "OMEGA", "Ω", "ω": return angularFrequencyOmegaScale(length: length)
+        case "LAMBDA", "Λ", "λ": return wavelengthLambdaScale(length: length)
+        
+        // Filter response scales (coordinated triple reading)
+        case "THETA", "Θ", "θ": return phaseAngleThetaScale(length: length)
+        case "COS", "COSTHETA", "COSΘ", "COSθ": return cosinePowerFactorScale(length: length)
+        case "DB", "DECIBEL": return decibelPowerScale(length: length)
+        case "DBV", "DECIBELV": return decibelVoltageScale(length: length)
+        
+        // Time constant scale
+        case "TAU", "Τ", "τ": return timeConstantTauScale(length: length)
+        
+        // Utility scales
+        case "PICKETTD", "D/Q": return pickettDScale(length: length)
+        case "PICKETTQ", "Q": return pickettQScale(length: length)
             
         default: return nil
         }

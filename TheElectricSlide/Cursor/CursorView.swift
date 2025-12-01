@@ -265,6 +265,9 @@ struct CursorView: View {
     /// Whether to show gradient backgrounds
     var showGradients: Bool = true
     
+    /// Current zoom scale to display on handle
+    var zoomScale: CGFloat = 1.0
+    
     // MARK: - Constants
     
     /// Width of the cursor frame
@@ -278,22 +281,36 @@ struct CursorView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Gray handle at the very top - OUTSIDE the slide rule area
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color(white: 0.5).opacity(0.7))
-                .frame(width: Self.cursorWidth, height: Self.handleHeight)
-                .overlay(
-                    // Visual indicator for dragging
-                    VStack(spacing: 2) {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 30, height: 2)
-                            .cornerRadius(1)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.5))
-                            .frame(width: 30, height: 2)
-                            .cornerRadius(1)
-                    }
-                )
+            HStack(spacing: 0) {
+                // Zoom level label on left side of handle
+                Text(String(format: "%.1f×", zoomScale))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(width: 36, alignment: .center)
+                
+                // Handle with drag indicator
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.5).opacity(0.7))
+                    .frame(width: Self.cursorWidth - 36, height: Self.handleHeight)
+                    .overlay(
+                        // Visual indicator for dragging
+                        VStack(spacing: 2) {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 30, height: 2)
+                                .cornerRadius(1)
+                            Rectangle()
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 30, height: 2)
+                                .cornerRadius(1)
+                        }
+                    )
+            }
+            .frame(width: Self.cursorWidth, height: Self.handleHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.5).opacity(0.7))
+            )
             
             // Cursor glass area - extends full height of slide rule
             ZStack(alignment: .topLeading) {

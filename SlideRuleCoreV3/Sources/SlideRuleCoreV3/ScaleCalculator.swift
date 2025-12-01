@@ -126,9 +126,16 @@ public struct ScaleCalculator: Sendable {
         let fR = function.transform(xR)
         let fx = function.transform(value)
         
+        // Guard against division by zero (degenerate scale)
+        let denominator = fR - fL
+        guard denominator != 0 else {
+            // Return 0 for degenerate scales (all values map to same position)
+            return 0.0
+        }
+        
         // Normalized position formula from mathematical foundations
         // This works for BOTH linear and circular scales!
-        let normalizedPosition = (fx - fL) / (fR - fL)
+        let normalizedPosition = (fx - fL) / denominator
         
         return normalizedPosition
     }
@@ -208,6 +215,13 @@ public struct ScaleCalculator: Sendable {
         let fL = function.transform(xL)
         let fR = function.transform(xR)
         
+        // Guard against degenerate scale (all positions map to same value)
+        let range = fR - fL
+        guard range != 0 else {
+            // Return begin value for degenerate scales
+            return xL
+        }
+        
         // PRECISION-CRITICAL: Linear interpolation in transformed space
         //
         // Formula: fx = fL + position * (fR - fL)
@@ -218,7 +232,6 @@ public struct ScaleCalculator: Sendable {
         // The fma() alternative: fx = fma(position, fR - fL, fL)
         // provides marginally better precision (~0.5 ulp) but the dominant error
         // is in the inverse transform, so standard arithmetic suffices.
-        let range = fR - fL
         let fx = fL + position * range
         
         // Apply inverse transform - this amplifies any accumulated error

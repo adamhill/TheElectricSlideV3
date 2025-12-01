@@ -324,12 +324,14 @@ public struct ScaleBuilder {
 public enum StandardLabelFormatter {
     /// Standard integer formatting (rounds to nearest integer)
     public static let integer: @Sendable (ScaleValue) -> String = { value in
-        String(Int(value.rounded()))
+        guard value.isFinite else { return "—" }
+        return String(Int(value.rounded()))
     }
     
     /// One decimal place
     public static let oneDecimal: @Sendable (ScaleValue) -> String = { value in
-        String(format: "%.1f", value)
+        guard value.isFinite else { return "—" }
+        return String(format: "%.1f", value)
     }
     
     /// Two decimal places
@@ -354,6 +356,7 @@ public enum StandardLabelFormatter {
     
     /// Angle formatting (for trig scales) - removes unnecessary decimals
     public static let angle: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
         let rounded = value.rounded()
         if abs(value - rounded) < 0.01 {
             return String(Int(rounded))
@@ -376,6 +379,11 @@ public enum StandardLabelFormatter {
     
     /// Creates a formatter for powers of e (for LL scales)
     public static let ePower: @Sendable (ScaleValue) -> String = { value in
+        // Guard against invalid values for log
+        guard value > 0 && value.isFinite else {
+            return "—"  // Em dash for invalid values
+        }
+        
         let power = log(value)
         if abs(power) < 0.01 {
             return "1"
@@ -389,6 +397,8 @@ public enum StandardLabelFormatter {
     /// Examples: 10→"10", 20→"2", 100→"100", 200→"2", 1000→"1000"
     /// Uses ClosedRange to properly detect the power-of-10 boundaries
     public static let kScale: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite && value > 0 else { return "—" }
+        
         // Define all power-of-10 boundaries
         let tenBoundary: ClosedRange<Double> = 9.5...10.5
         let hundredBoundary: ClosedRange<Double> = 99.5...100.5

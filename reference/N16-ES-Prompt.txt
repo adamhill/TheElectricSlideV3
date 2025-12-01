@@ -1,0 +1,36 @@
+I need to add in the Picket N-16 Electronic slide rule. Move over the .swift files in #file:pickett-N16-LogLog-Electronics to the correct places in SlideRuleCoreV3 and TheElectricSlide project
+
+All the files you need to understand this particular slide rule are in the folder #file:pickett-N16-LogLog-Electronics 
+
+The scales need to be integrated into all the Factory , like all the other scales, if there are naming collisions please feel free to append "pickett" to the function, class or other names
+
+The #file:SlideRuleLibrary.swift  definition is:
+(SH1, SH2,TH, DF [ CF, L,  S Cos,  ST, T T, CI, C ] D, LL3, LL2, LL1, Ln : Θ , db,  D or Q, XL , Zs or Xc [ C or L, F, λ, ω, T, TR' or X'c, Cr ] Lr, db, CosΘ
+
+NOTE: the "or" syntax is not part of the syntax for the definitionstring, its just the two names for the ScaleName, please initially use both separated by a "/" (slash)
+
+Pull out all the textual and historical info for the ScaleRuleDefinitionModel from the #file:README.md #file:Pickett_N16ES_Implementation_Guide.md 
+
+Use the #file:postscript-engine-for-sliderules.ps #file:postscript-rule-engine-explainer.md  #file:manthematical-foundations-of-the-slide-rule.md 
+to supplement your understanding.
+
+CRITICAL: If you have any questions please ask, use the command line or #xcodebuildmcp to compile to find syntax errrors and run unit tests
+
+
+---
+questions
+Further Considerations
+Definition string syntax: Should we use scaleNameOverrides for dual names (D/Q, Zs/Xc, C/L) instead of "/" syntax in definition string? Recommend testing parser first, falling back to overrides if unsupported.
+
+Greek letter Unicode support: Parser may need updates to handle Θ, λ, ω, τ characters. Should we prioritize ASCII equivalents ("Theta", "Lambda") or add Unicode support? Recommend supporting both in switch cases.
+
+Four-decade scale tick density: Lr/Cr scales span 12 logarithmic cycles—may render too densely on iPhone screens. Should we create device-specific subsection variants using #if os(iOS)? Recommend testing default rendering first.
+Answers to questions
+Start implementation
+
+Answers to Further Considerations:
+1. Just use a string for the ScaleName, DONT CHANGE THE PARSER, the factory method supports multiple names for scales too. Add cases for that.
+2. Once again DONT CHANGE THE PARSER, scaleName is just a String, use that for the Unicode symbol display, use symbol names or short ASCII string when challenged
+3. Yes create a device specific subsection for iphone, implement a default density first and I can manually test, we have density problems in other places too.
+
+Dont be afraid to ask questions along the way if you need too.

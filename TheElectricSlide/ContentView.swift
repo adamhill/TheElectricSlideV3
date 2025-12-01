@@ -1662,28 +1662,10 @@ struct ContentView: View {
         // Determine layout tier based on available width
         let tier = LayoutTier.from(availableWidth: availableWidth)
         
-        // On iPhone, use asymmetric margins to maximize space on the side without Dynamic Island
-        let leftMarginWidth: CGFloat
-        let rightMarginWidth: CGFloat
-        
-        #if os(iOS)
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            // iPhone: Use symmetric margins to avoid desync during orientation animations
-            // The orientation-based asymmetric margins caused scale/cursor shifts because
-            // calculateDimensions() uses UIDevice.current.orientation (immediate)
-            // while geometry proxy width animates (delayed), causing margin mismatch
-            leftMarginWidth = tier.marginWidth
-            rightMarginWidth = tier.marginWidth
-        } else {
-            // iPad: Keep symmetric margins based on tier (already sufficient)
-            leftMarginWidth = tier.marginWidth
-            rightMarginWidth = tier.marginWidth
-        }
-        #else
-        // macOS/other: Keep symmetric margins
-        leftMarginWidth = tier.marginWidth
-        rightMarginWidth = tier.marginWidth
-        #endif
+        // Use symmetric margins based on layout tier for all platforms
+        // This maximizes scale width while maintaining readable scale labels
+        let leftMarginWidth = tier.marginWidth
+        let rightMarginWidth = tier.marginWidth
         
         // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
         let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
@@ -1863,64 +1845,7 @@ struct ContentView: View {
             }
             
             loadCurrentRule()
-            
-            #if os(iOS)
-            // Start listening for orientation changes
-            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-            #endif
         }
-        .onDisappear {
-            #if os(iOS)
-            // Stop listening for orientation changes
-            UIDevice.current.endGeneratingDeviceOrientationNotifications()
-            #endif
-        }
-        #if os(iOS)
-        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            // Log orientation changes for debugging, but don't manually recalculate dimensions
-            // The onGeometryChange handler will naturally update dimensions when the geometry changes
-            // Manual recalculation was causing cascading dimension updates, especially for faceUp/faceDown
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                let orientation = UIDevice.current.orientation
-                
-                // Ignore faceUp/faceDown - these are ambiguous orientations that trigger
-                // multiple layout passes as the system decides the actual interface orientation
-                guard orientation != .faceUp && orientation != .faceDown else {
-                    #if DEBUG
-                    print("[Orientation] Ignoring face orientation (ambiguous)")
-                    #endif
-                    return
-                }
-                
-                #if DEBUG
-                let orientationName: String
-                switch orientation {
-                case .portrait: orientationName = "portrait (vertical)"
-                case .portraitUpsideDown: orientationName = "portraitUpsideDown"
-                case .landscapeLeft: orientationName = "landscapeLeft"
-                case .landscapeRight: orientationName = "landscapeRight"
-                case .faceUp: orientationName = "faceUp (flat)"
-                case .faceDown: orientationName = "faceDown"
-                default: orientationName = "unknown"
-                }
-                print("[Orientation] Device orientation changed to: \(orientationName)")
-                print("[Orientation] Current zoom: \(currentZoomScale)×, panOffset: \(panOffset)")
-                print("[Orientation] Cursor position: \(cursorState.normalizedPosition)")
-                print("[Orientation] Dimensions - width: \(calculatedDimensions.width), scaleHeight: \(calculatedDimensions.scaleHeight)")
-                
-                // Log scale readings at cursor position
-                if let readings = cursorState.currentReadings {
-                    print("[Orientation] Cursor hairline position: \(String(format: "%.4f", readings.cursorPosition))")
-                    for reading in readings.frontReadings.prefix(3) {
-                        print("[Orientation]   \(reading.scaleName): \(reading.displayValue) (raw: \(String(format: "%.6f", reading.value)))")
-                    }
-                }
-                #endif
-                // NOTE: Removed manual dimension recalculation - let onGeometryChange handle it
-                // This was causing cascading updates when faceUp triggered multiple layout passes
-            }
-        }
-        #endif
         .onChange(of: selectedRuleDefinition) { oldValue, newValue in
             print("🔄 selectedRuleDefinition changed (object)")
             selectedRuleId = newValue?.id

@@ -1346,9 +1346,12 @@ struct SlideRuleDetailView: View {
     @Binding var calculatedDimensions: Dimensions
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
+    @Binding var currentZoomScale: CGFloat  // Current zoom level for pinch-to-zoom
     
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
+    let handleZoomChanged: (CGFloat) -> Void  // Pinch zoom changed
+    let handleZoomEnded: (CGFloat) -> Void  // Pinch zoom ended
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
@@ -1368,7 +1371,7 @@ struct SlideRuleDetailView: View {
                 .zIndex(100)
             }
             
-            // Dynamic content - responds to sliderOffset
+            // Dynamic content - responds to sliderOffset and zoom
             DynamicSlideRuleContent(
                 viewMode: viewMode,
                 slideRule: currentSlideRule,
@@ -1386,6 +1389,28 @@ struct SlideRuleDetailView: View {
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
             )
+            .scaleEffect(currentZoomScale)
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { scale in
+                        handleZoomChanged(scale)
+                    }
+                    .onEnded { scale in
+                        handleZoomEnded(scale)
+                    }
+            )
+            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
+            .scaleEffect(currentZoomScale)
+            .simultaneousGesture(
+                MagnificationGesture()
+                    .onChanged { scale in
+                        handleZoomChanged(scale)
+                    }
+                    .onEnded { scale in
+                        handleZoomEnded(scale)
+                    }
+            )
+            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
             .overlay(alignment: .bottomLeading) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
                 // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
@@ -1441,6 +1466,11 @@ struct ContentView: View {
 
     @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64, tier: .extraLarge)
     @State private var cursorState = CursorState()
+    
+    // Pinch-to-zoom state
+    @State private var currentZoomScale: CGFloat = 1.0  // Current zoom level
+    @State private var baseZoomScale: CGFloat = 1.0  // Base zoom at start of gesture
+    private let maxZoomScale: CGFloat = 4.0  // Maximum zoom (400%), minimum is 1.0× (no zoom out)
     
     // Current slide rule selection (persisted via SwiftData)
     @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
@@ -1681,8 +1711,11 @@ struct ContentView: View {
                     calculatedDimensions: $calculatedDimensions,
                     sliderOffset: $sliderOffset,
                     cursorState: cursorState,
+                    currentZoomScale: $currentZoomScale,
                     handleDragChanged: handleDragChanged,
                     handleDragEnded: handleDragEnded,
+                    handleZoomChanged: handleZoomChanged,
+                    handleZoomEnded: handleZoomEnded,
                     totalScaleHeight: totalScaleHeight
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
@@ -1820,6 +1853,25 @@ struct ContentView: View {
         
         // Mark slide drag as ended
         cursorState.setSlideDragging(false)
+    }
+    
+    // ✅ Zoom gesture handlers - pinch to zoom
+    private func handleZoomChanged(_ scale: CGFloat) {
+        // Apply zoom with constraints - minimum 1.0× (no zooming out)
+        let newScale = baseZoomScale * scale
+        currentZoomScale = min(max(newScale, 1.0), maxZoomScale)
+    }
+    
+    private func handleZoomEnded(_ scale: CGFloat) {
+        // Snap to 1.0× if gesture reaches or goes below default scale
+        let newScale = baseZoomScale * scale
+        if newScale <= 1.0 {
+            baseZoomScale = 1.0
+            currentZoomScale = 1.0
+        } else {
+            baseZoomScale = min(newScale, maxZoomScale)
+            currentZoomScale = baseZoomScale
+        }
     }
     
     // MARK: - Persistence Helpers

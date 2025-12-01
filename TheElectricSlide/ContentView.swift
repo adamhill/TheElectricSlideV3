@@ -9,6 +9,13 @@ import SwiftUI
 import SwiftData
 import SlideRuleCoreV3
 
+// Types extracted to Models/:
+// - Dimensions, LayoutTier (Models/LayoutConfiguration.swift)
+// - ViewMode (Models/ViewMode.swift)
+// - CursorDisplayMode, CursorReadingCycleMode (Models/CursorDisplayMode.swift)
+// - RuleSide (Models/RuleSide.swift)
+// - SlideRuleViewModel (Models/SlideRuleViewModel.swift)
+
 // MARK: - Pan Position Modifier
 
 /// Custom modifier for pan positioning without animation
@@ -20,265 +27,6 @@ struct PanPositionModifier: ViewModifier {
         content
             .offset(offset)
             .animation(nil, value: offset)  // Explicitly disable animation
-    }
-}
-
-// MARK: - Responsive Layout Constants
-
-/// Breakpoint widths for responsive layout tiers
-/// Based on common device widths: iPhone SE (320pt), standard phones (480pt), tablets/wide windows (640pt+)
-nonisolated(unsafe) private let kExtraLargeBreakpoint: CGFloat = 640
-nonisolated(unsafe) private let kLargeBreakpoint: CGFloat = 480
-nonisolated(unsafe) private let kMediumBreakpoint: CGFloat = 320
-
-/// Margin widths for each responsive tier
-/// Progressively smaller margins accommodate narrower screens while maintaining readability
-nonisolated(unsafe) private let kExtraLargeMargin: CGFloat = 72
-nonisolated(unsafe) private let kLargeMargin: CGFloat = 64
-nonisolated(unsafe) private let kMediumMargin: CGFloat = 56
-nonisolated(unsafe) private let kSmallMargin: CGFloat = 48
-
-// NOTE:
-// `onGeometryChange(for:)` requires the value type to be usable across isolation domains.
-// A main-actor–isolated conformance to `Equatable` cannot satisfy a generic `Sendable` requirement.
-// By making the type's conformances `nonisolated` and using `@unchecked Sendable` for this trivial
-// value type, we assert it's safe to pass across tasks/actors.
-// This avoids the compiler error: "Main actor-isolated conformance ... cannot satisfy conformance
-// requirement for a 'Sendable' type parameter".
-nonisolated struct Dimensions: Equatable, @unchecked Sendable {
-    var width: CGFloat
-    var scaleHeight: CGFloat
-    var leftMarginWidth: CGFloat
-    var rightMarginWidth: CGFloat
-    var tier: LayoutTier
-}
-
-// MARK: - Responsive Layout Configuration
-
-/// Responsive breakpoint tiers for layout adaptation
-enum LayoutTier: Sendable {
-    case extraLarge  // 640pt+ width
-    case large       // 480-639pt width
-    case medium      // 320-479pt width
-    case small       // <320pt width
-    
-    /// Determine layout tier from available width
-    nonisolated static func from(availableWidth: CGFloat) -> LayoutTier {
-        switch availableWidth {
-        case kExtraLargeBreakpoint...:
-            return .extraLarge
-        case kLargeBreakpoint..<kExtraLargeBreakpoint:
-            return .large
-        case kMediumBreakpoint..<kLargeBreakpoint:
-            return .medium
-        default:
-            return .small
-        }
-    }
-    
-    /// Margin width for this tier
-    nonisolated var marginWidth: CGFloat {
-        switch self {
-        case .extraLarge: return kExtraLargeMargin
-        case .large: return kLargeMargin
-        case .medium: return kMediumMargin
-        case .small: return kSmallMargin
-        }
-    }
-    
-    /// Font size for scale names (left margin) - always bold
-    nonisolated var nameFont: Font {
-        #if os(macOS)
-        // macOS: 2pt larger than standard
-        switch self {
-        case .extraLarge: return .system(size: 14, weight: .bold)  // caption ≈12pt + 2pt
-        case .large: return .system(size: 14, weight: .bold)
-        case .medium: return .system(size: 12, weight: .bold)  // caption2 ≈10pt + 2pt
-        case .small: return .system(size: 12, weight: .bold)
-        }
-        #else
-        // iOS/iPadOS: standard sizes
-        switch self {
-        case .extraLarge: return .caption.weight(.bold)
-        case .large: return .caption.weight(.bold)
-        case .medium: return .caption2.weight(.bold)
-        case .small: return .caption2.weight(.bold)
-        }
-        #endif
-    }
-    
-    /// Font size for formulas (right margin) - slightly smaller than names
-    nonisolated var formulaFont: Font {
-        switch self {
-        case .extraLarge: return .caption.weight(.medium)
-        case .large: return .caption.weight(.medium)
-        case .medium: return .caption2
-        case .small: return .caption2
-        }
-    }
-}
-
-// Explicit nonisolated Equatable conformance for LayoutTier
-extension LayoutTier: Equatable {
-    nonisolated static func == (lhs: LayoutTier, rhs: LayoutTier) -> Bool {
-        switch (lhs, rhs) {
-        case (.extraLarge, .extraLarge), (.large, .large), (.medium, .medium), (.small, .small):
-            return true
-        default:
-            return false
-        }
-    }
-}
-
-// MARK: - View Mode
-
-/// Represents the viewing mode for displaying slide rule sides.
-/// The available modes are device-dependent:
-/// - Compact devices (iPhone, Apple Watch) support only single-side views: .front or .back
-/// - Regular devices (iPad, Mac, Vision Pro) support all modes: .front, .back, and .both
-enum ViewMode: String, CaseIterable, Identifiable, Sendable {
-    case front = "Front"
-    case back = "Back"
-    case both = "Both"
-    
-    var id: String { rawValue }
-    
-    // MARK: - Device-Aware Mode Selection
-    
-    /// Returns the list of view modes available for a given device category.
-    ///
-    /// Compact devices (phone, watch) are restricted to single-side views only,
-    /// while regular devices (pad, mac, vision) can display multiple sides simultaneously.
-    ///
-    /// - Parameter category: The device category to query
-    /// - Returns: Array of available ViewMode cases for the device
-    ///
-    /// ## Examples
-    /// ```swift
-    /// ViewMode.availableModes(for: .phone)   // [.front, .back]
-    /// ViewMode.availableModes(for: .pad)     // [.front, .back, .both]
-    /// ViewMode.availableModes(for: .watch)   // [.front, .back]
-    /// ```
-    static func availableModes(for category: DeviceCategory) -> [ViewMode] {
-        switch category {
-        case .phone, .watch:
-            // Compact devices: single-side only
-            return [.front, .back]
-        case .pad, .mac, .vision:
-            // Regular devices: all options including both sides
-            return [.front, .back, .both]
-        }
-    }
-    
-    /// Constrains the current view mode to be compatible with the given device category.
-    ///
-    /// If the current mode is `.both` and the device is a compact device (phone or watch),
-    /// this method returns `.front` as a fallback. Otherwise, it returns the current mode unchanged.
-    ///
-    /// This ensures that the view mode is always valid for the current device's capabilities.
-    ///
-    /// - Parameter category: The device category to constrain for
-    /// - Returns: A ViewMode that is guaranteed to be available on the device
-    ///
-    /// ## Examples
-    /// ```swift
-    /// ViewMode.both.constrained(for: .phone)   // Returns .front (fallback)
-    /// ViewMode.both.constrained(for: .pad)     // Returns .both (unchanged)
-    /// ViewMode.front.constrained(for: .phone)  // Returns .front (unchanged)
-    /// ```
-    func constrained(for category: DeviceCategory) -> ViewMode {
-        // If current mode is .both and device doesn't support multi-side view,
-        // fall back to .front
-        if self == .both && !category.supportsMultiSideView {
-            return .front
-        }
-        // Otherwise, current mode is valid for this device
-        return self
-    }
-}
-
-// MARK: - Cursor Display Mode
-
-/// Defines what cursor information to display on the slide rule
-/// - gradients: Display only gradient overlay lines
-/// - values: Display only numerical reading values
-/// - both: Display both gradients and values
-enum CursorDisplayMode: String, CaseIterable, Identifiable, Sendable {
-    case gradients
-    case values
-    case both
-    
-    var id: String { rawValue }
-    
-    /// User-facing display text for picker
-    var displayText: String {
-        switch self {
-        case .gradients: return "Gradients"
-        case .values: return "Values"
-        case .both: return "Both"
-        }
-    }
-    
-    /// Whether gradient lines should be displayed
-    var showGradients: Bool {
-        switch self {
-        case .gradients, .both:
-            return true
-        case .values:
-            return false
-        }
-    }
-    
-    /// Whether reading values should be displayed
-    var showReadings: Bool {
-        switch self {
-        case .values, .both:
-            return true
-        case .gradients:
-            return false
-        }
-    }
-}
-
-// MARK: - Cursor Reading Cycle Mode
-
-/// Defines which side's readings to display in the cursor readings area
-/// - currentSide: Show only the current side's readings (front or back)
-/// - oppositeSide: Show only the opposite side's readings
-/// - both: Show both sides' readings stacked vertically
-/// - none: Show nothing (collapsed)
-enum CursorReadingCycleMode: String, CaseIterable, Sendable {
-    case currentSide
-    case oppositeSide
-    case both
-    case none
-    
-    /// Get next cycle mode (4-state cycle)
-    func next() -> CursorReadingCycleMode {
-        switch self {
-        case .currentSide: return .oppositeSide
-        case .oppositeSide: return .both
-        case .both: return .none
-        case .none: return .currentSide
-        }
-    }
-}
-
-// MARK: - Rule Side
-
-/// Represents which side of the slide rule is being displayed
-/// - front: The primary (front) side
-/// - back: The reverse (back) side
-enum RuleSide: String, Sendable {
-    case front
-    case back
-    
-    /// Border color for visual distinction between sides
-    var borderColor: Color {
-        switch self {
-        case .front: return .blue
-        case .back: return .green
-        }
     }
 }
 
@@ -1565,25 +1313,19 @@ struct ContentView: View {
     @Query private var currentRuleQuery: [CurrentSlideRule]
     @Query(sort: \SlideRuleDefinitionModel.sortOrder) private var availableRules: [SlideRuleDefinitionModel]
     
-    @State private var sliderOffset: CGFloat = 0
-    @State private var sliderBaseOffset: CGFloat = 0  // ✅ Persists offset between gestures
+    // MARK: - View Model (uses hot/cold property pattern for performance)
+    // See slide-rule-performance-decisions-and-planning.md for rationale
+    @State private var viewModel = SlideRuleViewModel()
+    
+    // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
     @State private var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
+    
     // ✅ State for calculated dimensions - only updates when window size changes
-
-    @State private var calculatedDimensions: Dimensions = .init(width: 800, scaleHeight: 25, leftMarginWidth: 64, rightMarginWidth: 64, tier: .extraLarge)
+    @State private var calculatedDimensions: Dimensions = .default
     @State private var cursorState = CursorState()
-    
-    // Pinch-to-zoom state
-    @State private var currentZoomScale: CGFloat = 1.0  // Current zoom level
-    @State private var baseZoomScale: CGFloat = 1.0  // Base zoom at start of gesture
-    private let maxZoomScale: CGFloat = 4.0  // Maximum zoom (400%), minimum is 1.0× (no zoom out)
-    
-    // Pan offset for moving zoomed-in content
-    @State private var panOffset: CGSize = .zero  // Current pan offset
-    @State private var basePanOffset: CGSize = .zero  // Base offset at start of gesture
     
     // Current slide rule selection (persisted via SwiftData)
     @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
@@ -1789,10 +1531,10 @@ struct ContentView: View {
                     ruleId: selectedRuleId,
                     selectedRuleDefinition: selectedRuleDefinition,
                     calculatedDimensions: $calculatedDimensions,
-                    sliderOffset: $sliderOffset,
+                    sliderOffset: $viewModel.sliderOffset,
                     cursorState: cursorState,
-                    currentZoomScale: $currentZoomScale,
-                    panOffset: $panOffset,
+                    currentZoomScale: $viewModel.currentZoomScale,
+                    panOffset: $viewModel.panOffset,
                     handleDragChanged: handleDragChanged,
                     handleDragEnded: handleDragEnded,
                     handleZoomChanged: handleZoomChanged,
@@ -1812,6 +1554,8 @@ struct ContentView: View {
                     // Disable animation on geometry changes to prevent drawingGroup cache issues
                     withTransaction(Transaction(animation: nil)) {
                         calculatedDimensions = newDimensions
+                        // Update viewModel's scale width for offset clamping
+                        viewModel.updateScaleWidth(newDimensions.width)
                     }
                 }
             } else {
@@ -1854,8 +1598,7 @@ struct ContentView: View {
             print("🔄 Rule selection changed: \(oldValue?.uuidString ?? "nil") -> \(newValue?.uuidString ?? "nil")")
             print("   New rule: \(selectedRuleDefinition?.name ?? "nil")")
             parseAndUpdateSlideRule()
-            sliderOffset = 0
-            sliderBaseOffset = 0
+            viewModel.resetSlider()
             // Force cursor readings update for new slide rule scales
             cursorState.updateReadings()
             saveCurrentRule()
@@ -1897,47 +1640,26 @@ struct ContentView: View {
         }
     }
     
-    // ✅ Drag gesture handlers - single implementation for both sides
+    // ✅ Drag gesture handlers - delegate to viewModel (uses hot/cold pattern)
     private func handleDragChanged(_ gesture: DragGesture.Value) {
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
-        
-        let newOffset = sliderBaseOffset + gesture.translation.width
-        sliderOffset = min(max(newOffset, -calculatedDimensions.width),
-                          calculatedDimensions.width)
+        viewModel.handleSliderDragChanged(translation: gesture.translation.width)
     }
     
     private func handleDragEnded(_ gesture: DragGesture.Value) {
-        sliderBaseOffset = sliderOffset
-        
+        viewModel.handleSliderDragEnded()
         // Mark slide drag as ended
         cursorState.setSlideDragging(false)
     }
     
-    // ✅ Zoom gesture handlers - pinch to zoom
+    // ✅ Zoom gesture handlers - delegate to viewModel (uses hot/cold pattern)
     private func handleZoomChanged(_ scale: CGFloat) {
-        // Apply zoom with constraints - minimum 1.0× (no zooming out)
-        let newScale = baseZoomScale * scale
-        let clampedScale = min(max(newScale, 1.0), maxZoomScale)
-        print("🔍 Zoom changed: base=\(baseZoomScale), gesture=\(scale), new=\(newScale), clamped=\(clampedScale)")
-        currentZoomScale = clampedScale
+        viewModel.handleZoomChanged(scale: scale)
     }
     
     private func handleZoomEnded(_ scale: CGFloat) {
-        // Snap to 1.0× if gesture reaches or goes below default scale
-        let newScale = baseZoomScale * scale
-        print("🔍 Zoom ended: base=\(baseZoomScale), gesture=\(scale), new=\(newScale)")
-        if newScale <= 1.0 {
-            baseZoomScale = 1.0
-            currentZoomScale = 1.0
-            // Reset pan offset when zooming back to 1.0×
-            panOffset = .zero
-            basePanOffset = .zero
-        } else {
-            baseZoomScale = min(newScale, maxZoomScale)
-            currentZoomScale = baseZoomScale
-        }
-        print("🔍 Zoom final: currentZoomScale=\(currentZoomScale)")
+        viewModel.handleZoomEnded(scale: scale)
         
         // Log cursor and scale info for debugging
         #if DEBUG
@@ -1961,10 +1683,7 @@ struct ContentView: View {
     /// Uses withTransaction to suppress animations for smooth, jitter-free tracking
     private func handlePanChanged(_ gesture: DragGesture.Value) {
         withTransaction(Transaction(animation: nil)) {
-            panOffset = CGSize(
-                width: basePanOffset.width + gesture.translation.width,
-                height: basePanOffset.height + gesture.translation.height
-            )
+            viewModel.handlePanChanged(translation: gesture.translation)
         }
     }
     
@@ -1972,23 +1691,16 @@ struct ContentView: View {
     /// Uses withTransaction to suppress animations for immediate response
     private func handlePanEnded(_ gesture: DragGesture.Value) {
         withTransaction(Transaction(animation: nil)) {
-            basePanOffset = panOffset
+            viewModel.handlePanEnded()
         }
     }
     
     /// Handles triple-tap to reset zoom to 1.0× and clear pan offset
     /// Animates the zoom reset for visual feedback
     private func handleResetZoom() {
-        print("🔍 Zoom reset triggered - current: \(currentZoomScale)× → 1.0×")
         // Reset zoom with animation for visual feedback
         withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
-            currentZoomScale = 1.0
-            baseZoomScale = 1.0
-        }
-        // Reset pan offset immediately (no animation needed)
-        withTransaction(Transaction(animation: nil)) {
-            panOffset = .zero
-            basePanOffset = .zero
+            viewModel.resetZoom()
         }
     }
     
@@ -2072,7 +1784,7 @@ extension ContentView: SlideRuleProvider {
     }
     
     func getSlideOffset() -> CGFloat {
-        sliderOffset
+        viewModel.sliderOffset
     }
     
     func getScaleWidth() -> CGFloat {

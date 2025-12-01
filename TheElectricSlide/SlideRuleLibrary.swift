@@ -65,7 +65,7 @@ struct SlideRuleLibrary {
                 Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
                 phase/gain/dB scales for complete filter characterization from single cursor position.
                 """,
-            definitionString: "(SH1 SH2 TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ)",
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
@@ -124,7 +124,7 @@ struct SlideRuleLibrary {
         SlideRuleDefinitionModel(
             name: "Hemmi 266 ThinkGeek Edition",
             description: "Extended Hemmi 266 variant with hyperbolic functions (Sh, Th) and additional scales.",
-            definitionString: "(K A [ B BI Sh1 Sh2 Th CI C ] D DI P L : DF [ CF CIF ST S | T- CI C ] D)",
+            definitionString: "(K A [ B BI SH1 SH2 TH CI C ] D DI P L : DF [ CF CIF ST S | T- CI C ] D)",
             topStatorMM: 13,
             slideMM: 22,
             bottomStatorMM: 13,
@@ -152,7 +152,7 @@ struct SlideRuleLibrary {
         SlideRuleDefinitionModel(
             name: "K&E KeLon",
             description: "Specialized Keuffel & Esser long-form slide rule with extended precision.",
-            definitionString: "(DF [ CF CIF | L CI C ] D : Sh1 Sh2 Th A [ B | T ST S C ] D DI K-)",
+            definitionString: "(DF [ CF CIF | L CI C ] D : SH1 SH2 TH A [ B | T ST S C ] D DI K-)",
             topStatorMM: 19,
             slideMM: 19,
             bottomStatorMM: 19,

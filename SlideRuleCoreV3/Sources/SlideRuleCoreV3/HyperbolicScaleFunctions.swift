@@ -71,6 +71,7 @@ public struct HyperbolicTangentFunction: ScaleFunction {
 // PostScript: {sinh 10 mul log}
 // Formula: log₁₀(10×sinh(x-offset))
 // Used for: catenary-curves, hanging-cables, special-relativity
+// Note: Uses absolute value to handle negative sinh results (e.g., Sh2 scale at x < offset)
 public struct HyperbolicSineFunction: ScaleFunction {
     public let name = "sinh"
     public let multiplier: Double
@@ -82,7 +83,9 @@ public struct HyperbolicSineFunction: ScaleFunction {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        log10(sinh(value - offset) * multiplier)
+        // Use abs() to handle cases where sinh(value - offset) < 0
+        // This occurs in Sh2 scale where range starts below offset (0.88 < 1.0)
+        log10(abs(sinh(value - offset)) * multiplier)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {

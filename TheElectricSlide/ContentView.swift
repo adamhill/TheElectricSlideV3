@@ -9,6 +9,20 @@ import SwiftUI
 import SwiftData
 import SlideRuleCoreV3
 
+// MARK: - Pan Position Modifier
+
+/// Custom modifier for pan positioning without animation
+/// Ensures offset changes are applied immediately without SwiftUI animation interpolation
+struct PanPositionModifier: ViewModifier {
+    let offset: CGSize
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(offset)
+            .animation(nil, value: offset)  // Explicitly disable animation
+    }
+}
+
 // MARK: - Responsive Layout Constants
 
 /// Breakpoint widths for responsive layout tiers
@@ -677,9 +691,13 @@ struct StatorView: View, Equatable {
     let formulaFont: Font
     let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
     let ruleId: UUID?  // Track rule identity for view updates
+    let currentZoomScale: CGFloat  // Current zoom level to enable/disable pan
+    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
+    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
+    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
     
     // ✅ Equatable conformance - only compare properties that affect rendering
-    // Note: cursorState is not compared (it's a reference)
+    // Note: cursorState and pan handlers are not compared (references/closures)
     // ruleId is compared to force re-render when rule changes
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
         lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
@@ -689,7 +707,8 @@ struct StatorView: View, Equatable {
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.stator.scales.count == rhs.stator.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
-        lhs.borderColor == rhs.borderColor
+        lhs.borderColor == rhs.borderColor &&
+        lhs.currentZoomScale == rhs.currentZoomScale
     }
     
     // Calculate total max height based on number of scales
@@ -725,11 +744,26 @@ struct StatorView: View, Equatable {
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
-        .contentShape(Rectangle())  // Make entire area tappable
+        .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
+        .simultaneousGesture(
+            TapGesture(count: 3)
+                .onEnded {
+                    // Triple-tap to reset zoom to 1.0×
+                    onResetZoom?()
+                }
+        )
         .onTapGesture {
             // Mark stator as touched (sticky readings)
             cursorState?.setStatorTouched()
         }
+        .highPriorityGesture(
+            // Pan gesture only enabled when zoomed in (>1.0x)
+            (currentZoomScale > 1.0 && onPanChanged != nil && onPanEnded != nil) ?
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in onPanChanged?(gesture) }
+                    .onEnded { gesture in onPanEnded?(gesture) }
+                : nil
+        )
     }
 }
 
@@ -812,8 +846,12 @@ struct SideView: View, Equatable {
     let sliderOffset: CGFloat
     let cursorState: CursorState?
     let ruleId: UUID?  // Track rule identity for view updates
+    let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
+    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
+    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
+    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: Closures and cursorState are not compared in Equatable
@@ -826,6 +864,7 @@ struct SideView: View, Equatable {
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.sliderOffset == rhs.sliderOffset &&
+        lhs.currentZoomScale == rhs.currentZoomScale &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
@@ -850,12 +889,16 @@ struct SideView: View, Equatable {
                 nameFont: nameFont,
                 formulaFont: formulaFont,
                 cursorState: cursorState,
-                ruleId: ruleId  // Pass rule ID for identity tracking
+                ruleId: ruleId,  // Pass rule ID for identity tracking
+                currentZoomScale: currentZoomScale,  // For pan gesture control
+                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
+                onPanEnded: onPanEnded,  // Pan gesture end
+                onResetZoom: onResetZoom  // Triple-tap to reset zoom
             )
             .equatable()
             .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
             
-            // Slide (Movable)
+            // Slide (Movable) - triple-tap to reset zoom
             SlideView(
                 slide: slide,
                 width: width,
@@ -870,6 +913,10 @@ struct SideView: View, Equatable {
             )
             .equatable()
             .offset(x: sliderOffset)
+            .onTapGesture(count: 3) {
+                // Triple-tap to reset zoom to 1.0×
+                onResetZoom?()
+            }
             .gesture(
                 DragGesture()
                     .onChanged(onDragChanged)
@@ -890,7 +937,11 @@ struct SideView: View, Equatable {
                 nameFont: nameFont,
                 formulaFont: formulaFont,
                 cursorState: cursorState,
-                ruleId: ruleId  // Pass rule ID for identity tracking
+                ruleId: ruleId,  // Pass rule ID for identity tracking
+                currentZoomScale: currentZoomScale,  // For pan gesture control
+                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
+                onPanEnded: onPanEnded,  // Pan gesture end
+                onResetZoom: onResetZoom  // Triple-tap to reset zoom
             )
             .equatable()
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
@@ -911,11 +962,26 @@ struct DynamicSlideRuleContent: View {
     let cursorState: CursorState
     let cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
+    let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
+    let handlePanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
+    let handlePanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
+    let handleResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
+    
+    // MARK: - Stable Dimensions (debounced to avoid intermediate animation values)
+    // The system animates geometry changes through intermediate widths (e.g., 876→856→836→816→796)
+    // We use stableDimensions to only render with the final settled value
+    @State private var stableDimensions: Dimensions?
+    @State private var dimensionUpdateTask: Task<Void, Never>?
+    
+    /// The dimensions to use for rendering - uses stable (debounced) value if available
+    private var renderDimensions: Dimensions {
+        stableDimensions ?? calculatedDimensions
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -954,31 +1020,39 @@ struct DynamicSlideRuleContent: View {
                         topStator: slideRule.frontTopStator,
                         slide: slideRule.frontSlide,
                         bottomStator: slideRule.frontBottomStator,
-                        width: calculatedDimensions.width,
-                        scaleHeight: calculatedDimensions.scaleHeight,
-                        leftMarginWidth: calculatedDimensions.leftMarginWidth,
-                        rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                        width: renderDimensions.width,
+                        scaleHeight: renderDimensions.scaleHeight,
+                        leftMarginWidth: renderDimensions.leftMarginWidth,
+                        rightMarginWidth: renderDimensions.rightMarginWidth,
                         nameFont: nameFont,
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         ruleId: ruleId,  // Pass rule ID for identity tracking
+                        currentZoomScale: currentZoomScale,  // For pan gesture control
                         onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded
+                        onDragEnded: handleDragEnded,
+                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
+                        onPanEnded: handlePanEnded,  // Pan gesture end
+                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
                     )
                     .equatable()
                     .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
+                    // Disable animation on geometry/dimension changes to prevent intermediate width values
+                    .animation(nil, value: renderDimensions.width)
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
-                            width: calculatedDimensions.width,
+                            width: renderDimensions.width,
                             height: totalScaleHeight(.front),
                             side: .front,
-                            scaleHeight: calculatedDimensions.scaleHeight,
-                            leftMarginWidth: calculatedDimensions.leftMarginWidth,
-                            rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                            scaleHeight: renderDimensions.scaleHeight,
+                            leftMarginWidth: renderDimensions.leftMarginWidth,
+                            rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorState.shouldShowReadings,
-                            showGradients: cursorDisplayMode.showGradients
+                            showGradients: cursorDisplayMode.showGradients,
+                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
+                            currentZoomScale: currentZoomScale
                         )
                     }
                 }
@@ -1010,31 +1084,39 @@ struct DynamicSlideRuleContent: View {
                         topStator: backTop,
                         slide: backSlide,
                         bottomStator: backBottom,
-                        width: calculatedDimensions.width,
-                        scaleHeight: calculatedDimensions.scaleHeight,
-                        leftMarginWidth: calculatedDimensions.leftMarginWidth,
-                        rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                        width: renderDimensions.width,
+                        scaleHeight: renderDimensions.scaleHeight,
+                        leftMarginWidth: renderDimensions.leftMarginWidth,
+                        rightMarginWidth: renderDimensions.rightMarginWidth,
                         nameFont: nameFont,
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         ruleId: ruleId,  // Pass rule ID for identity tracking
+                        currentZoomScale: currentZoomScale,  // For pan gesture control
                         onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded
+                        onDragEnded: handleDragEnded,
+                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
+                        onPanEnded: handlePanEnded,  // Pan gesture end
+                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
                     )
                     .equatable()
                     .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
+                    // Disable animation on geometry/dimension changes to prevent intermediate width values
+                    .animation(nil, value: renderDimensions.width)
                     .overlay {
                         CursorOverlay(
                             cursorState: cursorState,
-                            width: calculatedDimensions.width,
+                            width: renderDimensions.width,
                             height: totalScaleHeight(.back),
                             side: .back,
-                            scaleHeight: calculatedDimensions.scaleHeight,
-                            leftMarginWidth: calculatedDimensions.leftMarginWidth,
-                            rightMarginWidth: calculatedDimensions.rightMarginWidth,
+                            scaleHeight: renderDimensions.scaleHeight,
+                            leftMarginWidth: renderDimensions.leftMarginWidth,
+                            rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorState.shouldShowReadings,
-                            showGradients: cursorDisplayMode.showGradients
+                            showGradients: cursorDisplayMode.showGradients,
+                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
+                            currentZoomScale: currentZoomScale
                         )
                     }
                 }
@@ -1053,6 +1135,33 @@ struct DynamicSlideRuleContent: View {
         .ignoresSafeArea(.container, edges: .horizontal)
         .padding(.horizontal, deviceCategory == .phone ? 8 : 20)
         .padding(.bottom, 40)
+        // Suppress all animations on dimension changes to prevent scale/cursor desync
+        // This fixes the geometry animation bug where intermediate widths cause visual shifts
+        .transaction { transaction in
+            transaction.animation = nil
+        }
+        // MARK: - Dimension Debounce Logic
+        // The system animates geometry changes through intermediate widths during orientation changes
+        // (e.g., 876→856→836→816→796). We debounce updates to only render with the final settled value.
+        .onChange(of: calculatedDimensions.width) { oldWidth, newWidth in
+            // Cancel any pending update
+            dimensionUpdateTask?.cancel()
+            
+            // Start a new debounce task
+            dimensionUpdateTask = Task { @MainActor in
+                // Wait for geometry to settle (typical animation is ~0.3s, use 0.1s debounce)
+                try? await Task.sleep(for: .milliseconds(100))
+                
+                // If not cancelled, this is the final value - update stableDimensions
+                if !Task.isCancelled {
+                    stableDimensions = calculatedDimensions
+                }
+            }
+        }
+        .onAppear {
+            // Initialize stableDimensions on first appear
+            stableDimensions = calculatedDimensions
+        }
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
         }
@@ -1347,11 +1456,15 @@ struct SlideRuleDetailView: View {
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
     @Binding var currentZoomScale: CGFloat  // Current zoom level for pinch-to-zoom
+    @Binding var panOffset: CGSize  // Pan offset for moving zoomed content
     
     let handleDragChanged: (DragGesture.Value) -> Void
     let handleDragEnded: (DragGesture.Value) -> Void
     let handleZoomChanged: (CGFloat) -> Void  // Pinch zoom changed
     let handleZoomEnded: (CGFloat) -> Void  // Pinch zoom ended
+    let handlePanChanged: (DragGesture.Value) -> Void  // Pan gesture for zoomed content
+    let handlePanEnded: (DragGesture.Value) -> Void  // Pan gesture end
+    let handleResetZoom: () -> Void  // Triple-tap to reset zoom
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
@@ -1383,24 +1496,20 @@ struct SlideRuleDetailView: View {
                 cursorState: cursorState,
                 cursorDisplayMode: cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
+                currentZoomScale: currentZoomScale,  // For pan gesture control
                 handleDragChanged: handleDragChanged,
                 handleDragEnded: handleDragEnded,
+                handlePanChanged: handlePanChanged,  // Pan gesture for zoomed content
+                handlePanEnded: handlePanEnded,  // Pan gesture end
+                handleResetZoom: handleResetZoom,  // Triple-tap to reset zoom
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
             )
-            .scaleEffect(currentZoomScale)
-            .simultaneousGesture(
-                MagnificationGesture()
-                    .onChanged { scale in
-                        handleZoomChanged(scale)
-                    }
-                    .onEnded { scale in
-                        handleZoomEnded(scale)
-                    }
-            )
-            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
-            .scaleEffect(currentZoomScale)
+            .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
+            .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
+            // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
+            // The Metal rasterization cache wasn't updating correctly during geometry animations
             .simultaneousGesture(
                 MagnificationGesture()
                     .onChanged { scale in
@@ -1471,6 +1580,10 @@ struct ContentView: View {
     @State private var currentZoomScale: CGFloat = 1.0  // Current zoom level
     @State private var baseZoomScale: CGFloat = 1.0  // Base zoom at start of gesture
     private let maxZoomScale: CGFloat = 4.0  // Maximum zoom (400%), minimum is 1.0× (no zoom out)
+    
+    // Pan offset for moving zoomed-in content
+    @State private var panOffset: CGSize = .zero  // Current pan offset
+    @State private var basePanOffset: CGSize = .zero  // Base offset at start of gesture
     
     // Current slide rule selection (persisted via SwiftData)
     @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
@@ -1555,27 +1668,12 @@ struct ContentView: View {
         
         #if os(iOS)
         if UIDevice.current.userInterfaceIdiom == .phone {
-            // iPhone: NavigationSplitView collapses to single stack, so we have full width available
-            // Left margin must accommodate scale names (e.g., "LL00", "CI", "CIF")
-            // Minimum 28pt for scale names in bold caption2 font
-            let orientation = UIDevice.current.orientation
-            
-            switch orientation {
-            case .landscapeLeft:
-                // Dynamic Island on RIGHT in landscapeLeft
-                // Left needs space for scale names, right can go tighter
-                leftMarginWidth = 20
-                rightMarginWidth = 8  // Restored from 4
-            case .landscapeRight:
-                // Dynamic Island on LEFT in landscapeRight
-                // Left needs space for scale names + Dynamic Island clearance, right minimal
-                leftMarginWidth = 24
-                rightMarginWidth = 4  // Restored from 0
-            default:
-                // Portrait or unknown: use balanced margins with scale name space
-                leftMarginWidth = 28
-                rightMarginWidth = 28
-            }
+            // iPhone: Use symmetric margins to avoid desync during orientation animations
+            // The orientation-based asymmetric margins caused scale/cursor shifts because
+            // calculateDimensions() uses UIDevice.current.orientation (immediate)
+            // while geometry proxy width animates (delayed), causing margin mismatch
+            leftMarginWidth = tier.marginWidth
+            rightMarginWidth = tier.marginWidth
         } else {
             // iPad: Keep symmetric margins based on tier (already sufficient)
             leftMarginWidth = tier.marginWidth
@@ -1712,10 +1810,14 @@ struct ContentView: View {
                     sliderOffset: $sliderOffset,
                     cursorState: cursorState,
                     currentZoomScale: $currentZoomScale,
+                    panOffset: $panOffset,
                     handleDragChanged: handleDragChanged,
                     handleDragEnded: handleDragEnded,
                     handleZoomChanged: handleZoomChanged,
                     handleZoomEnded: handleZoomEnded,
+                    handlePanChanged: handlePanChanged,
+                    handlePanEnded: handlePanEnded,
+                    handleResetZoom: handleResetZoom,
                     totalScaleHeight: totalScaleHeight
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
@@ -1725,7 +1827,10 @@ struct ContentView: View {
                         availableHeight: size.height
                     )
                 } action: { newDimensions in
-                    calculatedDimensions = newDimensions
+                    // Disable animation on geometry changes to prevent drawingGroup cache issues
+                    withTransaction(Transaction(animation: nil)) {
+                        calculatedDimensions = newDimensions
+                    }
                 }
             } else {
                 // Empty state when no rule selected
@@ -1772,18 +1877,47 @@ struct ContentView: View {
         }
         #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            // Force recalculation when orientation changes (triggers onGeometryChange)
-            // The geometry will be the same, but we need to recalculate margins based on new orientation
+            // Log orientation changes for debugging, but don't manually recalculate dimensions
+            // The onGeometryChange handler will naturally update dimensions when the geometry changes
+            // Manual recalculation was causing cascading dimension updates, especially for faceUp/faceDown
             if UIDevice.current.userInterfaceIdiom == .phone {
+                let orientation = UIDevice.current.orientation
+                
+                // Ignore faceUp/faceDown - these are ambiguous orientations that trigger
+                // multiple layout passes as the system decides the actual interface orientation
+                guard orientation != .faceUp && orientation != .faceDown else {
+                    #if DEBUG
+                    print("[Orientation] Ignoring face orientation (ambiguous)")
+                    #endif
+                    return
+                }
+                
                 #if DEBUG
-                print("[Orientation] Device orientation changed, recalculating dimensions")
+                let orientationName: String
+                switch orientation {
+                case .portrait: orientationName = "portrait (vertical)"
+                case .portraitUpsideDown: orientationName = "portraitUpsideDown"
+                case .landscapeLeft: orientationName = "landscapeLeft"
+                case .landscapeRight: orientationName = "landscapeRight"
+                case .faceUp: orientationName = "faceUp (flat)"
+                case .faceDown: orientationName = "faceDown"
+                default: orientationName = "unknown"
+                }
+                print("[Orientation] Device orientation changed to: \(orientationName)")
+                print("[Orientation] Current zoom: \(currentZoomScale)×, panOffset: \(panOffset)")
+                print("[Orientation] Cursor position: \(cursorState.normalizedPosition)")
+                print("[Orientation] Dimensions - width: \(calculatedDimensions.width), scaleHeight: \(calculatedDimensions.scaleHeight)")
+                
+                // Log scale readings at cursor position
+                if let readings = cursorState.currentReadings {
+                    print("[Orientation] Cursor hairline position: \(String(format: "%.4f", readings.cursorPosition))")
+                    for reading in readings.frontReadings.prefix(3) {
+                        print("[Orientation]   \(reading.scaleName): \(reading.displayValue) (raw: \(String(format: "%.6f", reading.value)))")
+                    }
+                }
                 #endif
-                // Trigger dimension recalculation by forcing the geometry change handler
-                let currentSize = CGSize(width: calculatedDimensions.width + calculatedDimensions.leftMarginWidth + calculatedDimensions.rightMarginWidth + 8,
-                                        height: CGFloat(totalScaleCount) * calculatedDimensions.scaleHeight)
-                let newDimensions = calculateDimensions(availableWidth: currentSize.width + (padding * 2), 
-                                                       availableHeight: currentSize.height + (padding * 2))
-                calculatedDimensions = newDimensions
+                // NOTE: Removed manual dimension recalculation - let onGeometryChange handle it
+                // This was causing cascading updates when faceUp triggered multiple layout passes
             }
         }
         #endif
@@ -1859,18 +1993,77 @@ struct ContentView: View {
     private func handleZoomChanged(_ scale: CGFloat) {
         // Apply zoom with constraints - minimum 1.0× (no zooming out)
         let newScale = baseZoomScale * scale
-        currentZoomScale = min(max(newScale, 1.0), maxZoomScale)
+        let clampedScale = min(max(newScale, 1.0), maxZoomScale)
+        print("🔍 Zoom changed: base=\(baseZoomScale), gesture=\(scale), new=\(newScale), clamped=\(clampedScale)")
+        currentZoomScale = clampedScale
     }
     
     private func handleZoomEnded(_ scale: CGFloat) {
         // Snap to 1.0× if gesture reaches or goes below default scale
         let newScale = baseZoomScale * scale
+        print("🔍 Zoom ended: base=\(baseZoomScale), gesture=\(scale), new=\(newScale)")
         if newScale <= 1.0 {
             baseZoomScale = 1.0
             currentZoomScale = 1.0
+            // Reset pan offset when zooming back to 1.0×
+            panOffset = .zero
+            basePanOffset = .zero
         } else {
             baseZoomScale = min(newScale, maxZoomScale)
             currentZoomScale = baseZoomScale
+        }
+        print("🔍 Zoom final: currentZoomScale=\(currentZoomScale)")
+        
+        // Log cursor and scale info for debugging
+        #if DEBUG
+        print("🔍 [Zoom Debug] Cursor normalized position: \(cursorState.normalizedPosition)")
+        print("🔍 [Zoom Debug] Dimensions - width: \(calculatedDimensions.width), leftMargin: \(calculatedDimensions.leftMarginWidth)")
+        if let readings = cursorState.currentReadings {
+            print("🔍 [Zoom Debug] Hairline position: \(String(format: "%.4f", readings.cursorPosition))")
+            // Log K, C, D scales if available
+            for scaleName in ["K", "C", "D", "A"] {
+                if let reading = readings.reading(forScale: scaleName, side: .front) {
+                    print("🔍 [Zoom Debug]   \(scaleName) scale: \(reading.displayValue) (raw: \(String(format: "%.6f", reading.value)))")
+                }
+            }
+        }
+        #endif
+    }
+    
+    // MARK: - Pan Handlers
+    
+    /// Handles pan gesture changes during drag to pan zoomed content
+    /// Uses withTransaction to suppress animations for smooth, jitter-free tracking
+    private func handlePanChanged(_ gesture: DragGesture.Value) {
+        withTransaction(Transaction(animation: nil)) {
+            panOffset = CGSize(
+                width: basePanOffset.width + gesture.translation.width,
+                height: basePanOffset.height + gesture.translation.height
+            )
+        }
+    }
+    
+    /// Handles pan gesture end and commits the new base offset
+    /// Uses withTransaction to suppress animations for immediate response
+    private func handlePanEnded(_ gesture: DragGesture.Value) {
+        withTransaction(Transaction(animation: nil)) {
+            basePanOffset = panOffset
+        }
+    }
+    
+    /// Handles triple-tap to reset zoom to 1.0× and clear pan offset
+    /// Animates the zoom reset for visual feedback
+    private func handleResetZoom() {
+        print("🔍 Zoom reset triggered - current: \(currentZoomScale)× → 1.0×")
+        // Reset zoom with animation for visual feedback
+        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
+            currentZoomScale = 1.0
+            baseZoomScale = 1.0
+        }
+        // Reset pan offset immediately (no animation needed)
+        withTransaction(Transaction(animation: nil)) {
+            panOffset = .zero
+            basePanOffset = .zero
         }
     }
     

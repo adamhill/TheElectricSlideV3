@@ -52,6 +52,12 @@ struct CursorOverlay: View {
     /// Whether to show gradient backgrounds
     var showGradients: Bool = true
     
+    /// Triple-tap callback to reset zoom to 1.0×
+    var onResetZoom: (() -> Void)? = nil
+    
+    /// Current zoom scale for display on cursor handle
+    var currentZoomScale: CGFloat = 1.0
+    
     // MARK: - Body
     
     var body: some View {
@@ -75,12 +81,17 @@ struct CursorOverlay: View {
                     scaleHeight: scaleHeight,
                     displayConfig: displayConfig,
                     showReadings: showReadings,
-                    showGradients: showGradients
+                    showGradients: showGradients,
+                    zoomScale: currentZoomScale
                 )
                     .frame(width: CursorView.cursorWidth, alignment: .top)
                     .offset(y: -CursorView.handleHeight)
                     .modifier(CursorPositionModifier(offset: basePosition + cursorState.activeDragOffset))
                     .frame(width: effectiveWidth, height: height, alignment: .topLeading)
+                .onTapGesture(count: 3) {
+                    // Triple-tap to reset zoom to 1.0×
+                    onResetZoom?()
+                }
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in

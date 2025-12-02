@@ -59,144 +59,9 @@ struct ContentView: View {
     // Parsed slide rule from definition - published state to trigger re-renders
     @State private var currentSlideRule: SlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
     
-    
-    // Scale height configuration
-    private let minScaleHeight: CGFloat = 20   // Minimum height for a scale
-    private let idealScaleHeight: CGFloat = 25 // Ideal height per scale
-    private let maxScaleHeight: CGFloat = 30   // Maximum height per scale
-    
-    // Target aspect ratio (width:height) for slide rule
-    // Slide rules are typically very wide and relatively short (10:1 to 8:1)
-    private let targetAspectRatio: CGFloat = 10.0
-    
-    // Padding around the slide rule
-    private let padding: CGFloat = 40
-    
     // Access current slide rule (now a @State variable, not computed)
     private var slideRule: SlideRule {
         currentSlideRule
-    }
-    
-    // Calculate total number of scales based on view mode
-    private var totalScaleCount: Int {
-        var count = 0
-        
-        // Front side scales
-        if viewMode == .front || viewMode == .both {
-            count += slideRule.frontTopStator.scales.count +
-                     slideRule.frontSlide.scales.count +
-                     slideRule.frontBottomStator.scales.count
-        }
-        
-        // Back side scales (if available)
-        if (viewMode == .back || viewMode == .both),
-           let backTop = slideRule.backTopStator,
-           let backSlide = slideRule.backSlide,
-           let backBottom = slideRule.backBottomStator {
-            count += backTop.scales.count +
-                     backSlide.scales.count +
-                     backBottom.scales.count
-        }
-        
-        return count
-    }
-    
-    // Calculate number of "gaps" between sides for spacing
-    private var sideGapCount: Int {
-        // If showing both sides, we have 1 gap between them (20pt spacing)
-        if viewMode == .both && slideRule.backTopStator != nil {
-            return 1
-        }
-        return 0
-    }
-    
-    // Vertical spacing between sides when showing both
-    private let sideSpacing: CGFloat = 20
-    
-    // Estimate total vertical space needed for labels (when showing both sides)
-    private var labelHeight: CGFloat {
-        if viewMode == .both && slideRule.backTopStator != nil {
-            return 30  // ~15pt per label × 2 labels
-        }
-        return 0
-    }
-    
-    // Helper function to calculate responsive dimensions
-    nonisolated private func calculateDimensions(availableWidth: CGFloat, availableHeight: CGFloat) -> Dimensions {
-        let maxWidth = availableWidth
-        let maxHeight = availableHeight - (padding * 2)
-        
-        // Determine layout tier based on available width
-        let tier = LayoutTier.from(availableWidth: availableWidth)
-        
-        // Use symmetric margins based on layout tier for all platforms
-        // This maximizes scale width while maintaining readable scale labels
-        let leftMarginWidth = tier.marginWidth
-        let rightMarginWidth = tier.marginWidth
-        
-        // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
-        let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
-        
-        // Calculate local values instead of accessing @State properties
-        let localSideGapCount: Int
-        if viewMode == .both && currentSlideRule.backTopStator != nil {
-            localSideGapCount = 1
-        } else {
-            localSideGapCount = 0
-        }
-        
-        let localLabelHeight: CGFloat
-        if viewMode == .both && currentSlideRule.backTopStator != nil {
-            localLabelHeight = 30
-        } else {
-            localLabelHeight = 0
-        }
-        
-        // Calculate total scale count locally
-        var localTotalScaleCount = 0
-        if viewMode == .front || viewMode == .both {
-            localTotalScaleCount += currentSlideRule.frontTopStator.scales.count +
-                                     currentSlideRule.frontSlide.scales.count +
-                                     currentSlideRule.frontBottomStator.scales.count
-        }
-        if (viewMode == .back || viewMode == .both),
-           let backTop = currentSlideRule.backTopStator,
-           let backSlide = currentSlideRule.backSlide,
-           let backBottom = currentSlideRule.backBottomStator {
-            localTotalScaleCount += backTop.scales.count +
-                                     backSlide.scales.count +
-                                     backBottom.scales.count
-        }
-        
-        // Account for spacing between sides and labels
-        let totalSpacingHeight = (CGFloat(localSideGapCount) * sideSpacing) + localLabelHeight
-        let availableHeightForScales = maxHeight - totalSpacingHeight
-        
-        // Calculate scale height based on available height
-        let calculatedScaleHeight = min(
-            availableHeightForScales / CGFloat(localTotalScaleCount),
-            maxScaleHeight
-        )
-        let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
-        
-        // Calculate total height needed for all scales
-        let totalHeight = scaleHeight * CGFloat(localTotalScaleCount) + totalSpacingHeight
-        
-        // Calculate width based on aspect ratio
-        let widthFromAspectRatio = totalHeight * targetAspectRatio
-        
-        // Use the smaller of the two to ensure it fits within window
-        // Then subtract margins to get the actual scale width
-        let totalAvailableWidth = min(maxWidth, widthFromAspectRatio)
-        let scaleWidth = max(totalAvailableWidth - totalMarginAndSpacing, 100) // 100pt minimum scale width
-        
-        return Dimensions(
-            width: scaleWidth,
-            scaleHeight: scaleHeight,
-            leftMarginWidth: leftMarginWidth,
-            rightMarginWidth: rightMarginWidth,
-            tier: tier
-        )
     }
     
     /// Calculate total vertical height for all scales on a given side
@@ -271,9 +136,11 @@ struct ContentView: View {
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
                     let size = proxy.size
-                    return calculateDimensions(
+                    return Dimensions.calculate(
                         availableWidth: size.width,
-                        availableHeight: size.height
+                        availableHeight: size.height,
+                        viewMode: viewMode,
+                        slideRule: currentSlideRule
                     )
                 } action: { newDimensions in
                     // Disable animation on geometry changes to prevent drawingGroup cache issues

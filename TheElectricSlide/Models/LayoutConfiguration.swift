@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SlideRuleCoreV3
 
 // MARK: - Layout Constants
 
@@ -50,6 +51,114 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
         rightMarginWidth: 64,
         tier: .extraLarge
     )
+    
+    // MARK: - Layout Constants
+    
+    /// Scale height configuration
+    private static let minScaleHeight: CGFloat = 20   // Minimum height for a scale
+    private static let maxScaleHeight: CGFloat = 30   // Maximum height per scale
+    
+    /// Target aspect ratio (width:height) for slide rule
+    /// Slide rules are typically very wide and relatively short (10:1 to 8:1)
+    private static let targetAspectRatio: CGFloat = 10.0
+    
+    /// Padding around the slide rule
+    private static let padding: CGFloat = 40
+    
+    /// Vertical spacing between sides when showing both
+    private static let sideSpacing: CGFloat = 20
+    
+    // MARK: - Dimension Calculation
+    
+    /// Calculate responsive dimensions for the slide rule layout
+    /// - Parameters:
+    ///   - availableWidth: Available width from geometry
+    ///   - availableHeight: Available height from geometry
+    ///   - viewMode: Current view mode (front, back, both)
+    ///   - slideRule: The current slide rule for scale counts
+    /// - Returns: Calculated dimensions for layout
+    nonisolated static func calculate(
+        availableWidth: CGFloat,
+        availableHeight: CGFloat,
+        viewMode: ViewMode,
+        slideRule: SlideRule
+    ) -> Dimensions {
+        let maxWidth = availableWidth
+        let maxHeight = availableHeight - (padding * 2)
+        
+        // Determine layout tier based on available width
+        let tier = LayoutTier.from(availableWidth: availableWidth)
+        
+        // Use symmetric margins based on layout tier for all platforms
+        // This maximizes scale width while maintaining readable scale labels
+        let leftMarginWidth = tier.marginWidth
+        let rightMarginWidth = tier.marginWidth
+        
+        // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
+        let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
+        
+        // Calculate side gap count (1 gap between sides when showing both)
+        let sideGapCount: Int
+        if viewMode == .both && slideRule.backTopStator != nil {
+            sideGapCount = 1
+        } else {
+            sideGapCount = 0
+        }
+        
+        // Estimate total vertical space needed for labels (when showing both sides)
+        let labelHeight: CGFloat
+        if viewMode == .both && slideRule.backTopStator != nil {
+            labelHeight = 30  // ~15pt per label × 2 labels
+        } else {
+            labelHeight = 0
+        }
+        
+        // Calculate total scale count
+        var totalScaleCount = 0
+        if viewMode == .front || viewMode == .both {
+            totalScaleCount += slideRule.frontTopStator.scales.count +
+                               slideRule.frontSlide.scales.count +
+                               slideRule.frontBottomStator.scales.count
+        }
+        if (viewMode == .back || viewMode == .both),
+           let backTop = slideRule.backTopStator,
+           let backSlide = slideRule.backSlide,
+           let backBottom = slideRule.backBottomStator {
+            totalScaleCount += backTop.scales.count +
+                               backSlide.scales.count +
+                               backBottom.scales.count
+        }
+        
+        // Account for spacing between sides and labels
+        let totalSpacingHeight = (CGFloat(sideGapCount) * sideSpacing) + labelHeight
+        let availableHeightForScales = maxHeight - totalSpacingHeight
+        
+        // Calculate scale height based on available height
+        let calculatedScaleHeight = min(
+            availableHeightForScales / CGFloat(totalScaleCount),
+            maxScaleHeight
+        )
+        let scaleHeight = max(calculatedScaleHeight, minScaleHeight)
+        
+        // Calculate total height needed for all scales
+        let totalHeight = scaleHeight * CGFloat(totalScaleCount) + totalSpacingHeight
+        
+        // Calculate width based on aspect ratio
+        let widthFromAspectRatio = totalHeight * targetAspectRatio
+        
+        // Use the smaller of the two to ensure it fits within window
+        // Then subtract margins to get the actual scale width
+        let totalAvailableWidth = min(maxWidth, widthFromAspectRatio)
+        let scaleWidth = max(totalAvailableWidth - totalMarginAndSpacing, 100) // 100pt minimum scale width
+        
+        return Dimensions(
+            width: scaleWidth,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            tier: tier
+        )
+    }
 }
 
 // MARK: - Layout Tier

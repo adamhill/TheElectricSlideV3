@@ -328,6 +328,25 @@ public enum StandardLabelFormatter {
         return String(Int(value.rounded()))
     }
     
+    /// C/D scale first subsection formatter (PostScript-compatible)
+    /// For integer values: shows the integer (1, 2)
+    /// For decimal values: shows just the tenths digit (1.5 → "5", 1.3 → "3")
+    /// Matches PostScript: plabel uses {.5 add cvi}, slabel uses {1 sub 10 mul .5 add cvi}
+    public static let cScaleFirstSubsection: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
+        let rounded = value.rounded()
+        // Check if value is effectively an integer
+        if abs(value - rounded) < 0.001 {
+            return String(Int(rounded))
+        } else {
+            // Extract the tenths digit: (value - floor(value)) * 10, rounded
+            // This matches PostScript: {1 sub 10 mul .5 add cvi} for slabel
+            let floor = value.rounded(.down)
+            let tenths = ((value - floor) * 10).rounded()
+            return String(Int(tenths))
+        }
+    }
+    
     /// One decimal place
     public static let oneDecimal: @Sendable (ScaleValue) -> String = { value in
         guard value.isFinite else { return "—" }

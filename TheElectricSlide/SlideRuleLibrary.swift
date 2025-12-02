@@ -18,7 +18,8 @@ struct SlideRuleLibrary {
     /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
     /// Version 5: Added Pickett N-16 ES Electronic with 32 specialized scales
     /// Version 6: Updated Pickett N-16 ES definition (fix for old cached version)
-    static let libraryVersion = 6
+    /// Version 7: Updated Pickette N3 Added SQ1 SQ2 Q1 Q2 Q3 scales
+    static let libraryVersion = 7
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -180,7 +181,7 @@ struct SlideRuleLibrary {
         SlideRuleDefinitionModel(
             name: "Pickett N3 Powerlog",
             description: "Sophisticated dual-base duplex slide rule with 32 scales, featuring extended-precision square root, cube root, and tangent scales. Includes comprehensive log-log scales (LL0-LL3±) with extended range for exponential calculations. One of Pickett's most powerful general-purpose scientific computing rules.",
-            definitionString: "(K A [ B ST S T1 T2- CI C ] D DI : LL00 LL00- LL01 LL1- DF [ CF CIF Ln L CI C ] D LL02 LL2- LL03 LL3-)",
+            definitionString: "(SQ1 SQ2- K A [ B ST S T1 T2- CI C ] D DI : LL00 LL00- LL01 LL1- DF [ CF CIF Ln L CI C ] D LL02 LL2- LL03 LL3- Q1 Q2 Q3-)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,

@@ -67,13 +67,24 @@ graph LR
     A --> C[intervals: Array]
     A --> D[labels: Array]
     
-    C --> C1[Primary interval]
-    C --> C2[Secondary interval]
-    C --> C3[Tertiary interval]
-    C --> C4[Quaternary interval]
+    C --> C1[Primary interval - index 0]
+    C --> C2[Secondary interval - index 1]
+    C --> C3[Tertiary interval - index 2]
+    C --> C4[Quaternary interval - index 3]
     
-    D --> D1[Label definitions]
+    D --> D1[Formatter for level 0]
+    D --> D2[Formatter for level 1]
+    D --> D3[...etc]
 ```
+
+**⚠️ CRITICAL: Per-Level Label Formatters**
+
+The `labels` array uses **positional indexing** - each element is a formatter for that interval level:
+- `labels[0]` → formatter for primary ticks (interval index 0)
+- `labels[1]` → formatter for secondary ticks (interval index 1)
+- etc.
+
+This allows **different formatting logic** for different tick levels within the same subsection.
 
 **Example from C Scale (lines 431-461):**
 
@@ -86,11 +97,17 @@ end
 ```
 
 This means: From value 1 onwards:
-- Primary marks every 1 unit
-- Secondary marks every 0.1 units
-- Tertiary marks every 0.05 units  
-- Quaternary marks every 0.01 units
-- Display both primary and secondary labels
+- Primary marks every 1 unit (interval index 0)
+- Secondary marks every 0.1 units (interval index 1)
+- Tertiary marks every 0.05 units (interval index 2)
+- Quaternary marks every 0.01 units (interval index 3)
+
+**Label assignment:**
+- `{plabel}` at index 0 → labels primary ticks (1, 2)
+- `{slabel}` at index 1 → labels secondary ticks (1.1, 1.2, ..., 1.9)
+- No formatter at index 2 or 3 → tertiary and quaternary ticks get no labels
+
+**The key insight:** `plabel` and `slabel` use DIFFERENT formulas to produce their labels!
 
 ### 3. Label Dictionary
 
@@ -99,25 +116,48 @@ Labels control how numbers are displayed on scales:
 ```mermaid
 graph TD
     A[Label Dictionary] --> B[linterval: Integer]
-    A --> C[lformula: Function]
+    A --> C[lformula: Function - CRITICAL]
     A --> D[font: Font]
     A --> E[fontsize: Number]
     A --> F[position: Function]
     A --> G[labelcolor: RGB Array - Optional]
 ```
 
-**Example from C Scale (lines 397-404):**
+**Primary Label (`plabel`) - for integer tick marks (lines 397-404):**
 
 ```postscript
 /plabel 8 dict begin
-    /linterval 0 def                    % Applies to primary marks
-    /lformula {.5 add cvi} def          % Convert to integer
+    /linterval 0 def                    % Applies to primary marks (index 0)
+    /lformula {.5 add cvi} def          % Round to integer: 1.0→"1", 2.0→"2"
     /font NumFont1 def                  % Helvetica-based font
     /fontsize LargeF def                % 4.5 point
     /position /Ntop load def            % Above tick mark
     currentdict
 end def
 ```
+
+**Secondary Label (`slabel`) - for extracting tenths digit (lines 405-412):**
+
+```postscript
+/slabel 8 dict begin
+    /linterval 1 def                    % Applies to secondary marks (index 1)
+    /lformula {1 sub 10 mul .5 add cvi} def  % Extract tenths: 1.5→"5", 1.3→"3"
+    /font NumFont1 def
+    /fontsize SmallF def                % Smaller font for secondary labels
+    /position /NtopT load def           % Tighter positioning
+    currentdict
+end def
+```
+
+**⚠️ CRITICAL: The `slabel` formula explained:**
+
+For a value like 1.5:
+1. `1 sub` → 1.5 - 1 = 0.5 (subtract the integer part)
+2. `10 mul` → 0.5 × 10 = 5.0 (scale to extract tenths digit)
+3. `.5 add cvi` → round to integer = 5 (the label shown)
+
+This is why the C scale shows "1", "2", "3", etc. between 1 and 2 (for values 1.1, 1.2, 1.3...).
+The labels are NOT the full values - they're just the tenths digit!
 
 **Label Positioning Functions:**
 
@@ -128,6 +168,54 @@ end def
 | `Nleft` | Left of tick mark | Inverse scales |
 | `Ncent` | Centered on tick | Special markers |
 | `NtopT` | Above tick, tight spacing | Subscripts/superscripts |
+
+### Per-Level Label Formatters: Complete Example
+
+This pattern is **critical** for implementing C, D, CI, and similar scales correctly.
+
+**C Scale Subsection 1-2 (first subsection):**
+
+```postscript
+/subsections [
+    4 dict dup begin
+        /beginsub 1 def
+        /intervals [ 1 .1 .05 .01 ] def
+        /labels [ {plabel} {slabel} ] def   % TWO formatters!
+    end
+    ...
+] def
+```
+
+**Resulting labels on the scale:**
+
+| Value | Interval Index | Formatter Used | Formula | Label Shown |
+|-------|---------------|----------------|---------|-------------|
+| 1.0   | 0 (primary)   | `plabel`       | `{.5 add cvi}` | "1" |
+| 1.1   | 1 (secondary) | `slabel`       | `{1 sub 10 mul .5 add cvi}` | "1" |
+| 1.2   | 1 (secondary) | `slabel`       | `{1 sub 10 mul .5 add cvi}` | "2" |
+| 1.3   | 1 (secondary) | `slabel`       | `{1 sub 10 mul .5 add cvi}` | "3" |
+| 1.5   | 1 (secondary) | `slabel`       | `{1 sub 10 mul .5 add cvi}` | "5" |
+| 1.05  | 2 (tertiary)  | (none)         | N/A | (no label) |
+| 2.0   | 0 (primary)   | `plabel`       | `{.5 add cvi}` | "2" |
+
+**C Scale Subsection 2+ (later subsections):**
+
+```postscript
+4 dict dup begin
+    /beginsub 2 def
+    /intervals [ 1 .5 .1 .02 ] def
+    /labels [ {plabel} ] def               % Only ONE formatter!
+end
+```
+
+From value 2 onwards, only primary ticks (integers) get labels - secondary ticks (0.5 intervals) don't.
+
+**Implementation Requirement:**
+
+When implementing this in another language, you MUST:
+1. Support per-subsection label arrays where each index maps to an interval level
+2. Use DIFFERENT formatter functions for different levels within the same subsection
+3. For C/D scale first subsection: primary formatter shows integers, secondary formatter extracts tenths digit
 
 ### 4. Constant Dictionary
 
@@ -193,16 +281,19 @@ flowchart TD
     /ticklength gradsizes def  % [Ptick Stick Ttick Qtick]
     
     % Subsections define how marks change across range
+    % NOTE: labels array is INDEXED BY INTERVAL LEVEL!
     /subsections [
+        % Subsection 1-2: BOTH primary AND secondary labels
         4 dict dup begin
             /beginsub 1 def
             /intervals [ 1 .1 .05 .01 ] def
-            /labels [ {plabel} {slabel} ] def
+            /labels [ {plabel} {slabel} ] def  % plabel→index 0, slabel→index 1
         end
+        % Subsection 2+: ONLY primary labels (different tick spacing too)
         4 dict dup begin
             /beginsub 2 def
             /intervals [ 1 .5 .1 .02 ] def
-            /labels [ {plabel} ] def
+            /labels [ {plabel} ] def           % Only plabel→index 0
         end
         % ... more subsections for 4, 10, 20, 40
     ] def
@@ -774,12 +865,16 @@ data TickDirection = TicksUp | TicksDown
 data Subsection = Subsection
   { subBegin :: Double
   , intervals :: [Double]      -- [primary, secondary, tertiary, quaternary]
-  , labelDefs :: [LabelDef]
+  , labelFormatters :: [Maybe LabelDef]  -- INDEXED BY INTERVAL LEVEL!
+    -- labelFormatters[0] = formatter for primary ticks (if any)
+    -- labelFormatters[1] = formatter for secondary ticks (if any)
+    -- etc. Missing or Nothing = no label for that level
   }
 
 data LabelDef = LabelDef
-  { labelInterval :: Int       -- 0=primary, 1=secondary, etc.
-  , labelFormula :: Double -> String
+  { labelFormula :: Double -> String  -- CRITICAL: different per level!
+    -- For primary: {.5 add cvi} → shows integer
+    -- For secondary: {1 sub 10 mul .5 add cvi} → extracts tenths digit
   , labelFont :: Font
   , labelSize :: Double
   , labelPosition :: Position
@@ -869,12 +964,16 @@ renderScale ctx scale = do
           tickLength = (tickLengths scale) !! interval
           position = calculatePosition ctx scale value
       
-      -- Draw labels if applicable
-      let applicableLabels = filter (\l -> labelInterval l == interval) 
-                                    (labelDefs subsec)
-      forM_ applicableLabels $ \labelDef -> do
-        let text = labelFormula labelDef value
-        drawLabel ctx position text labelDef
+      -- CRITICAL: Look up formatter by interval INDEX, not by searching!
+      -- labelFormatters is indexed: [0]=primary, [1]=secondary, etc.
+      case labelFormatters subsec `safeIndex` interval of
+        Just labelDef -> do
+          -- Each level can have a DIFFERENT formula!
+          -- Primary (level 0): {.5 add cvi} → "1", "2"
+          -- Secondary (level 1): {1 sub 10 mul .5 add cvi} → "1","2".."9" (tenths)
+          let text = labelFormula labelDef value
+          drawLabel ctx position text labelDef
+        Nothing -> return ()  -- No label for this interval level
       
       -- Draw tick mark
       drawTick ctx position tickLength (tickDirection scale)
@@ -1020,4 +1119,17 @@ For reimplementation in a functional language:
 - Render by iterating through scales, subsections, and tick positions
 - Handle circular vs. linear rendering through polymorphism or pattern matching
 
-The key insight is that all slide rule scales are logarithmic transformations, with visual appearance controlled through subsection intervals and label formatting functions.
+**⚠️ CRITICAL Implementation Detail: Per-Level Label Formatters**
+
+The `labels` array in each subsection is **indexed by interval level**:
+- `labels[0]` = formatter for primary ticks
+- `labels[1]` = formatter for secondary ticks
+- etc.
+
+Different levels use **different formulas**:
+- `plabel` uses `{.5 add cvi}` → rounds to integer ("1", "2", "3")
+- `slabel` uses `{1 sub 10 mul .5 add cvi}` → extracts tenths digit ("1" for 1.1, "5" for 1.5)
+
+This is why the C scale shows "1 2 3 4 5 6 7 8 9" between marks 1 and 2 - those are NOT values 1-9, they're the tenths digits of 1.1, 1.2, ..., 1.9!
+
+The key insight is that all slide rule scales are logarithmic transformations, with visual appearance controlled through subsection intervals and **per-level** label formatting functions.

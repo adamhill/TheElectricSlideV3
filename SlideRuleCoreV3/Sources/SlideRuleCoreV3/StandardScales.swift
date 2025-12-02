@@ -88,18 +88,21 @@ public enum StandardScales {
                 // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
                 // Mathematical: Finest mark at 0.01 → readable to ~0.005 with interpolation
                 // Historical: K&E rules showed 4 sig figs at low end of C/D scales (1.0-2.0 spans 30% of scale)
+                // PostScript: labels [ {plabel} {slabel} ] - both level 0 (integers) and level 1 (tenths digit)
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
-                    labelLevels: [0, 1]
+                    labelLevels: [0, 1],
+                    labelFormatter: StandardLabelFormatter.cScaleFirstSubsection
                 ),
                 // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 // Mathematical: 0.05 marks → readable to ~0.02 with interpolation
                 // Historical: Mid-range provides 3-4 sig figs on quality K&E Mannheim rules
+                // Note: Only label level 0 (integer values) to avoid incorrect rounding of 0.5 values
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0, 1]
+                    labelLevels: [0]
                 ),
                 // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
                 // Mathematical: 0.02 marks → readable to ~0.01 with interpolation  
@@ -128,18 +131,21 @@ public enum StandardScales {
                 // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
                 // Mathematical: Same as C scale - finest mark at 0.01 → readable to ~0.005
                 // Historical: D scale identical to C, provides 4 sig figs at low end
+                // PostScript: labels [ {plabel} {slabel} ] - both level 0 (integers) and level 1 (tenths digit)
                 ScaleSubsection(
                     startValue: 1.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
-                    labelLevels: [0, 1]
+                    labelLevels: [0, 1],
+                    labelFormatter: StandardLabelFormatter.cScaleFirstSubsection
                 ),
                 // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 // Mathematical: Same as C scale - 0.05 marks → readable to ~0.02
                 // Historical: Mid-range maintains 3-4 sig figs standard
+                // Note: Only label level 0 (integer values) to avoid incorrect rounding of 0.5 values
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0, 1]
+                    labelLevels: [0]
                 ),
                 // Cursor Precision: 3 decimals (from 0.02 quaternary interval)
                 // Mathematical: Same as C scale - 0.02 marks → readable to ~0.01
@@ -176,18 +182,21 @@ public enum StandardScales {
                 // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 // Mathematical: 0.05 marks → readable to ~0.02, mirrors C scale's mid-range
                 // Historical: Maintains 3-4 sig figs standard for reciprocal operations
+                // Note: Only label level 0 (integer values) to avoid incorrect rounding of 0.5 values
                 ScaleSubsection(
                     startValue: 4.0,
                     tickIntervals: [1.0, 0.5, 0.1, 0.05],
-                    labelLevels: [0, 1]
+                    labelLevels: [0]
                 ),
                 // Cursor Precision: 3 decimals (from 0.01 quaternary interval)
                 // Mathematical: Finest mark at 0.01 → readable to ~0.005, mirrors C scale's low end
                 // Historical: Best precision at low end (2.0-1.0), provides 4 sig figs for reciprocals
+                // PostScript: This subsection (1-2 range) has labels [ {plabel} {slabel} ] for both levels
                 ScaleSubsection(
                     startValue: 2.0,
                     tickIntervals: [1.0, 0.1, 0.05, 0.01],
-                    labelLevels: [0, 1]
+                    labelLevels: [0, 1],
+                    labelFormatter: StandardLabelFormatter.cScaleFirstSubsection
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)

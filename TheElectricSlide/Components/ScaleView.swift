@@ -3,7 +3,8 @@
 //  TheElectricSlide
 //
 //  Core scale rendering component that draws tick marks and labels.
-//  Label rendering is delegated to ScaleLabelRenderer for separation of concerns.
+//  Tick rendering is delegated to ScaleTickRenderer.
+//  Label rendering is delegated to ScaleLabelRenderer.
 //
 //  Extracted from ContentView.swift for better organization.
 //
@@ -99,72 +100,21 @@ struct ScaleView: View {
             }
         }
         
-        // Create label renderer for this scale
+        // Create renderers for this scale (cached colors computed once)
+        let tickRenderer = ScaleTickRenderer(definition: definition)
         let labelRenderer = ScaleLabelRenderer(definition: definition)
         
         // Draw baseline if enabled
-        if definition.showBaseline {
-            let baselinePath = Path { path in
-                switch definition.tickDirection {
-                case .down:
-                    path.move(to: CGPoint(x: 0, y: 0))
-                    path.addLine(to: CGPoint(x: size.width, y: 0))
-                case .up:
-                    path.move(to: CGPoint(x: 0, y: size.height))
-                    path.addLine(to: CGPoint(x: size.width, y: size.height))
-                }
-            }
-            
-            context.stroke(
-                baselinePath,
-                with: .color(.black),
-                lineWidth: 2.0
-            )
-        }
+        tickRenderer.drawBaseline(context: &context, size: size)
         
-        // Draw tick marks
+        // Draw tick marks and labels
         for tick in tickMarks {
-            // Calculate horizontal position
-            let xPos = tick.normalizedPosition * size.width
-            
-            // Calculate tick height based on relativeLength
-            let tickHeight = tick.style.relativeLength * (size.height * 0.6)
-            
-            // Calculate tick start and end positions based on direction
-            let (tickStartY, tickEndY): (CGFloat, CGFloat)
-            switch definition.tickDirection {
-            case .down:
-                tickStartY = 0
-                tickEndY = tickHeight
-            case .up:
-                tickStartY = size.height
-                tickEndY = size.height - tickHeight
-            }
-            
-            // Draw tick mark (vertical line) with anti-aliasing disabled
-            // Apply custom color to tick marks if colorApplication allows
-            let tickColor: Color = {
-                if let tupleColor = definition.labelColor,
-                   definition.colorApplication.scaleTicks {
-                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
-                } else {
-                    return .black
-                }
-            }()
-            
-            let tickPath = Path { path in
-                path.move(to: CGPoint(x: xPos, y: tickStartY))
-                path.addLine(to: CGPoint(x: xPos, y: tickEndY))
-            }
-            
-            context.withCGContext { cgContext in
-                cgContext.setShouldAntialias(false)
-                context.stroke(
-                    tickPath,
-                    with: .color(tickColor),
-                    lineWidth: tick.style.lineWidth / 1.25
-                )
-            }
+            // Draw tick mark and get geometry for label positioning
+            let (xPos, tickHeight) = tickRenderer.drawTick(
+                context: &context,
+                tick: tick,
+                size: size
+            )
             
             // Draw labels using the label renderer
             if !tick.labels.isEmpty {
@@ -192,3 +142,4 @@ struct ScaleView: View {
         }
     }
 }
+

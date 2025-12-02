@@ -17,7 +17,8 @@ struct SlideRuleLibrary {
     /// Version 3: Added scale name overrides (Hemmi 266 "dB L")
     /// Version 4: Updated Hemmi 266 scale name overrides (H266LL01, H266LL03)
     /// Version 5: Added Pickett N-16 ES Electronic with 32 specialized scales
-    static let libraryVersion = 5
+    /// Version 6: Updated Pickett N-16 ES definition (fix for old cached version)
+    static let libraryVersion = 6
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version

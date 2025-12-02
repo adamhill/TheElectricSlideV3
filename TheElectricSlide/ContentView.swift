@@ -27,13 +27,15 @@ import SlideRuleCoreV3
 
 // Extensions:
 // - ContentView+Gestures (Extensions/ContentView+Gestures.swift) - Drag, zoom, pan gesture handlers
+// - ContentView+Persistence (Extensions/ContentView+Persistence.swift) - SwiftData load/save/parse
 
 // MARK: - ContentView
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
+    // Note: internal access for extension in ContentView+Persistence.swift
+    @Environment(\.modelContext) var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Query private var currentRuleQuery: [CurrentSlideRule]
+    @Query var currentRuleQuery: [CurrentSlideRule]
     @Query(sort: \SlideRuleDefinitionModel.sortOrder) private var availableRules: [SlideRuleDefinitionModel]
     
     // MARK: - View Model (uses hot/cold property pattern for performance)
@@ -48,16 +50,18 @@ struct ContentView: View {
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     
     // ✅ State for calculated dimensions - only updates when window size changes
-    // Note: internal access for extension in ContentView+Gestures.swift
+    // Note: internal access for extensions
     @State var calculatedDimensions: Dimensions = .default
     @State var cursorState = CursorState()
     
     // Current slide rule selection (persisted via SwiftData)
-    @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
-    @State private var selectedRuleId: UUID? // Track ID separately for onChange
+    // Note: internal access for extension in ContentView+Persistence.swift
+    @State var selectedRuleDefinition: SlideRuleDefinitionModel?
+    @State var selectedRuleId: UUID? // Track ID separately for onChange
     
     // Parsed slide rule from definition - published state to trigger re-renders
-    @State private var currentSlideRule: SlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
+    // Note: internal access for extension in ContentView+Persistence.swift
+    @State var currentSlideRule: SlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
     
     // Access current slide rule (now a @State variable, not computed)
     private var slideRule: SlideRule {
@@ -228,60 +232,6 @@ struct ContentView: View {
             print("[ViewMode] View mode changed: \(oldValue.rawValue) → \(newValue.rawValue)")
             #endif
             // Update cursor readings when view mode changes to reflect new visible scales
-            cursorState.updateReadings()
-        }
-    }
-    
-    // MARK: - Persistence Helpers
-    
-    private func loadCurrentRule() {
-        if let currentRule = currentRuleQuery.first {
-            selectedRuleDefinition = currentRule.selectedRule
-            selectedRuleId = currentRule.selectedRule?.id
-        }
-        // Parse initial slide rule
-        parseAndUpdateSlideRule()
-    }
-    
-    private func saveCurrentRule() {
-        guard let selectedRuleDefinition = selectedRuleDefinition else {
-            print("⚠️ Cannot save: selectedRuleDefinition is nil")
-            return
-        }
-        if let current = currentRuleQuery.first {
-            current.updateSelection(selectedRuleDefinition)
-        } else {
-            let newCurrent = CurrentSlideRule(selectedRule: selectedRuleDefinition)
-            modelContext.insert(newCurrent)
-        }
-        
-        try? modelContext.save()
-    }
-    
-    private func parseAndUpdateSlideRule() {
-        guard let definition = selectedRuleDefinition else {
-            // Use default rule
-            print("⚠️ No definition selected, using default")
-            currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
-            cursorState.updateReadings()
-            return
-        }
-        
-        print("🔧 Parsing slide rule: \(definition.name)")
-        print("   Definition: \(definition.definitionString)")
-        
-        do {
-            let parsed = try definition.parseSlideRule(scaleLength: 1000)
-            currentSlideRule = parsed
-            print("✅ Successfully loaded slide rule: \(definition.name)")
-            print("   Front scales: \(parsed.frontTopStator.scales.count) + \(parsed.frontSlide.scales.count) + \(parsed.frontBottomStator.scales.count)")
-            
-            // Update cursor readings immediately after parsing new slide rule
-            cursorState.updateReadings()
-        } catch {
-            print("❌ Failed to parse slide rule '\(definition.name)': \(error)")
-            // Fallback to basic rule
-            currentSlideRule = SlideRule.logLogDuplexDecitrig(scaleLength: 1000)
             cursorState.updateReadings()
         }
     }

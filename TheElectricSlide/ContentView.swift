@@ -25,6 +25,9 @@ import SlideRuleCoreV3
 // - SlideRuleDetailView (Components/SlideRuleDetailView.swift)
 // - DynamicSlideRuleContent (Components/DynamicSlideRuleContent.swift)
 
+// Extensions:
+// - ContentView+Gestures (Extensions/ContentView+Gestures.swift) - Drag, zoom, pan gesture handlers
+
 // MARK: - ContentView
 
 struct ContentView: View {
@@ -35,7 +38,8 @@ struct ContentView: View {
     
     // MARK: - View Model (uses hot/cold property pattern for performance)
     // See slide-rule-performance-decisions-and-planning.md for rationale
-    @State private var viewModel = SlideRuleViewModel()
+    // Note: internal access for extension in ContentView+Gestures.swift
+    @State var viewModel = SlideRuleViewModel()
     
     // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
     @State private var viewMode: ViewMode = .both  // View mode selector
@@ -44,8 +48,9 @@ struct ContentView: View {
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     
     // ✅ State for calculated dimensions - only updates when window size changes
-    @State private var calculatedDimensions: Dimensions = .default
-    @State private var cursorState = CursorState()
+    // Note: internal access for extension in ContentView+Gestures.swift
+    @State var calculatedDimensions: Dimensions = .default
+    @State var cursorState = CursorState()
     
     // Current slide rule selection (persisted via SwiftData)
     @State private var selectedRuleDefinition: SlideRuleDefinitionModel?
@@ -357,70 +362,6 @@ struct ContentView: View {
             #endif
             // Update cursor readings when view mode changes to reflect new visible scales
             cursorState.updateReadings()
-        }
-    }
-    
-    // ✅ Drag gesture handlers - delegate to viewModel (uses hot/cold pattern)
-    private func handleDragChanged(_ gesture: DragGesture.Value) {
-        // Mark slide as dragging
-        cursorState.setSlideDragging(true)
-        viewModel.handleSliderDragChanged(translation: gesture.translation.width)
-    }
-    
-    private func handleDragEnded(_ gesture: DragGesture.Value) {
-        viewModel.handleSliderDragEnded()
-        // Mark slide drag as ended
-        cursorState.setSlideDragging(false)
-    }
-    
-    // ✅ Zoom gesture handlers - delegate to viewModel (uses hot/cold pattern)
-    private func handleZoomChanged(_ scale: CGFloat) {
-        viewModel.handleZoomChanged(scale: scale)
-    }
-    
-    private func handleZoomEnded(_ scale: CGFloat) {
-        viewModel.handleZoomEnded(scale: scale)
-        
-        // Log cursor and scale info for debugging
-        #if DEBUG
-        print("🔍 [Zoom Debug] Cursor normalized position: \(cursorState.normalizedPosition)")
-        print("🔍 [Zoom Debug] Dimensions - width: \(calculatedDimensions.width), leftMargin: \(calculatedDimensions.leftMarginWidth)")
-        if let readings = cursorState.currentReadings {
-            print("🔍 [Zoom Debug] Hairline position: \(String(format: "%.4f", readings.cursorPosition))")
-            // Log K, C, D scales if available
-            for scaleName in ["K", "C", "D", "A"] {
-                if let reading = readings.reading(forScale: scaleName, side: .front) {
-                    print("🔍 [Zoom Debug]   \(scaleName) scale: \(reading.displayValue) (raw: \(String(format: "%.6f", reading.value)))")
-                }
-            }
-        }
-        #endif
-    }
-    
-    // MARK: - Pan Handlers
-    
-    /// Handles pan gesture changes during drag to pan zoomed content
-    /// Uses withTransaction to suppress animations for smooth, jitter-free tracking
-    private func handlePanChanged(_ gesture: DragGesture.Value) {
-        withTransaction(Transaction(animation: nil)) {
-            viewModel.handlePanChanged(translation: gesture.translation)
-        }
-    }
-    
-    /// Handles pan gesture end and commits the new base offset
-    /// Uses withTransaction to suppress animations for immediate response
-    private func handlePanEnded(_ gesture: DragGesture.Value) {
-        withTransaction(Transaction(animation: nil)) {
-            viewModel.handlePanEnded()
-        }
-    }
-    
-    /// Handles triple-tap to reset zoom to 1.0× and clear pan offset
-    /// Animates the zoom reset for visual feedback
-    private func handleResetZoom() {
-        // Reset zoom with animation for visual feedback
-        withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
-            viewModel.resetZoom()
         }
     }
     

@@ -71,19 +71,13 @@ transformedContext.draw(resolvedText, at: CGPoint(x: drawX, y: drawY))
 ## Files Modified
 
 - **ScaleLabelRenderer.swift** - Applied both fixes (position rounding + concatenate)
-- **ScaleView.swift** - Removed `.drawingGroup()` modifier (see below)
+- **ScaleView.swift** - No changes needed (`.drawingGroup()` retained for performance)
 
-## Related Change: Removed .drawingGroup()
+## Note on .drawingGroup()
 
-During debugging, `.drawingGroup()` was removed from the Canvas in ScaleView. This modifier causes SwiftUI to rasterize the view into a Metal texture, which can cause issues when parent views are scaled:
+Initially `.drawingGroup()` was suspected as a contributing factor and was temporarily removed during debugging. However, after applying the position rounding and `concatenate()` fixes, `.drawingGroup()` was restored and the labels remain stable at all zoom levels.
 
-```swift
-// REMOVED - caused caching issues with zoom
-Canvas { ... }
-    .drawingGroup()  // ❌ Removed
-```
-
-The Metal texture cache doesn't automatically update when parent view transforms change, leading to stale or incorrectly scaled content.
+**Conclusion:** The root cause was purely the sub-pixel positions and transform replacement - `.drawingGroup()` is safe to use with the fixes in place and provides important Metal-accelerated rendering performance for scales with 200+ tick marks.
 
 ## Verification
 

@@ -61,9 +61,7 @@ struct ScaleView: View {
                             definition: generatedScale.definition
                         )
                     }
-                    // NOTE: .drawingGroup() REMOVED - was causing label shift at high zoom levels
-                    // The Metal rasterization cache doesn't update correctly when parent view
-                    // is scaled via .scaleEffect(). See scale-shift-solution-implementation.md
+                    .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
                 }
             }
             .frame(width: width)

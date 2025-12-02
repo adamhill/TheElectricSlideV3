@@ -17,12 +17,36 @@ import SlideRuleCoreV3
 /// Debug flag - set to true to enable label rendering diagnostics
 private let DEBUG_LABEL_RENDERING = false
 
+// MARK: - Pre-computed Constants
+
+/// Pre-computed skew values to avoid repeated tan() calculations
+private let kSkewRight: CGFloat = -tan(20.0 * .pi / 180.0)  // ≈ -0.364
+private let kSkewLeft: CGFloat = tan(20.0 * .pi / 180.0)    // ≈ 0.364
+
+/// Pre-computed measurement bounds (avoid allocating CGSize each call)
+private let kMeasureBounds = CGSize(width: 100, height: 100)
+
 /// Renders labels for scale tick marks with full PostScript-style configuration support
 struct ScaleLabelRenderer {
     let definition: ScaleDefinition
     
+    /// Cached label color from definition (computed once per renderer instance)
+    private let cachedLabelColor: Color?
+    
     /// Track render calls for debugging
     private static var renderCallCount = 0
+    
+    init(definition: ScaleDefinition) {
+        self.definition = definition
+        
+        // Pre-compute label color once instead of checking each label
+        if let tupleColor = definition.labelColor,
+           definition.colorApplication.scaleLabels {
+            self.cachedLabelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+        } else {
+            self.cachedLabelColor = nil
+        }
+    }
     
     // MARK: - Public Drawing Methods
     
@@ -61,23 +85,15 @@ struct ScaleLabelRenderer {
             // Use regular font (not italic), we'll apply transform for slant
             let font = Font.system(size: fontSize)
             
-            // Check if we should apply custom color based on colorApplication
-            let labelColor: Color
-            if let tupleColor = definition.labelColor,
-               definition.colorApplication.scaleLabels {
-                // Use the definition's label color if colorApplication allows
-                labelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
-            } else {
-                // Otherwise use the label config's color (for dual labels) or default to black
-                labelColor = colorFromLabelColor(labelConfig.color)
-            }
+            // Use cached label color, or fall back to label config's color
+            let labelColor = cachedLabelColor ?? colorFromLabelColor(labelConfig.color)
             
             let text = Text(labelConfig.text)
                 .font(font)
                 .foregroundColor(labelColor)
             
             let resolvedText = context.resolve(text)
-            let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+            let textSize = resolvedText.measure(in: kMeasureBounds)
             
             // Debug: Log text measurement for LL scales
             if DEBUG_LABEL_RENDERING && definition.name.contains("LL") && labelConfig.text == "3" {
@@ -95,17 +111,15 @@ struct ScaleLabelRenderer {
             )
             
             // Apply skew transform matching PostScript NumFontRi/NumFontLi
-            // PostScript: [ 1 0 tan(20°) 1 0 0 ] for right italic
-            //            [ 1 0 -tan(20°) 1 0 0 ] for left italic
-            // tan(20°) ≈ 0.364
+            // Use pre-computed skew values to avoid tan() on each label
             let skewAmount: CGFloat
             switch labelConfig.position {
             case .right:
-                skewAmount = -tan(20.0 * .pi / 180.0)  // Left-leaning (away from tick on right)
+                skewAmount = kSkewRight  // Left-leaning (away from tick on right)
             case .left:
-                skewAmount = tan(20.0 * .pi / 180.0) // Right-leaning (away from tick on left)
+                skewAmount = kSkewLeft   // Right-leaning (away from tick on left)
             default:
-                skewAmount = 0     // No slant for centered labels
+                skewAmount = 0           // No slant for centered labels
             }
             
             // Create skew transform matching PostScript font matrix
@@ -162,21 +176,15 @@ struct ScaleLabelRenderer {
         let fontSize = fontSizeForTick(tickRelativeLength)
         guard fontSize > 0 else { return }
         
-        // Use label color from definition if available and colorApplication allows, otherwise default to black
-        let labelColor: Color
-        if let tupleColor = definition.labelColor,
-           definition.colorApplication.scaleLabels {
-            labelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
-        } else {
-            labelColor = .black
-        }
+        // Use cached label color or default to black
+        let labelColor = cachedLabelColor ?? .black
         
         let label = Text(text)
             .font(.system(size: fontSize))
             .foregroundColor(labelColor)
         
         let resolvedText = context.resolve(label)
-        let textSize = resolvedText.measure(in: CGSize(width: 100, height: 100))
+        let textSize = resolvedText.measure(in: kMeasureBounds)
         
         // Position label based on tick direction
         let labelY: CGFloat

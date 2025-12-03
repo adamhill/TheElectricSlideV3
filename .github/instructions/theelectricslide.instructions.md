@@ -5,7 +5,7 @@ applyTo: "TheElectricSlide/**/*.swift"
 # TheElectricSlide App Guidelines
 
 ## Platform Requirements
-- macOS 15+, iOS 18+ (uses `onGeometryChange` from WWDC 2024)
+- macOS 15+, iOS 18+ (uses enhanced `onGeometryChange` modifier)
 
 ## Performance-Critical Patterns
 
@@ -20,9 +20,9 @@ Canvas { context, size in
 
 ### 2. Use `onGeometryChange` NOT GeometryReader
 ```swift
-.onGeometryChange(for: Dimensions.self) { proxy in
-    calculateDimensions(availableWidth: proxy.size.width, availableHeight: proxy.size.height)
-} action: { newDimensions in
+.onGeometryChange(for: Dimensions.self, of: { proxy in
+    Dimensions(width: proxy.size.width, height: proxy.size.height)
+}) { newDimensions in
     calculatedDimensions = newDimensions  // Only updates when size changes
 }
 ```

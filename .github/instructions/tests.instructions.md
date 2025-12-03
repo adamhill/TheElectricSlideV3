@@ -5,7 +5,8 @@ applyTo: "**/*Tests.swift"
 # Test Guidelines (Swift Testing Framework)
 
 ## Framework
-Use Swift Testing framework exclusively (**not XCTest**).
+Use Swift Testing framework for **unit tests** (not XCTest).
+- XCTest is still appropriate for **UI tests** (`TheElectricSlideUITests`)
 - Platform: Xcode 16+, Swift 6
 
 ## Test Structure

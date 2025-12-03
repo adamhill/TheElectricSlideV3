@@ -16,7 +16,8 @@ applyTo: "**/*.swift"
 - `ScaleDefinition` `name` and `formula` properties are `String` (not `AttributedString`)
 
 ## Testing (Swift Testing Framework)
-- Use Swift Testing framework exclusively (**not XCTest**)
+- Use Swift Testing framework for **unit tests** (not XCTest)
+- XCTest is still used for **UI tests** (`TheElectricSlideUITests`)
 - Use `@Suite` for logical grouping and `@Test` for individual tests
 - Storytelling test names: `@Test("User sees error when...")`
 - Use `#expect` for soft checks, `#require` for critical unwrapping

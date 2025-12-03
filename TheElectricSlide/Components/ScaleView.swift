@@ -22,7 +22,7 @@ private var canvasRedrawCount = 0
 
 // MARK: - ScaleView Component
 
-struct ScaleView: View {
+struct ScaleView: View, Equatable {
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
@@ -31,19 +31,39 @@ struct ScaleView: View {
     let nameFont: Font
     let formulaFont: Font
     
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    // This prevents unnecessary Canvas redraws when parent views re-evaluate
+    static func == (lhs: ScaleView, rhs: ScaleView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.height == rhs.height &&
+        lhs.leftMarginWidth == rhs.leftMarginWidth &&
+        lhs.rightMarginWidth == rhs.rightMarginWidth &&
+        lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
+        lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count
+    }
+    
+    // Compute renderers once per view instance, not per Canvas redraw
+    private var tickRenderer: ScaleTickRenderer {
+        ScaleTickRenderer(definition: generatedScale.definition)
+    }
+    
+    private var labelRenderer: ScaleLabelRenderer {
+        ScaleLabelRenderer(definition: generatedScale.definition)
+    }
+    
+    // Compute scale label color once per view instance, not in body
+    private var scaleLabelColor: Color {
+        if let tupleColor = generatedScale.definition.labelColor,
+           generatedScale.definition.colorApplication.scaleName {
+            return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+        } else {
+            return .black
+        }
+    }
+    
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left (right-aligned with responsive width)
-            // Extract label color from definition, applying it only if colorApplication allows
-            let scaleLabelColor: Color = {
-                if let tupleColor = generatedScale.definition.labelColor,
-                   generatedScale.definition.colorApplication.scaleName {
-                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
-                } else {
-                    return .black
-                }
-            }()
-            
             Text(generatedScale.definition.name)
                 .font(nameFont)
                 .foregroundColor(scaleLabelColor)
@@ -100,9 +120,7 @@ struct ScaleView: View {
             }
         }
         
-        // Create renderers for this scale (cached colors computed once)
-        let tickRenderer = ScaleTickRenderer(definition: definition)
-        let labelRenderer = ScaleLabelRenderer(definition: definition)
+        // Use pre-computed renderers from view properties (avoids recreation on each Canvas redraw)
         
         // Draw baseline if enabled
         tickRenderer.drawBaseline(context: &context, size: size)

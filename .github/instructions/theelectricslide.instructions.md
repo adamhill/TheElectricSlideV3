@@ -54,7 +54,9 @@ Canvas { ... }.drawingGroup()  // Metal-accelerated rendering for 200+ tick mark
 - Keep slide position isolated from window size state
 
 ## Device Detection
-- Use `@Environment(\.horizontalSizeClass)` (`.compact` = iPhone, `.regular` = iPad/Mac)
+- Use `@Environment(\.horizontalSizeClass)` for layout adaptation
+  - `.compact` = constrained width (iPhones portrait, iPad Split View)
+  - `.regular` = spacious width (iPads full screen, large iPhones landscape)
 - **Don't** use `UIDevice.current.userInterfaceIdiom` in view bodies
 
 ## View Hierarchy

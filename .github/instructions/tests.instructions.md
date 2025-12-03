@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*Tests.swift"
+applyTo: "**/*Test*.swift"
 ---
 
 # Test Guidelines (Swift Testing Framework)

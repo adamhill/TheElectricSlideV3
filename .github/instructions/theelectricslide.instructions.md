@@ -20,9 +20,15 @@ Canvas { context, size in
 
 ### 2. Use `onGeometryChange` NOT GeometryReader
 ```swift
-.onGeometryChange(for: Dimensions.self, of: { proxy in
-    Dimensions(width: proxy.size.width, height: proxy.size.height)
-}) { newDimensions in
+.onGeometryChange(for: Dimensions.self) { proxy in
+    let size = proxy.size
+    return Dimensions.calculate(
+        availableWidth: size.width,
+        availableHeight: size.height,
+        viewMode: viewMode,
+        slideRule: currentSlideRule
+    )
+} action: { newDimensions in
     calculatedDimensions = newDimensions  // Only updates when size changes
 }
 ```

@@ -31,6 +31,30 @@ struct ScaleView: View, Equatable {
     let nameFont: Font
     let formulaFont: Font
     
+    // ✅ Stored renderers - created once per view instance, not per Canvas redraw
+    private let tickRenderer: ScaleTickRenderer
+    private let labelRenderer: ScaleLabelRenderer
+    
+    init(
+        generatedScale: GeneratedScale,
+        width: CGFloat,
+        height: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font
+    ) {
+        self.generatedScale = generatedScale
+        self.width = width
+        self.height = height
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        self.tickRenderer = ScaleTickRenderer(definition: generatedScale.definition)
+        self.labelRenderer = ScaleLabelRenderer(definition: generatedScale.definition)
+    }
+    
     // ✅ Equatable conformance - only compare properties that affect rendering
     // This prevents unnecessary Canvas redraws when parent views re-evaluate
     static func == (lhs: ScaleView, rhs: ScaleView) -> Bool {
@@ -42,15 +66,6 @@ struct ScaleView: View, Equatable {
         lhs.formulaFont == rhs.formulaFont &&
         lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
         lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count
-    }
-    
-    // Compute renderers once per view instance, not per Canvas redraw
-    private var tickRenderer: ScaleTickRenderer {
-        ScaleTickRenderer(definition: generatedScale.definition)
-    }
-    
-    private var labelRenderer: ScaleLabelRenderer {
-        ScaleLabelRenderer(definition: generatedScale.definition)
     }
     
     // Compute scale label color once per view instance, not in body

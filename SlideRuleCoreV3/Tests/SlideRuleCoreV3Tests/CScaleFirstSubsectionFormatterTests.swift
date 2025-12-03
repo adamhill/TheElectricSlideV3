@@ -59,7 +59,7 @@ import Testing
 /// Verifies integer detection and tenths digit extraction matches PostScript reference
 ///
 /// @tags: cScale, dScale, formatter, postscript-fidelity
-@Suite("C Scale First Subsection Formatter", .tags(.cScale))
+@Suite("C Scale First Subsection Formatter", .tags(.cScale, .dScale))
 struct CScaleFirstSubsectionFormatterTests {
     
     // MARK: - Integer Values (plabel behavior)

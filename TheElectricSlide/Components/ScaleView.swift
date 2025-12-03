@@ -38,6 +38,8 @@ struct ScaleView: View, Equatable {
         lhs.height == rhs.height &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
+        lhs.nameFont == rhs.nameFont &&
+        lhs.formulaFont == rhs.formulaFont &&
         lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
         lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count
     }

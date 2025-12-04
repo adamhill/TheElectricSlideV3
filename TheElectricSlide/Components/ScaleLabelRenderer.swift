@@ -82,16 +82,18 @@ struct ScaleLabelRenderer {
             
             let fontSize = baseFontSize * labelConfig.fontSizeMultiplier
             
-            // Use weight based on font style with default medium weight
+            // Use weight based on font style
             let font: Font = {
                 switch labelConfig.fontStyle {
                 case .regular:
+                    return .system(size: fontSize, weight: .regular)
+                case .medium:
                     return .system(size: fontSize, weight: .medium)
                 case .italic:
-                    return .system(size: fontSize, weight: .medium).italic()
+                    return .system(size: fontSize, weight: .regular).italic()
                 case .leftItalic:
-                    // SwiftUI doesn't support left italic natively; use standard italic with medium weight
-                    return .system(size: fontSize, weight: .medium).italic()
+                    // SwiftUI doesn't support left italic natively; use standard italic
+                    return .system(size: fontSize, weight: .regular).italic()
                 case .bold:
                     return .system(size: fontSize, weight: .bold)
                 case .boldItalic:
@@ -143,8 +145,9 @@ struct ScaleLabelRenderer {
             
             // Calculate draw position and round to avoid sub-pixel rendering issues at zoom
             // Sub-pixel positions can cause text to shift when scaled due to different rounding
-            let drawX = round(labelX + textSize.width / 2)
-            let drawY = round(labelY + textSize.height / 2)
+            // Apply label offset for fine-tuning
+            let drawX = round(labelX + textSize.width / 2 + labelConfig.offset.horizontal)
+            let drawY = round(labelY + textSize.height / 2 + labelConfig.offset.vertical)
             
             // Debug: Log actual draw position for LL scales
             if DEBUG_LABEL_RENDERING && definition.name.contains("LL") {
@@ -316,17 +319,19 @@ struct ScaleLabelRenderer {
     func fontForStyle(_ style: SlideRuleCoreV3.LabelFontStyle, size: CGFloat) -> Font {
         switch style {
         case .regular:
-            return .system(size: size)
+            return .system(size: size, weight: .regular)
+        case .medium:
+            return .system(size: size, weight: .medium)
         case .italic:
-            return .system(size: size).italic()
+            return .system(size: size, weight: .regular).italic()
         case .leftItalic:
             // SwiftUI doesn't support left italic, use regular italic
             // For true left italic, would need custom font rendering
-            return .system(size: size).italic()
+            return .system(size: size, weight: .regular).italic()
         case .bold:
-            return .system(size: size).bold()
+            return .system(size: size, weight: .bold)
         case .boldItalic:
-            return .system(size: size).bold().italic()
+            return .system(size: size, weight: .bold).italic()
         }
     }
     

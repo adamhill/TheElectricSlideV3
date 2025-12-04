@@ -35,8 +35,8 @@ private func sensitivityFromSpeed(_ speed: Int) -> CGFloat {
 /// Captures scroll wheel events and converts them to zoom gestures
 struct ScrollWheelZoomModifier: ViewModifier {
     let speed: Int
-    let onZoomChanged: (CGFloat) -> Void
-    let onZoomEnded: (CGFloat) -> Void
+    let onZoomChanged: @Sendable (CGFloat) -> Void
+    let onZoomEnded: @Sendable (CGFloat) -> Void
     
     @State private var scrollMonitor = ScrollWheelMonitor()
     
@@ -62,8 +62,8 @@ struct ScrollWheelZoomModifier: ViewModifier {
 /// Monitors scroll wheel events using NSEvent local monitor
 @MainActor
 final class ScrollWheelMonitor {
-    var onZoomChanged: ((CGFloat) -> Void)?
-    var onZoomEnded: ((CGFloat) -> Void)?
+    var onZoomChanged: (@Sendable (CGFloat) -> Void)?
+    var onZoomEnded: (@Sendable (CGFloat) -> Void)?
     
     /// Internal sensitivity factor
     var sensitivity: CGFloat = 0.01  // Default = speed 10
@@ -137,8 +137,8 @@ extension View {
     /// - Returns: Modified view with scroll wheel zoom support
     func onScrollWheelZoom(
         speed: Int = 10,
-        onZoomChanged: @escaping (CGFloat) -> Void,
-        onZoomEnded: @escaping (CGFloat) -> Void
+        onZoomChanged: @escaping @Sendable (CGFloat) -> Void,
+        onZoomEnded: @escaping @Sendable (CGFloat) -> Void
     ) -> some View {
         self.modifier(ScrollWheelZoomModifier(
             speed: speed,
@@ -156,8 +156,8 @@ extension View {
     /// No-op on iOS - scroll wheel zoom is macOS only
     func onScrollWheelZoom(
         speed: Int = 10,
-        onZoomChanged: @escaping (CGFloat) -> Void,
-        onZoomEnded: @escaping (CGFloat) -> Void
+        onZoomChanged: @escaping @Sendable (CGFloat) -> Void,
+        onZoomEnded: @escaping @Sendable (CGFloat) -> Void
     ) -> some View {
         self
     }

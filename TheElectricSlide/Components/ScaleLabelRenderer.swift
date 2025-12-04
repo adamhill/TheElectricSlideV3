@@ -82,8 +82,22 @@ struct ScaleLabelRenderer {
             
             let fontSize = baseFontSize * labelConfig.fontSizeMultiplier
             
-            // Use regular font (not italic), we'll apply transform for slant
-            let font = Font.system(size: fontSize)
+            // Use weight based on font style with default medium weight
+            let font: Font = {
+                switch labelConfig.fontStyle {
+                case .regular:
+                    return .system(size: fontSize, weight: .medium)
+                case .italic:
+                    return .system(size: fontSize, weight: .medium).italic()
+                case .leftItalic:
+                    // SwiftUI doesn't support left italic natively; use standard italic with medium weight
+                    return .system(size: fontSize, weight: .medium).italic()
+                case .bold:
+                    return .system(size: fontSize, weight: .bold)
+                case .boldItalic:
+                    return .system(size: fontSize, weight: .bold).italic()
+                }
+            }()
             
             // Use cached label color, or fall back to label config's color
             let labelColor = cachedLabelColor ?? colorFromLabelColor(labelConfig.color)
@@ -180,7 +194,7 @@ struct ScaleLabelRenderer {
         let labelColor = cachedLabelColor ?? .black
         
         let label = Text(text)
-            .font(.system(size: fontSize))
+            .font(.system(size: fontSize, weight: .medium))
             .foregroundColor(labelColor)
         
         let resolvedText = context.resolve(label)
@@ -319,13 +333,14 @@ struct ScaleLabelRenderer {
     /// Determine font size based on tick relativeLength
     func fontSizeForTick(_ relativeLength: Double) -> CGFloat {
         if relativeLength >= 0.9 {
-            return 6.0  // Major ticks
+            return 8.0  // Major ticks
         } else if relativeLength >= 0.7 {
-            return 4.5  // Medium ticks
+            return 6.5  // Medium ticks
         } else if relativeLength >= 0.4 {
-            return 3.0  // Minor ticks
+            return 5.0  // Minor ticks
         } else {
             return 0.0  // Tiny ticks - no label
         }
     }
 }
+

@@ -1,4 +1,3 @@
-//
 //  SlideRuleDetailView.swift
 //  TheElectricSlide
 //
@@ -135,3 +134,4 @@ struct SlideRuleDetailView: View {
         .padding(.top, 8)
     }
 }
+

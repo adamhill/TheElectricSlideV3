@@ -136,7 +136,7 @@ extension View {
     ///   - onZoomEnded: Called when scroll gesture ends with the final scale factor
     /// - Returns: Modified view with scroll wheel zoom support
     func onScrollWheelZoom(
-        speed: Int = 1,
+        speed: Int = 10,
         onZoomChanged: @escaping (CGFloat) -> Void,
         onZoomEnded: @escaping (CGFloat) -> Void
     ) -> some View {

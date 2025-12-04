@@ -206,10 +206,44 @@ public enum LabelPosition: Sendable, Equatable, Hashable {
 /// Corresponds to PostScript font selections like NumFontRi (right italic), NumFontLi (left italic)
 public enum LabelFontStyle: Sendable, Equatable, Hashable {
     case regular
+    case medium         // Default: medium weight for better readability
     case italic         // PostScript: NumFontRi (20° right slant)
     case leftItalic     // PostScript: NumFontLi (20° left slant)
     case bold
     case boldItalic
+}
+
+/// 2D offset for fine-tuning label positions
+/// Positive horizontal = right, negative = left
+/// Positive vertical = down, negative = up
+public struct Offset: Sendable, Equatable, Hashable {
+    public let horizontal: Double
+    public let vertical: Double
+    
+    public init(horizontal: Double = 0, vertical: Double = 0) {
+        self.horizontal = horizontal
+        self.vertical = vertical
+    }
+    
+    /// No offset
+    public static let zero = Offset(horizontal: 0, vertical: 0)
+    
+    /// Convenience initializers for common adjustments
+    public static func left(_ amount: Double) -> Offset {
+        Offset(horizontal: -amount, vertical: 0)
+    }
+    
+    public static func right(_ amount: Double) -> Offset {
+        Offset(horizontal: amount, vertical: 0)
+    }
+    
+    public static func up(_ amount: Double) -> Offset {
+        Offset(horizontal: 0, vertical: -amount)
+    }
+    
+    public static func down(_ amount: Double) -> Offset {
+        Offset(horizontal: 0, vertical: amount)
+    }
 }
 
 /// Color specification for labels
@@ -278,18 +312,23 @@ public struct LabelConfig: Sendable, Equatable, Hashable {
     /// Font size multiplier (relative to base size determined by tick length)
     public let fontSizeMultiplier: Double
     
+    /// Fine-tuning offset from calculated position (in points)
+    public let offset: Offset
+    
     public init(
         text: String,
         position: LabelPosition = .centered,
-        fontStyle: LabelFontStyle = .regular,
+        fontStyle: LabelFontStyle = .medium,
         color: LabelColor = .black,
-        fontSizeMultiplier: Double = 1.0
+        fontSizeMultiplier: Double = 1.0,
+        offset: Offset = .zero
     ) {
         self.text = text
         self.position = position
         self.fontStyle = fontStyle
         self.color = color
         self.fontSizeMultiplier = fontSizeMultiplier
+        self.offset = offset
     }
 }
 

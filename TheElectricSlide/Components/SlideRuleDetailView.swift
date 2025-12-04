@@ -98,6 +98,12 @@ struct SlideRuleDetailView: View {
                         handleZoomEnded(scale)
                     }
             )
+            // macOS: Scroll wheel / trackpad two-finger scroll for zoom
+            .onScrollWheelZoom(
+                speed: 1,
+                onZoomChanged: handleZoomChanged,
+                onZoomEnded: handleZoomEnded
+            )
             .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
             .overlay(alignment: .bottomLeading) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)

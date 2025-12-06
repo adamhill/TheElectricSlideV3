@@ -10,7 +10,7 @@ import Foundation
 ///
 /// Full definition string:
 /// ```
-/// (H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank)
+/// (H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)
 /// ```
 ///
 /// Parser syntax reference (from postscript-rule-engine-explainer.md):
@@ -20,7 +20,6 @@ import Foundation
 /// - `[ ]` = slide scale boundaries
 /// - `:` = flip to back side
 /// - `|` = draw separator line
-/// - `blank` = skip line
 @Suite("Hemmi 266 Parser Definition Tests", .tags(.fast, .regression))
 struct Hemmi266ParserTests {
     
@@ -34,10 +33,10 @@ struct Hemmi266ParserTests {
     )
     
     /// Full Hemmi 266 definition string
-    static let fullH266Definition = "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank)"
+    static let fullH266Definition = "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)"
     
     /// Hemmi 266 definition with only currently-implemented scales
-    static let partialH266Definition = "(A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank)"
+    static let partialH266Definition = "(A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)"
     
     // MARK: - Implemented Scale Verification
     
@@ -222,10 +221,10 @@ struct Hemmi266ParserTests {
                 return
             }
             
-            // Back: eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank
+            // Back: eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo
             // Top stator: eeXl, eeXc, eeF, eer1, eeP (5 scales)
             // Slide: eer2, eeQ, eeLi, eeCf, eeCz (5 scales)
-            // Bottom stator: eeL, eeZ, eeFo (3 scales) - "blank" is ignored
+            // Bottom stator: eeL, eeZ, eeFo (3 scales)
             let backTopCount = backTop.scales.count
             let backSlideCount = backSlide.scales.count
             let backBottomCount = backBottom.scales.count
@@ -392,44 +391,6 @@ struct Hemmi266ParserTests {
             #expect(slideScaleNames.contains("Cf"), "Back slide should contain Cf (from eeCf)")  
             #expect(slideScaleNames.contains("Cz"), "Back slide should contain Cz (from eeCz)")
             #expect(slideScaleNames.count == 5, "Back slide should have exactly 5 scales")
-        }
-    }
-    
-    // MARK: - Blank Token Handling
-    
-    @Suite("Blank Token Handling")
-    struct BlankTokenTests {
-        
-        /// "blank" token should be ignored and not cause errors
-        @Test("blank token is handled correctly")
-        func blankTokenIgnored() throws {
-            // This should parse without errors - blank is ignored
-            let rule = try RuleDefinitionParser.parse(
-                "(A [ B ] D blank)",
-                dimensions: Hemmi266ParserTests.dims
-            )
-            
-            // blank should not add any scales
-            let totalScales = rule.frontTopStator.scales.count +
-                             rule.frontSlide.scales.count +
-                             rule.frontBottomStator.scales.count
-            
-            #expect(totalScales == 3, "blank should not add a scale, total should be 3")
-        }
-        
-        /// Multiple blank tokens should all be ignored
-        @Test("Multiple blank tokens are handled")
-        func multipleBlanksIgnored() throws {
-            let rule = try RuleDefinitionParser.parse(
-                "(blank A blank [ B ] blank D blank)",
-                dimensions: Hemmi266ParserTests.dims
-            )
-            
-            let totalScales = rule.frontTopStator.scales.count +
-                             rule.frontSlide.scales.count +
-                             rule.frontBottomStator.scales.count
-            
-            #expect(totalScales == 3, "Multiple blanks should not add scales")
         }
     }
 }

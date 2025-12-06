@@ -58,6 +58,28 @@ struct DynamicSlideRuleContent: View {
         stableDimensions ?? calculatedDimensions
     }
     
+    /// Calculate total scale height using renderDimensions for consistency with cursor overlay
+    /// This ensures the cursor height matches the actual rendered scale row heights
+    private func consistentTotalScaleHeight(for side: RuleSide) -> CGFloat {
+        let scaleCount: Int
+        switch side {
+        case .front:
+            scaleCount = slideRule.frontTopStator.scales.count +
+                         slideRule.frontSlide.scales.count +
+                         slideRule.frontBottomStator.scales.count
+        case .back:
+            guard let backTop = slideRule.backTopStator,
+                  let backSlide = slideRule.backSlide,
+                  let backBottom = slideRule.backBottomStator else {
+                return 0
+            }
+            scaleCount = backTop.scales.count +
+                         backSlide.scales.count +
+                         backBottom.scales.count
+        }
+        return CGFloat(scaleCount) * renderDimensions.scaleHeight
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Consolidated cursor readings display - centered under title
@@ -119,7 +141,7 @@ struct DynamicSlideRuleContent: View {
                         CursorOverlay(
                             cursorState: cursorState,
                             width: renderDimensions.width,
-                            height: totalScaleHeight(.front),
+                            height: consistentTotalScaleHeight(for: .front),
                             side: .front,
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,
@@ -184,7 +206,7 @@ struct DynamicSlideRuleContent: View {
                         CursorOverlay(
                             cursorState: cursorState,
                             width: renderDimensions.width,
-                            height: totalScaleHeight(.back),
+                            height: consistentTotalScaleHeight(for: .back),
                             side: .back,
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,

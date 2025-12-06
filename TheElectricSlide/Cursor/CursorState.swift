@@ -228,24 +228,19 @@ final class CursorState {
         side: RuleSide
     ) -> [ScaleReading] {
         var readings: [ScaleReading] = []
-        var overallPosition = 0  // Track overall position across all components
         
         // Read top stator scales (fixed, no offset needed)
         var componentPosition = 0
         for scale in topStator.scales {
-            guard !scale.definition.name.isEmpty else { continue }  // Skip spacers
-            
             let reading = calculateReading(
                 at: position,
                 for: scale,
                 component: .statorTop,
                 side: side,
-                componentPosition: componentPosition,
-                overallPosition: overallPosition
+                componentPosition: componentPosition
             )
             readings.append(reading)
             componentPosition += 1
-            overallPosition += 1
         }
         
         // Read slide scales (account for slide offset)
@@ -255,37 +250,29 @@ final class CursorState {
         
         componentPosition = 0  // Reset for slide component
         for scale in slide.scales {
-            guard !scale.definition.name.isEmpty else { continue }
-            
             let reading = calculateReading(
                 at: clampedSlidePosition,
                 for: scale,
                 component: .slide,
                 side: side,
-                componentPosition: componentPosition,
-                overallPosition: overallPosition
+                componentPosition: componentPosition
             )
             readings.append(reading)
             componentPosition += 1
-            overallPosition += 1
         }
         
         // Read bottom stator scales (fixed, no offset needed)
         componentPosition = 0  // Reset for bottom stator component
         for scale in bottomStator.scales {
-            guard !scale.definition.name.isEmpty else { continue }
-            
             let reading = calculateReading(
                 at: position,
                 for: scale,
                 component: .statorBottom,
                 side: side,
-                componentPosition: componentPosition,
-                overallPosition: overallPosition
+                componentPosition: componentPosition
             )
             readings.append(reading)
             componentPosition += 1
-            overallPosition += 1
         }
         
         return readings

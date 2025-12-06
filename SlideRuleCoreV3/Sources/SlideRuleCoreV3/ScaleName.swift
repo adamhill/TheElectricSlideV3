@@ -118,7 +118,6 @@ public enum ScaleName: String, CaseIterable, Sendable {
     case cz = "Cz"      // Capacitance (microfarads)
     case z = "Z"        // Impedance
     case fo = "Fo"      // Resonant Frequency
-    case blank = "blank" // Spacer/blank scale
     
     // MARK: - Hemmi 266 Special Log-Log Scales
     
@@ -213,7 +212,6 @@ public enum ScaleName: String, CaseIterable, Sendable {
         case .cz: return "Capacitance (microfarads)"
         case .z: return "Impedance (Ω)"
         case .fo: return "Resonant frequency"
-        case .blank: return "Spacer (no scale)"
             
         // Hemmi 266 special
         case .h266LL03: return "Hemmi 266 log-log scale variant"

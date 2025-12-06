@@ -392,9 +392,9 @@ struct CursorView: View {
     private func drawScaleReadings(context: GraphicsContext, size: CGSize) {
         let halfWidth = size.width / 2
         
-        for reading in readings {
-            // Calculate vertical position based on overallPosition
-            let yPosition = CGFloat(reading.overallPosition) * scaleHeight + (scaleHeight / 2)
+        // Use array index for vertical positioning (readings are in scale order)
+        for (index, reading) in readings.enumerated() {
+            let yPosition = CGFloat(index) * scaleHeight + (scaleHeight / 2)
             
             // Skip if outside visible area
             guard yPosition >= 0 && yPosition <= size.height else { continue }

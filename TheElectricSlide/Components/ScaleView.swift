@@ -83,22 +83,12 @@ struct ScaleView: View, Equatable {
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left (right-aligned with responsive width)
-            // Extract label color from definition, applying it only if colorApplication allows
-            let scaleLabelColor: Color = {
-                if let tupleColor = generatedScale.definition.labelColor,
-                   generatedScale.definition.colorApplication.scaleName {
-                    return Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
-                } else {
-                    return .black
-                }
-            }()
-            
             // Use displayName if available (for aliases like W2→Sq2), otherwise use canonical name
             let scaleLabel = generatedScale.definition.displayName ?? generatedScale.definition.name
             
             Text(scaleLabel)
                 .font(nameFont)
-                .foregroundColor(scaleLabelColor)
+                .foregroundColor(self.scaleLabelColor)
                 .frame(width: leftMarginWidth, alignment: .trailing)
             
             // Scale view

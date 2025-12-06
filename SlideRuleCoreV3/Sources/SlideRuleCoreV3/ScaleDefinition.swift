@@ -479,7 +479,8 @@ public enum StandardLabelFormatter {
                 position: .right,
                 fontStyle: .italic,
                 color: .black,
-                fontSizeMultiplier: 1.5
+                fontSizeMultiplier: 1.25,
+                offset: Offset(horizontal: 2, vertical: -2)
             ),
             // Left label: cosine (complementary) in italic red (PostScript: NumFontLi)
             LabelConfig(
@@ -487,7 +488,8 @@ public enum StandardLabelFormatter {
                 position: .left,
                 fontStyle: .italic,
                 color: .red,
-                fontSizeMultiplier: 1.5
+                fontSizeMultiplier: 1.25,
+                offset: Offset(horizontal: -2, vertical: -2)
             )
         ]
     }
@@ -496,15 +498,17 @@ public enum StandardLabelFormatter {
     public static func singleLabel(
         _ formatter: @escaping @Sendable (ScaleValue) -> String,
         position: LabelPosition = .centered,
-        fontStyle: LabelFontStyle = .regular,
-        color: LabelColor = .black
+        fontStyle: LabelFontStyle = .medium,
+        color: LabelColor = .black,
+        offset: Offset = .zero
     ) -> @Sendable (ScaleValue) -> [LabelConfig] {
         return { value in
             [LabelConfig(
                 text: formatter(value),
                 position: position,
                 fontStyle: fontStyle,
-                color: color
+                color: color,
+                offset: offset
             )]
         }
     }

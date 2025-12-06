@@ -22,7 +22,7 @@ private var canvasRedrawCount = 0
 
 // MARK: - ScaleView Component
 
-struct ScaleView: View {
+struct ScaleView: View, Equatable {
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
@@ -30,6 +30,55 @@ struct ScaleView: View {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
+    
+    // ✅ Stored properties initialized once per view instance, not per access
+    // These avoid repeated computation when properties are accessed multiple times
+    private let tickRenderer: ScaleTickRenderer
+    private let labelRenderer: ScaleLabelRenderer
+    private let scaleLabelColor: Color
+    
+    init(
+        generatedScale: GeneratedScale,
+        width: CGFloat,
+        height: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font
+    ) {
+        self.generatedScale = generatedScale
+        self.width = width
+        self.height = height
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        
+        // Initialize renderers once during init instead of on each access
+        self.tickRenderer = ScaleTickRenderer(definition: generatedScale.definition)
+        self.labelRenderer = ScaleLabelRenderer(definition: generatedScale.definition)
+        
+        // Initialize scale label color once during init instead of on each access
+        if let tupleColor = generatedScale.definition.labelColor,
+           generatedScale.definition.colorApplication.scaleName {
+            self.scaleLabelColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+        } else {
+            self.scaleLabelColor = .black
+        }
+    }
+    
+    // ✅ Equatable conformance - only compare properties that affect rendering
+    // This prevents unnecessary Canvas redraws when parent views re-evaluate
+    static func == (lhs: ScaleView, rhs: ScaleView) -> Bool {
+        lhs.width == rhs.width &&
+        lhs.height == rhs.height &&
+        lhs.leftMarginWidth == rhs.leftMarginWidth &&
+        lhs.rightMarginWidth == rhs.rightMarginWidth &&
+        lhs.nameFont == rhs.nameFont &&
+        lhs.formulaFont == rhs.formulaFont &&
+        lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
+        lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count
+    }
     
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
@@ -103,9 +152,7 @@ struct ScaleView: View {
             }
         }
         
-        // Create renderers for this scale (cached colors computed once)
-        let tickRenderer = ScaleTickRenderer(definition: definition)
-        let labelRenderer = ScaleLabelRenderer(definition: definition)
+        // Use pre-computed renderers from view properties (avoids recreation on each Canvas redraw)
         
         // Draw baseline if enabled
         tickRenderer.drawBaseline(context: &context, size: size)

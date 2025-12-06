@@ -19,8 +19,11 @@ struct ScaleTickRenderer {
     private let cachedTickColor: Color
     
     /// Pre-computed height multiplier for tick calculations
-    private static let kHeightMultiplier: CGFloat = 0.6
+    private static let kHeightMultiplier: CGFloat = 0.5
     
+    /// Width  multiplier for tick calculations
+    private static let kWidthMultiplier: CGFloat = 1.0
+
     init(definition: ScaleDefinition) {
         self.definition = definition
         
@@ -96,7 +99,7 @@ struct ScaleTickRenderer {
             context.stroke(
                 tickPath,
                 with: .color(cachedTickColor),
-                lineWidth: tick.style.lineWidth / 1.25
+                lineWidth: tick.style.lineWidth * ScaleTickRenderer.kWidthMultiplier
             )
         }
         

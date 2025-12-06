@@ -53,6 +53,7 @@ struct SlideView: View, Equatable {
                     nameFont: nameFont,
                     formulaFont: formulaFont
                 )
+                .equatable()  // ✅ Prevent unnecessary redraws when inputs unchanged
             }
         }
         .background(

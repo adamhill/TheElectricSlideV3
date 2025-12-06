@@ -58,6 +58,10 @@ public struct ScaleDefinition: Sendable {
     /// Human-readable name/label for the scale (e.g., "C", "D", "LL3")
     public let name: String
     
+    /// Optional display name override (e.g., "W2" instead of canonical "Sq2")
+    /// Used when an alias is specified in the definition string
+    public let displayName: String?
+    
     /// Formula representation for this scale (displayed on right side)
     public let formula: String
     
@@ -122,9 +126,11 @@ public struct ScaleDefinition: Sendable {
         colorApplication: ScaleColorApplication = ScaleColorPresets.all,
         constants: [ScaleConstant] = [],
         showBaseline: Bool = false,
-        formulaTracking: Double = 1.0
+        formulaTracking: Double = 1.0,
+        displayName: String? = nil
     ) {
         self.name = name
+        self.displayName = displayName
         self.formula = formula
         self.function = function
         self.beginValue = beginValue
@@ -172,6 +178,7 @@ public struct ScaleConstant: Sendable {
 @available(macOS 12, *)
 public struct ScaleBuilder {
     private var name: String = ""
+    private var displayName: String?
     private var formula: String = ScaleDefinition.defaultFormula
     private var function: (any ScaleFunction)?
     private var beginValue: ScaleValue = 1.0
@@ -293,6 +300,12 @@ public struct ScaleBuilder {
         return copy
     }
     
+    public func withDisplayName(_ displayName: String?) -> ScaleBuilder {
+        var copy = self
+        copy.displayName = displayName
+        return copy
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -314,7 +327,8 @@ public struct ScaleBuilder {
             colorApplication: colorApplication,
             constants: constants,
             showBaseline: showBaseline,
-            formulaTracking: formulaTracking
+            formulaTracking: formulaTracking,
+            displayName: displayName
         )
     }
 }

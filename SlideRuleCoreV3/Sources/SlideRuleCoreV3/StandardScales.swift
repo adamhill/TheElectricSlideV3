@@ -1702,9 +1702,9 @@ public enum StandardScales {
         // Extended D scale
         case "D10-100", "D10.100": return d10to100Scale(length: length)
         
-        // Square root scales
-        case "R1", "SQ1": return r1Scale(length: length)
-        case "R2", "SQ2": return r2Scale(length: length)
+        // Square root scales (with Faber-Castell W1/W2 aliases)
+        case "R1", "SQ1", "W1", "W1'", "W1P": return r1Scale(length: length)
+        case "R2", "SQ2", "W2", "W2'", "W2P": return r2Scale(length: length)
         
         // Cube root scales
         case "Q1": return q1Scale(length: length)

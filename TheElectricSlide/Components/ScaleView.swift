@@ -44,7 +44,10 @@ struct ScaleView: View {
                 }
             }()
             
-            Text(generatedScale.definition.name)
+            // Use displayName if available (for aliases like W2→Sq2), otherwise use canonical name
+            let scaleLabel = generatedScale.definition.displayName ?? generatedScale.definition.name
+            
+            Text(scaleLabel)
                 .font(nameFont)
                 .foregroundColor(scaleLabelColor)
                 .frame(width: leftMarginWidth, alignment: .trailing)

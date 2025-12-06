@@ -235,6 +235,10 @@ public enum ScaleName: String, CaseIterable, Sendable {
         case .keST: return ["KEST", "SRT"]
         case .sc: return ["SC"]
         case .dfm: return ["DF/M", "DFM"]
+        case .r1: return ["W1"]           // Faber-Castell W1 scale
+        case .r2: return ["W2"]           // Faber-Castell W2 scale
+        case .sq1: return ["W1'"]  // Faber-Castell W1' scale
+        case .sq2: return ["W2'"]  // Faber-Castell W2' scale
         default: return []
         }
     }

@@ -432,7 +432,7 @@ struct ParserAndErrorHandlingTests {
             #expect(rule.frontBottomStator.scales.isEmpty)
         }
         
-        @Test("Definition with blank indicator throws unknownScale (not filtered)")
+        @Test("Definition with blank indicator logs warning and is ignored")
         func testBlankIndicator() throws {
             let dimensions = RuleDefinitionParser.Dimensions(
                 topStatorMM: 14,
@@ -440,11 +440,10 @@ struct ParserAndErrorHandlingTests {
                 bottomStatorMM: 14
             )
             
-            // "blank" IS filtered by the parser (line 345-347 in parseComponents)
-            // It's treated as a blank line indicator and ignored
-            // Without brackets, both scales go to topStator
+            // "blank" is no longer supported but is gracefully ignored with a warning log.
+            // The parser should succeed with only the valid scales (C and D).
             let rule = try RuleDefinitionParser.parse("(C blank D)", dimensions: dimensions)
-            #expect(rule.frontTopStator.scales.count == 2)  // C and D both in topStator
+            #expect(rule.frontTopStator.scales.count == 2)  // C and D only, blank ignored
             #expect(rule.frontSlide.scales.isEmpty)
             #expect(rule.frontBottomStator.scales.isEmpty)
         }

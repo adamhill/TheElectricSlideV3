@@ -58,6 +58,9 @@ struct CursorOverlay: View {
     /// Current zoom scale for display on cursor handle
     var currentZoomScale: CGFloat = 1.0
     
+    /// Binding to cursor display mode for toggle on double-tap
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    
     // MARK: - Body
     
     var body: some View {
@@ -74,7 +77,6 @@ struct CursorOverlay: View {
                 
                 // Get current readings for this side
                 let readings = getReadingsForSide()
-                
                 CursorView(
                     height: height,
                     readings: readings,
@@ -82,7 +84,8 @@ struct CursorOverlay: View {
                     displayConfig: displayConfig,
                     showReadings: showReadings,
                     showGradients: showGradients,
-                    zoomScale: currentZoomScale
+                    zoomScale: currentZoomScale,
+                    cursorDisplayMode: $cursorDisplayMode
                 )
                     .frame(width: CursorView.cursorWidth, alignment: .top)
                     .offset(y: -CursorView.handleHeight)
@@ -183,14 +186,15 @@ struct CursorOverlay: View {
 #Preview {
     let state = CursorState()
     
-    return CursorOverlay(
+    CursorOverlay(
         cursorState: state,
         width: 800,
         height: 200,
         side: .front,
         scaleHeight: 25,
         leftMarginWidth: 64,
-        rightMarginWidth: 64
+        rightMarginWidth: 64,
+        cursorDisplayMode: .constant(.values)
     )
     .background(Color.gray.opacity(0.2))
     .frame(width: 800, height: 200)

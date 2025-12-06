@@ -35,7 +35,7 @@ struct DynamicSlideRuleContent: View {
     let formulaFont: Font
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
-    let cursorDisplayMode: CursorDisplayMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let handleDragChanged: (DragGesture.Value) -> Void
@@ -56,6 +56,28 @@ struct DynamicSlideRuleContent: View {
     /// The dimensions to use for rendering - uses stable (debounced) value if available
     private var renderDimensions: Dimensions {
         stableDimensions ?? calculatedDimensions
+    }
+    
+    /// Calculate total scale height using renderDimensions for consistency with cursor overlay
+    /// This ensures the cursor height matches the actual rendered scale row heights
+    private func consistentTotalScaleHeight(for side: RuleSide) -> CGFloat {
+        let scaleCount: Int
+        switch side {
+        case .front:
+            scaleCount = slideRule.frontTopStator.scales.count +
+                         slideRule.frontSlide.scales.count +
+                         slideRule.frontBottomStator.scales.count
+        case .back:
+            guard let backTop = slideRule.backTopStator,
+                  let backSlide = slideRule.backSlide,
+                  let backBottom = slideRule.backBottomStator else {
+                return 0
+            }
+            scaleCount = backTop.scales.count +
+                         backSlide.scales.count +
+                         backBottom.scales.count
+        }
+        return CGFloat(scaleCount) * renderDimensions.scaleHeight
     }
     
     var body: some View {
@@ -119,15 +141,16 @@ struct DynamicSlideRuleContent: View {
                         CursorOverlay(
                             cursorState: cursorState,
                             width: renderDimensions.width,
-                            height: totalScaleHeight(.front),
+                            height: consistentTotalScaleHeight(for: .front),
                             side: .front,
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,
                             rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorState.shouldShowReadings,
+                            showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
-                            currentZoomScale: currentZoomScale
+                            currentZoomScale: currentZoomScale,
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }
@@ -183,15 +206,16 @@ struct DynamicSlideRuleContent: View {
                         CursorOverlay(
                             cursorState: cursorState,
                             width: renderDimensions.width,
-                            height: totalScaleHeight(.back),
+                            height: consistentTotalScaleHeight(for: .back),
                             side: .back,
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,
                             rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorState.shouldShowReadings,
+                            showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
-                            currentZoomScale: currentZoomScale
+                            currentZoomScale: currentZoomScale,
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }

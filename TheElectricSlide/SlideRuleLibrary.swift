@@ -123,13 +123,13 @@ struct SlideRuleLibrary {
     }
     
     /// Hemmi 266 Standard
-    /// Front: H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank
+    /// Front: H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo
     /// Back:  Electrical engineering scales
     static func hemmi266() -> SlideRuleDefinitionModel {
         SlideRuleDefinitionModel(
             name: "Hemmi 266",
             description: "Japanese precision slide rule with electrical engineering scales on the back.",
-            definitionString: "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo blank)",
+            definitionString: "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,

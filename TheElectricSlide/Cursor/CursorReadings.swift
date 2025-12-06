@@ -39,9 +39,6 @@ struct ScaleReading: Sendable, Identifiable {
     /// Position within component (0, 1, 2...)
     let componentPosition: Int
     
-    /// Overall position on rule face (top to bottom)
-    let overallPosition: Int
-    
     enum ComponentType: String, Sendable {
         case statorTop = "Top Stator"
         case slide = "Slide"
@@ -94,9 +91,9 @@ struct CursorReadings: Sendable, Equatable {
         self.frontReadings = frontReadings
         self.backReadings = backReadings
         
-        // Build ordered array sorted by overall position
+        // Build ordered array (front scales first, then back scales)
         let combined = frontReadings + backReadings
-        self.allReadings = combined.sorted { $0.overallPosition < $1.overallPosition }
+        self.allReadings = combined
         
         // Build component-filtered arrays
         self.statorTopReadings = combined.filter { $0.component == .statorTop }
@@ -167,14 +164,12 @@ extension CursorState {
     ///   - component: Component type (for metadata)
     ///   - side: Rule side (for metadata)
     ///   - componentPosition: Position within component (0, 1, 2...)
-    ///   - overallPosition: Overall position on rule face
     func calculateReading(
         at cursorPosition: Double,
         for scale: GeneratedScale,
         component: ScaleReading.ComponentType,
         side: RuleSide,
-        componentPosition: Int,
-        overallPosition: Int
+        componentPosition: Int
     ) -> ScaleReading {
         // Use ScaleCalculator to get value (O(1) operation)
         let value = ScaleCalculator.value(
@@ -199,8 +194,7 @@ extension CursorState {
             side: side,
             component: component,
             scaleDefinition: scale.definition,
-            componentPosition: componentPosition,
-            overallPosition: overallPosition
+            componentPosition: componentPosition
         )
     }
     /// Format value for cursor reading display using specified decimal places

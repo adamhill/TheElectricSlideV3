@@ -175,8 +175,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .front,
                     component: .statorTop,
                     scaleDefinition: StandardScales.cScale(),
-                    componentPosition: 0,
-                    overallPosition: 0
+                    componentPosition: 0
                 ),
                 ScaleReading(
                     scaleName: "D",
@@ -186,8 +185,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .front,
                     component: .statorBottom,
                     scaleDefinition: StandardScales.dScale(),
-                    componentPosition: 0,
-                    overallPosition: 1
+                    componentPosition: 0
                 ),
                 ScaleReading(
                     scaleName: "CI",
@@ -197,8 +195,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .front,
                     component: .slide,
                     scaleDefinition: StandardScales.ciScale(),
-                    componentPosition: 0,
-                    overallPosition: 2
+                    componentPosition: 0
                 ),
                 ScaleReading(
                     scaleName: "A",
@@ -208,8 +205,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .front,
                     component: .statorTop,
                     scaleDefinition: StandardScales.aScale(),
-                    componentPosition: 1,
-                    overallPosition: 3
+                    componentPosition: 1
                 ),
                 ScaleReading(
                     scaleName: "K",
@@ -219,8 +215,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .front,
                     component: .statorTop,
                     scaleDefinition: StandardScales.kScale(),
-                    componentPosition: 2,
-                    overallPosition: 4
+                    componentPosition: 2
                 )
             ],
             side: .front
@@ -238,8 +233,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .back,
                     component: .statorTop,
                     scaleDefinition: StandardScales.sScale(),
-                    componentPosition: 0,
-                    overallPosition: 0
+                    componentPosition: 0
                 ),
                 ScaleReading(
                     scaleName: "T",
@@ -249,8 +243,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                     side: .back,
                     component: .statorBottom,
                     scaleDefinition: StandardScales.tScale(),
-                    componentPosition: 0,
-                    overallPosition: 1
+                    componentPosition: 0
                 )
             ],
             side: .back

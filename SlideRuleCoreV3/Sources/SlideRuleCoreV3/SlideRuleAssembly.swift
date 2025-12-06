@@ -1,4 +1,9 @@
 import Foundation
+import os
+
+// MARK: - Parser Logger
+
+private let parserLogger = Logger(subsystem: "com.sliderulecorev3", category: "RuleDefinitionParser")
 
 // MARK: - Slide Rule Components
 
@@ -349,7 +354,9 @@ public struct RuleDefinitionParser {
                 continue
                 
             case "blank":
-                // Blank line indicator - ignored for now
+                // "blank" token was used for spacer scales in the original PostScript engine.
+                // This feature is no longer supported. Log a warning and skip.
+                parserLogger.warning("'blank' token is no longer supported and will be ignored. Remove 'blank' from your definition string.")
                 continue
                 
             default:

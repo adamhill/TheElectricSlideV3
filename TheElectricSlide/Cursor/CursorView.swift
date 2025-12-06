@@ -268,6 +268,9 @@ struct CursorView: View {
     /// Current zoom scale to display on handle
     var zoomScale: CGFloat = 1.0
     
+    /// Binding to cursor display mode for toggle on double-tap
+    @Binding var cursorDisplayMode: CursorDisplayMode
+    
     // MARK: - Constants
     
     /// Width of the cursor frame
@@ -277,7 +280,6 @@ struct CursorView: View {
     static let handleHeight: CGFloat = 16
     
     // MARK: - Body
-    
     var body: some View {
         VStack(spacing: 0) {
             // Gray handle at the very top - OUTSIDE the slide rule area
@@ -311,6 +313,10 @@ struct CursorView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color(white: 0.5).opacity(0.7))
             )
+            .onTapGesture(count: 2) {
+                // Double-tap toggles cursor values on/off
+                cursorDisplayMode = cursorDisplayMode.showReadings ? .gradients : .both
+            }
             
             // Cursor glass area - extends full height of slide rule
             ZStack(alignment: .topLeading) {
@@ -386,9 +392,9 @@ struct CursorView: View {
     private func drawScaleReadings(context: GraphicsContext, size: CGSize) {
         let halfWidth = size.width / 2
         
-        for reading in readings {
-            // Calculate vertical position based on overallPosition
-            let yPosition = CGFloat(reading.overallPosition) * scaleHeight + (scaleHeight / 2)
+        // Use array index for vertical positioning (readings are in scale order)
+        for (index, reading) in readings.enumerated() {
+            let yPosition = CGFloat(index) * scaleHeight + (scaleHeight / 2)
             
             // Skip if outside visible area
             guard yPosition >= 0 && yPosition <= size.height else { continue }
@@ -487,7 +493,8 @@ struct CursorView: View {
     CursorView(
         height: 200,
         readings: [],
-        scaleHeight: 25
+        scaleHeight: 25,
+        cursorDisplayMode: .constant(.values)
     )
     .frame(width: 100, height: 200)
     .background(Color.gray.opacity(0.2))

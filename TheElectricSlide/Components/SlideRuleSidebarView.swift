@@ -42,19 +42,19 @@ struct SlideRuleSidebarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Cursor Display Mode Picker at top
+            // Cursor Display Mode Toggle at top
             VStack(spacing: 8) {
                 Text("Cursor Display")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
-                Picker("Cursor Display", selection: $cursorDisplayMode) {
-                    ForEach(CursorDisplayMode.allCases) { mode in
-                        Text(mode.displayText).tag(mode)
+                Toggle("Always Show Cursor Values", isOn: Binding(
+                    get: { cursorDisplayMode.showReadings },
+                    set: { isOn in
+                        cursorDisplayMode = isOn ? .both : .gradients
                     }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                ))
+                .toggleStyle(.switch)
             }
             .padding()
             .background(systemBackgroundColor())

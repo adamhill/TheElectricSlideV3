@@ -35,7 +35,7 @@ struct DynamicSlideRuleContent: View {
     let formulaFont: Font
     @Binding var sliderOffset: CGFloat
     let cursorState: CursorState
-    let cursorDisplayMode: CursorDisplayMode
+    @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let handleDragChanged: (DragGesture.Value) -> Void
@@ -124,10 +124,11 @@ struct DynamicSlideRuleContent: View {
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,
                             rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorState.shouldShowReadings,
+                            showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
-                            currentZoomScale: currentZoomScale
+                            currentZoomScale: currentZoomScale,
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }
@@ -188,10 +189,11 @@ struct DynamicSlideRuleContent: View {
                             scaleHeight: renderDimensions.scaleHeight,
                             leftMarginWidth: renderDimensions.leftMarginWidth,
                             rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorState.shouldShowReadings,
+                            showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
-                            currentZoomScale: currentZoomScale
+                            currentZoomScale: currentZoomScale,
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }

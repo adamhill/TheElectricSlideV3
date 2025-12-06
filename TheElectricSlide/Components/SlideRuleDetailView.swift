@@ -73,7 +73,7 @@ struct SlideRuleDetailView: View {
                 formulaFont: calculatedDimensions.tier.formulaFont,
                 sliderOffset: $sliderOffset,
                 cursorState: cursorState,
-                cursorDisplayMode: cursorDisplayMode,
+                cursorDisplayMode: $cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
                 currentZoomScale: currentZoomScale,  // For pan gesture control
                 handleDragChanged: handleDragChanged,

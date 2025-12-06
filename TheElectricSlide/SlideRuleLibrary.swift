@@ -56,19 +56,19 @@ struct SlideRuleLibrary {
     
     static func fabercastell6283N() -> SlideRuleDefinitionModel{
         SlideRuleDefinitionModel(
-    name: "Faber-Castell 62/83 N",
-    description: "Faber-Castell NOVO DUPLEX pocket slide rule. " +
-                 "30-scale German precision instrument (1962-1976) with " +
-                 "split tangent scales, Pythagorean P scale, and " +
-                 "self-documenting formula annotations. 12.5cm scales.",
-    definitionString: "(T1 T2 K A DF [ CF B CIF CI C ] D DI S ST P : " +
-                      "LL03 LL02 LL01 LL00 W2 [ W2' CI L C W1' ] W1 D^ LL0 LL1 LL2 LL3)",
-    topStatorMM: 15,
-    slideMM: 15,
-    bottomStatorMM: 15,
-    sortOrder: 20,
-    scaleNameOverrides: [:]
-)
+            name: "Faber-Castell 62/83 N",
+            description: "Faber-Castell NOVO DUPLEX pocket slide rule. " +
+                "30-scale German precision instrument (1962-1976) with " +
+                "split tangent scales, Pythagorean P scale, and " +
+                "self-documenting formula annotations. 12.5cm scales.",
+            definitionString: "(T1 T2 K A DF [ CF B CIF CI C ] D DI S ST P : " +
+                "LL03 LL02 LL01 LL00 W2 [ W2' CI L C W1' ] W1 D^ LL0 LL1 LL2 LL3)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: 20,
+            scaleNameOverrides: [:]
+        )
     }
     
     /// Pickett N-16 ES Electronic Slide Rule (circa 1960)

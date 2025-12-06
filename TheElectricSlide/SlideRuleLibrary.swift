@@ -54,7 +54,7 @@ struct SlideRuleLibrary {
     
     // MARK: - Linear Slide Rules
     
-    static func fabercastell6283N() -> SlideRuleDefinitionModel{
+    static func fabercastell6283N() -> SlideRuleDefinitionModel {
         SlideRuleDefinitionModel(
             name: "Faber-Castell 62/83 N",
             description: "Faber-Castell NOVO DUPLEX pocket slide rule. " +

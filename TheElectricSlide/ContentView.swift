@@ -47,6 +47,7 @@ struct ContentView: View {
     @State private var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
+    @State private var alwaysShowCursorValues: Bool = false  // Always show cursor values toggle
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     
     // ✅ State for calculated dimensions - only updates when window size changes
@@ -105,6 +106,7 @@ struct ContentView: View {
                 selectedRule: $selectedRuleDefinition,
                 viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
+                alwaysShowCursorValues: $alwaysShowCursorValues,
                 availableRules: availableRules,
                 hasBackSide: currentSlideRule.backTopStator != nil,
                 deviceCategory: deviceCategory,
@@ -167,6 +169,7 @@ struct ContentView: View {
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
+            cursorState.alwaysShowValues = alwaysShowCursorValues
             // Set stator touched to show readings by default
             cursorState.setStatorTouched()
             // Initialize device category
@@ -233,6 +236,9 @@ struct ContentView: View {
             #endif
             // Update cursor readings when view mode changes to reflect new visible scales
             cursorState.updateReadings()
+        }
+        .onChange(of: alwaysShowCursorValues) { _, newValue in
+            cursorState.alwaysShowValues = newValue
         }
     }
 }

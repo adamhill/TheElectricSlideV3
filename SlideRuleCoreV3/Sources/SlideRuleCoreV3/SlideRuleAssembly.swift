@@ -360,9 +360,12 @@ public struct RuleDefinitionParser {
                     throw ParseError.unknownScale(scaleName)
                 }
                 
-                // Apply tick direction override if specified
+                // Preserve original scale name from definition string if different from canonical name
+                let originalName = (definition.name != scaleName) ? scaleName : nil
+                
+                // Apply tick direction override or displayName if specified
                 var finalDefinition = definition
-                if let overrideDir = tickDir {
+                if tickDir != nil || originalName != nil {
                     finalDefinition = ScaleDefinition(
                         name: finalDefinition.name,
                         formula: finalDefinition.formula,
@@ -371,12 +374,16 @@ public struct RuleDefinitionParser {
                         endValue: finalDefinition.endValue,
                         scaleLengthInPoints: finalDefinition.scaleLengthInPoints,
                         layout: finalDefinition.layout,
-                        tickDirection: overrideDir,
+                        tickDirection: tickDir ?? finalDefinition.tickDirection,
                         subsections: finalDefinition.subsections,
                         defaultTickStyles: finalDefinition.defaultTickStyles,
                         labelFormatter: finalDefinition.labelFormatter,
                         labelColor: finalDefinition.labelColor,
-                        constants: finalDefinition.constants
+                        colorApplication: finalDefinition.colorApplication,
+                        constants: finalDefinition.constants,
+                        showBaseline: finalDefinition.showBaseline,
+                        formulaTracking: finalDefinition.formulaTracking,
+                        displayName: originalName
                     )
                 }
                 
@@ -506,7 +513,11 @@ public struct RuleDefinitionParser {
             defaultTickStyles: generated.definition.defaultTickStyles,
             labelFormatter: generated.definition.labelFormatter,
             labelColor: generated.definition.labelColor,
-            constants: generated.definition.constants
+            colorApplication: generated.definition.colorApplication,
+            constants: generated.definition.constants,
+            showBaseline: generated.definition.showBaseline,
+            formulaTracking: generated.definition.formulaTracking,
+            displayName: generated.definition.displayName
         )
         
         // Preserve the noLineBreak flag when converting to circular

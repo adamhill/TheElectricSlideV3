@@ -192,7 +192,7 @@ extension CursorState {
         )
         
         return ScaleReading(
-            scaleName: scale.definition.name,
+            scaleName: scale.definition.displayName ?? scale.definition.name,
             formula: scale.definition.formula,
             value: value,
             displayValue: displayValue,

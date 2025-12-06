@@ -19,7 +19,10 @@ struct SlideRuleLibrary {
     /// Version 5: Added Pickett N-16 ES Electronic with 32 specialized scales
     /// Version 6: Updated Pickett N-16 ES definition (fix for old cached version)
     /// Version 7: Updated Pickette N3 Added SQ1 SQ2 Q1 Q2 Q3 scales
-    static let libraryVersion = 7
+    /// Version 8: Fixed K&E 4081-3 corruption (sortOrder collision with Pickett N-16 ES)
+    /// Version 9: Fixed Hemmi 266 sortOrder collision with K&E 4081-3
+    /// Version 10: Added Faber-Castell 62/83 N with W scale aliases (W1→R1, W2→R2, W1'→SQ1, W2'→SQ2)
+    static let libraryVersion = 10
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -27,6 +30,7 @@ struct SlideRuleLibrary {
         let rules = [
             pickettN16ESElectronic(),
             keuffelEsser4081_3(),
+            fabercastell6283N(),
             hemmi266(),
             hemmi266ThinkGeek(),
             ultralog(),
@@ -47,7 +51,25 @@ struct SlideRuleLibrary {
         }
     }
     
+    
     // MARK: - Linear Slide Rules
+    
+    static func fabercastell6283N() -> SlideRuleDefinitionModel {
+        SlideRuleDefinitionModel(
+            name: "Faber-Castell 62/83 N",
+            description: "Faber-Castell NOVO DUPLEX pocket slide rule. " +
+                "30-scale German precision instrument (1962-1976) with " +
+                "split tangent scales, Pythagorean P scale, and " +
+                "self-documenting formula annotations. 12.5cm scales.",
+            definitionString: "(T1 T2 K A DF [ CF B CIF CI C ] D DI S ST P : " +
+                "LL03 LL02 LL01 LL00 W2 [ W2' CI L C W1' ] W1 D^ LL0 LL1 LL2 LL3)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: 20,
+            scaleNameOverrides: [:]
+        )
+    }
     
     /// Pickett N-16 ES Electronic Slide Rule (circa 1960)
     /// Professional electronics slide rule with 32 specialized scales
@@ -96,7 +118,7 @@ struct SlideRuleLibrary {
             topStatorMM: 14,
             slideMM: 13,
             bottomStatorMM: 14,
-            sortOrder: 0
+            sortOrder: 1  // Changed from 0 to prevent collision with Pickett N-16 ES
         )
     }
     
@@ -111,7 +133,7 @@ struct SlideRuleLibrary {
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
-            sortOrder: 1,
+            sortOrder: 2,
             scaleNameOverrides: [
                 "L": "㏈ L", // Hemmi 266 labels L scale as "dB L"
                 "H266LL01": "L̅L̅1",
@@ -130,7 +152,7 @@ struct SlideRuleLibrary {
             topStatorMM: 13,
             slideMM: 22,
             bottomStatorMM: 13,
-            sortOrder: 2
+            sortOrder: 3
         )
     }
     
@@ -144,7 +166,7 @@ struct SlideRuleLibrary {
             topStatorMM: 18.5,
             slideMM: 37,
             bottomStatorMM: 18.5,
-            sortOrder: 3
+            sortOrder: 4
         )
     }
     
@@ -158,7 +180,7 @@ struct SlideRuleLibrary {
             topStatorMM: 19,
             slideMM: 19,
             bottomStatorMM: 19,
-            sortOrder: 4
+            sortOrder: 5
         )
     }
     
@@ -172,7 +194,7 @@ struct SlideRuleLibrary {
             topStatorMM: 16,
             slideMM: 16,
             bottomStatorMM: 13,
-            sortOrder: 5
+            sortOrder: 6
         )
     }
     
@@ -185,7 +207,7 @@ struct SlideRuleLibrary {
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
-            sortOrder: 6
+            sortOrder: 7
         )
     }
     

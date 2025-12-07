@@ -65,7 +65,7 @@ struct SlideRuleDetailView: View {
             
             // Dynamic content - responds to sliderOffset and zoom
             DynamicSlideRuleContent(
-                viewMode: viewMode,
+                viewMode: $viewMode,
                 slideRule: currentSlideRule,
                 ruleId: ruleId,
                 calculatedDimensions: calculatedDimensions,
@@ -137,7 +137,16 @@ struct SlideRuleDetailView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Cycle through available view modes
+                    viewMode = viewMode.next(for: deviceCategory)
+                }
+                #if os(iOS)
+                .hoverEffect(.highlight)
+                #endif
                 .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                .accessibilityHint("Tap to cycle through view modes")
                 .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
             }
             

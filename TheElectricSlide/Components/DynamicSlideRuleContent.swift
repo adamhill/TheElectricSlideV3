@@ -27,7 +27,7 @@ struct PanPositionModifier: ViewModifier {
 
 struct DynamicSlideRuleContent: View {
     // Dependencies from ContentView
-    let viewMode: ViewMode
+    @Binding var viewMode: ViewMode
     let slideRule: SlideRule
     let ruleId: UUID?  // Track rule identity for view updates
     let calculatedDimensions: Dimensions
@@ -99,7 +99,16 @@ struct DynamicSlideRuleContent: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 1)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Cycle through available view modes (Front ⇄ Back on iPhone)
+                        viewMode = viewMode.next(for: deviceCategory)
+                    }
+                    #if os(iOS)
+                    .hoverEffect(.highlight)
+                    #endif
                     .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                    .accessibilityHint("Tap to cycle between front and back sides")
                     .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
                 }
                 

@@ -125,13 +125,20 @@ struct SlideRuleDetailView: View {
         }
         
         HStack(spacing: 16) {
-            // Slide rule name label
+            // Slide rule name and side indicator
             if let ruleName = selectedRuleDefinition?.name {
-                Text(ruleName)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Current slide rule: \(ruleName)")
-                    .accessibilityIdentifier("currentSlideRuleName")
+                HStack(spacing: 8) {
+                    Text(ruleName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("•")
+                        .foregroundStyle(.secondary)
+                    Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
             }
             
             Spacer()

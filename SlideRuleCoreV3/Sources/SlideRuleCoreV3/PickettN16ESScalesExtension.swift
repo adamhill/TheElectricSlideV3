@@ -22,14 +22,54 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: []),
+                // First decade: 0.001 to 0.01 - NO labels (sparse labeling per Pickett N16)
+                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
+                ScaleSubsection(startValue: 0.002, tickIntervals: [0.001, 0.0002], labelLevels: []),
+                ScaleSubsection(startValue: 0.005, tickIntervals: [0.001, 0.0005], labelLevels: []),
+                
+                // Second decade: 0.01 to 0.1 - Labels at 0.03-0.09 only
+                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
+                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.002], labelLevels: [0]),
+                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005], labelLevels: [0]),
+                
+                // Third decade: 0.1 to 1.0 - Labels at 0.3-0.9 only
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: []),
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.02], labelLevels: [0]),
+                ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05], labelLevels: [0]),
+                
+                // Fourth decade: 1.0 to 10.0 - Labels at 3-10 only
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: [0]),
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
-                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5], labelLevels: []),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0])
+                
+                // Fifth decade: 10.0 to 100.0 - Labels at 10, 20-100
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
+                ScaleSubsection(startValue: 20.0, tickIntervals: [10, 2], labelLevels: [0]),
+                ScaleSubsection(startValue: 50.0, tickIntervals: [10, 5], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { value in
+                guard value > 0 else { return "0" }
+                
+                if value < 1.0 {
+                    // Values less than 1: leading decimal format like ".03", ".04"
+                    if value >= 0.1 {
+                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
+                    } else if value >= 0.01 {
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        return String(format: ".0%g", value * 100)
+                    } else {
+                        // 0.001 to 0.009 → ".001", ".002", etc.
+                        return String(format: ".00%g", value * 1000)
+                    }
+                } else if value < 10.0 {
+                    // Values 1-9: just the integer
+                    return String(Int(value.rounded()))
+                } else {
+                    // Values 10+: full integer
+                    return String(Int(value.rounded()))
+                }
+            }
             .withLabelColor(red: 0.0, green: 0.5, blue: 0.0)
             .addConstant(value: 25.12, label: "XL", style: .major)
             .addConstant(value: 26.30, label: "TL", style: .major)
@@ -48,14 +88,54 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: []),
+                // First decade: 0.001 to 0.01 - NO labels (sparse labeling per Pickett N16)
+                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
+                ScaleSubsection(startValue: 0.002, tickIntervals: [0.001, 0.0002], labelLevels: []),
+                ScaleSubsection(startValue: 0.005, tickIntervals: [0.001, 0.0005], labelLevels: []),
+                
+                // Second decade: 0.01 to 0.1 - Labels at 0.03-0.09 only
+                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
+                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.002], labelLevels: [0]),
+                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005], labelLevels: [0]),
+                
+                // Third decade: 0.1 to 1.0 - Labels at 0.3-0.9 only
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: []),
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.02], labelLevels: [0]),
+                ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05], labelLevels: [0]),
+                
+                // Fourth decade: 1.0 to 10.0 - Labels at 3-10 only
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: [0]),
                 ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
-                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5], labelLevels: []),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0])
+                
+                // Fifth decade: 10.0 to 100.0 - Labels at 10, 20-100
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
+                ScaleSubsection(startValue: 20.0, tickIntervals: [10, 2], labelLevels: [0]),
+                ScaleSubsection(startValue: 50.0, tickIntervals: [10, 5], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { value in
+                guard value > 0 else { return "0" }
+                
+                if value < 1.0 {
+                    // Values less than 1: leading decimal format like ".03", ".04"
+                    if value >= 0.1 {
+                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
+                    } else if value >= 0.01 {
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        return String(format: ".0%g", value * 100)
+                    } else {
+                        // 0.001 to 0.009 → ".001", ".002", etc.
+                        return String(format: ".00%g", value * 1000)
+                    }
+                } else if value < 10.0 {
+                    // Values 1-9: just the integer
+                    return String(Int(value.rounded()))
+                } else {
+                    // Values 10+: full integer
+                    return String(Int(value.rounded()))
+                }
+            }
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
             .build()
     }
@@ -85,6 +165,7 @@ extension StandardScales {
     
     /// ω - Angular Frequency scale (ω = 2πf)
     /// Used for: Complex impedance, AC analysis in radian notation
+    /// Sparse tick pattern matching physical Pickett N-16 ES slide rule
     public static func angularFrequencyOmegaScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ω")
@@ -94,33 +175,55 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // Subsections must use actual frequency values (Hz) across the 12-decade range
-                // 0.001 Hz to 0.01 Hz (millihertz range)
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: [0]),
-                // 0.01 Hz to 0.1 Hz
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: [0]),
-                // 0.1 Hz to 1 Hz
+                // Full tick pattern with major, half, and tenth intervals
+                // 0.001 Hz to 0.01 Hz - NO LABEL
+                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
+                // 0.01 Hz to 0.1 Hz - NO LABEL
+                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
+                // 0.1 Hz to 1 Hz - LABEL at 0.1
                 ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
-                // 1 Hz to 10 Hz
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                // 10 Hz to 100 Hz
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
-                // 100 Hz to 1 kHz
+                // 1 Hz to 10 Hz - NO LABEL
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
+                // 10 Hz to 100 Hz - NO LABEL
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: []),
+                // 100 Hz to 1 kHz - LABEL at 100
                 ScaleSubsection(startValue: 100.0, tickIntervals: [100, 50, 10], labelLevels: [0]),
-                // 1 kHz to 10 kHz
-                ScaleSubsection(startValue: 1e3, tickIntervals: [1e3, 5e2, 1e2], labelLevels: [0]),
-                // 10 kHz to 100 kHz
-                ScaleSubsection(startValue: 1e4, tickIntervals: [1e4, 5e3, 1e3], labelLevels: [0]),
-                // 100 kHz to 1 MHz
+                // 1 kHz to 10 kHz - NO LABEL
+                ScaleSubsection(startValue: 1e3, tickIntervals: [1e3, 5e2, 1e2], labelLevels: []),
+                // 10 kHz to 100 kHz - NO LABEL
+                ScaleSubsection(startValue: 1e4, tickIntervals: [1e4, 5e3, 1e3], labelLevels: []),
+                // 100 kHz to 1 MHz - LABEL at 100k
                 ScaleSubsection(startValue: 1e5, tickIntervals: [1e5, 5e4, 1e4], labelLevels: [0]),
-                // 1 MHz to 10 MHz
-                ScaleSubsection(startValue: 1e6, tickIntervals: [1e6, 5e5, 1e5], labelLevels: [0]),
-                // 10 MHz to 100 MHz
-                ScaleSubsection(startValue: 1e7, tickIntervals: [1e7, 5e6, 1e6], labelLevels: [0]),
-                // 100 MHz to 1 GHz
+                // 1 MHz to 10 MHz - NO LABEL
+                ScaleSubsection(startValue: 1e6, tickIntervals: [1e6, 5e5, 1e5], labelLevels: []),
+                // 10 MHz to 100 MHz - NO LABEL
+                ScaleSubsection(startValue: 1e7, tickIntervals: [1e7, 5e6, 1e6], labelLevels: []),
+                // 100 MHz to 1 GHz - LABEL at 100M
                 ScaleSubsection(startValue: 1e8, tickIntervals: [1e8, 5e7, 1e7], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { value in
+                guard value > 0 else { return "0" }
+                
+                if value < 1.0 {
+                    // Values less than 1: leading decimal format like ".03", ".04"
+                    if value >= 0.1 {
+                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
+                    } else if value >= 0.01 {
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        return String(format: ".0%g", value * 100)
+                    } else {
+                        // 0.001 to 0.009 → ".001", ".002", etc.
+                        return String(format: ".00%g", value * 1000)
+                    }
+                } else if value < 10.0 {
+                    // Values 1-9: just the integer
+                    return String(Int(value.rounded()))
+                } else {
+                    // Values 10+: full integer
+                    return String(Int(value.rounded()))
+                }
+            }
             .build()
     }
     

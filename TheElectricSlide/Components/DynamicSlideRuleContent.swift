@@ -46,6 +46,7 @@ struct DynamicSlideRuleContent: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
+    let showCursorReadings: Bool  // Control whether to show cursor readings (default: true for backward compatibility)
     
     // MARK: - Stable Dimensions (debounced to avoid intermediate animation values)
     // The system animates geometry changes through intermediate widths (e.g., 876→856→836→816→796)
@@ -84,37 +85,40 @@ struct DynamicSlideRuleContent: View {
         VStack(spacing: 0) {
             // Consolidated cursor readings display - centered under title
             // Shows readings based on cycle mode with tap-to-cycle gesture
-            VStack(spacing: 2) {
-                // Rule name and side indicator (always shown on compact devices)
-                if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
-                    HStack(spacing: 8) {
-                        Text(ruleName)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text("•")
-                            .foregroundStyle(.secondary)
-                        Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+            // Only shown if showCursorReadings is true
+            if showCursorReadings {
+                VStack(spacing: 2) {
+                    // Rule name and side indicator (always shown on compact devices)
+                    if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
+                        HStack(spacing: 8) {
+                            Text(ruleName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("•")
+                                .foregroundStyle(.secondary)
+                            Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 1)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Cycle through available view modes (Front ⇄ Back on iPhone)
+                            viewMode = viewMode.next(for: deviceCategory)
+                        }
+                        #if os(iOS)
+                        .hoverEffect(.highlight)
+                        #endif
+                        .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                        .accessibilityHint("Tap to cycle between front and back sides")
+                        .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 1)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        // Cycle through available view modes (Front ⇄ Back on iPhone)
-                        viewMode = viewMode.next(for: deviceCategory)
-                    }
-                    #if os(iOS)
-                    .hoverEffect(.highlight)
-                    #endif
-                    .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
-                    .accessibilityHint("Tap to cycle between front and back sides")
-                    .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
+                    
+                    // Cursor readings with tap-to-cycle - compact stacked layout
+                    cursorReadingsDisplayArea()
+                        .padding(.horizontal, 8)
                 }
-                
-                // Cursor readings with tap-to-cycle - compact stacked layout
-                cursorReadingsDisplayArea()
-                    .padding(.horizontal, 8)
             }
             
             // Front side - show if mode is .front or .both

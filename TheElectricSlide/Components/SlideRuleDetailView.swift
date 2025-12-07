@@ -47,23 +47,14 @@ struct SlideRuleDetailView: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
+        // Use VStack to stack: fixed cursor readings (top) + transformed slide rule content (bottom)
         VStack(spacing: 0) {
-            // Header controls (ViewMode picker for iPad/Mac)
-            // NOTE: Cursor Display picker is now in the sidebar
-            if deviceCategory.supportsMultiSideView {
-                VStack(spacing: 0) {
-                    Divider()
-                    
-                    combinedPickersSection()
-                    
-                    Divider()
-                }
-                .background(systemBackgroundColor())
-                .allowsHitTesting(true)
-                .zIndex(100)
-            }
+            // Fixed cursor readings - never transformed, always at top
+            cursorReadingsArea()
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
             
-            // Dynamic content - responds to sliderOffset and zoom
+            // Main transformable slide rule content - pan/zoom applied here
             DynamicSlideRuleContent(
                 viewMode: $viewMode,
                 slideRule: currentSlideRule,
@@ -83,36 +74,52 @@ struct SlideRuleDetailView: View {
                 handleResetZoom: handleResetZoom,  // Triple-tap to reset zoom
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
-                deviceCategory: deviceCategory
+                deviceCategory: deviceCategory,
+                showCursorReadings: false  // Don't show cursor readings in content - shown above
             )
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
-            // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
-            // The Metal rasterization cache wasn't updating correctly during geometry animations
-            .simultaneousGesture(
-                MagnificationGesture()
-                    .onChanged { scale in
-                        handleZoomChanged(scale)
-                    }
-                    .onEnded { scale in
-                        handleZoomEnded(scale)
-                    }
-            )
-            // macOS: Scroll wheel / trackpad two-finger scroll for zoom
-            .onScrollWheelZoom(
-                speed: 1,
-                onZoomChanged: handleZoomChanged,
-                onZoomEnded: handleZoomEnded
-            )
-            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
-            .overlay(alignment: .bottomLeading) {
-                // Floating flip button for compact devices (iPhone, Apple Watch)
-                // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
-                if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
-                    FlipButton(viewMode: $viewMode)
-                        .padding(.leading, 16)
-                        .padding(.bottom, 16)
+        }
+        // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
+        // The Metal rasterization cache wasn't updating correctly during geometry animations
+        .simultaneousGesture(
+            MagnificationGesture()
+                .onChanged { scale in
+                    handleZoomChanged(scale)
                 }
+                .onEnded { scale in
+                    handleZoomEnded(scale)
+                }
+        )
+        // macOS: Scroll wheel / trackpad two-finger scroll for zoom
+        .onScrollWheelZoom(
+            speed: 1,
+            onZoomChanged: handleZoomChanged,
+            onZoomEnded: handleZoomEnded
+        )
+        .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
+        .overlay(alignment: .bottomLeading) {
+            // Floating flip button for compact devices (iPhone, Apple Watch)
+            // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
+            if !deviceCategory.supportsMultiSideView && currentSlideRule.backTopStator != nil {
+                FlipButton(viewMode: $viewMode)
+                    .padding(.leading, 16)
+                    .padding(.bottom, 16)
+            }
+        }
+        // STICKY HEADER: Use .safeAreaInset to place header OUTSIDE the transformed coordinate space
+        // This ensures the header stays fixed at the top regardless of pan/zoom transforms
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if deviceCategory.supportsMultiSideView {
+                VStack(spacing: 0) {
+                    Divider()
+                    
+                    combinedPickersSection()
+                    
+                    Divider()
+                }
+                .frame(maxWidth: .infinity)
+                .background(systemBackgroundColor())
             }
         }
     }
@@ -154,6 +161,95 @@ struct SlideRuleDetailView: View {
         }
         .padding(.horizontal)
         .padding(.top, 8)
+    }
+    
+    // MARK: - Cursor Readings Area (Fixed, Not Transformed)
+    
+    /// Creates the cursor readings display - extracted from DynamicSlideRuleContent
+    /// to prevent it from being transformed by zoom/pan operations
+    @ViewBuilder
+    private func cursorReadingsArea() -> some View {
+        let frontReadings = cursorState.currentReadings?.frontReadings ?? []
+        let backReadings = cursorState.currentReadings?.backReadings ?? []
+        let hasBackSide = currentSlideRule.backTopStator != nil
+        
+        // Determine which readings to show based on cycle mode and current view mode
+        let (shouldShowFront, shouldShowBack): (Bool, Bool) = {
+            switch viewMode {
+            case .both:
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (true, false)
+                case .oppositeSide:
+                    return (false, hasBackSide)
+                case .both:
+                    return (true, hasBackSide)
+                case .none:
+                    return (false, false)
+                }
+            case .front:
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (true, false)
+                case .oppositeSide:
+                    return (false, hasBackSide)
+                case .both:
+                    return (true, hasBackSide)
+                case .none:
+                    return (false, false)
+                }
+            case .back:
+                switch cursorReadingCycleMode {
+                case .currentSide:
+                    return (false, true)
+                case .oppositeSide:
+                    return (true, false)
+                case .both:
+                    return (true, true)
+                case .none:
+                    return (false, false)
+                }
+            }
+        }()
+        
+        VStack(spacing: -4) {
+            if shouldShowFront {
+                CursorReadingsDisplayView(
+                    readings: frontReadings,
+                    side: .front
+                )
+                .equatable()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 0)
+            }
+            
+            if shouldShowBack {
+                CursorReadingsDisplayView(
+                    readings: backReadings,
+                    side: .back
+                )
+                .equatable()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 0)
+            }
+            
+            if cursorReadingCycleMode == .none {
+                Color.clear
+                    .frame(height: 12)
+            }
+        }
+        .frame(minHeight: 50)
+        .background(systemBackgroundColor())
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                cursorReadingCycleMode = cursorReadingCycleMode.next()
+            }
+        }
+        .accessibilityLabel("Cycle cursor reading mode")
+        .accessibilityHint("Tap to cycle reading display modes")
+        .accessibilityIdentifier("cursorReadingCycleToggle")
+        .opacity(0.95)
     }
 }
 

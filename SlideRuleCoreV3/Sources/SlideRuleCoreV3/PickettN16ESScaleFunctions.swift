@@ -34,9 +34,10 @@ public struct InductanceReciprocalFunction: ScaleFunction, Sendable {
     }
 }
 
-/// Cr Scale - Capacitance with Reciprocal Function (4-decade span)  
-/// Formula: 1 - log₁₀(value) / 12 cycles
-/// Range: 1 pF to 1000 µF across 12 logarithmic decades
+/// Cr Scale - Capacitance with Reciprocal Function (4-decade span)
+/// Formula: 1 - (log₁₀(value) + 2) / cycles
+/// Range: 0.01 to 100 across 4 logarithmic decades
+/// INVERTED SCALE: Values DECREASE from left (100) to right (0.01)
 /// Special feature: Embedded reciprocal square root transformation for resonance calculations
 /// Used with: Lr scale for direct resonant frequency reading
 /// Decimal keeper: Prevents order-of-magnitude errors spanning femtofarads to farads
@@ -45,18 +46,22 @@ public struct CapacitanceReciprocalFunction: ScaleFunction, Sendable {
     public let name = "capacitance-reciprocal"
     public let cycles: Int
     
-    public init(cycles: Int = 12) {
+    public init(cycles: Int = 4) {
         self.cycles = cycles
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Same transformation as Lr scale - reciprocal relationship
-        // Enables direct f = 1/(2π√LC) calculation
-        1.0 - log10(value) / Double(cycles)
+        // INVERTED scale: higher values on left, lower on right
+        // Maps value=100 → position 0 (left end)
+        // Maps value=0.01 → position 1 (right end)
+        1.0 - (log10(value) + 2.0) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        let logValue = (1.0 - transformedValue) * Double(cycles)
+        // Inverse: position → value
+        // position = 1 - (log₁₀(value) + 2) / cycles
+        // log₁₀(value) = (1 - position) * cycles - 2
+        let logValue = (1.0 - transformedValue) * Double(cycles) - 2.0
         return pow(10, logValue)
     }
 }

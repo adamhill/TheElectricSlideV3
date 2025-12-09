@@ -217,9 +217,10 @@ struct PickettN16ESTests {
     
     @Test("Capacitance reciprocal function - Transform/inverse roundtrip")
     func testCapacitanceReciprocalRoundtrip() async throws {
-        let function = CapacitanceReciprocalFunction(cycles: 12)
+        let function = CapacitanceReciprocalFunction(cycles: 4)
         
-        let testValues = [1e-12, 1e-9, 1e-6, 1e-3]
+        // Test 4 decades: 0.01 to 100 (inverted scale)
+        let testValues = [0.01, 0.1, 1.0, 10.0, 100.0]
         
         for value in testValues {
             let transformed = function.transform(value)
@@ -228,6 +229,12 @@ struct PickettN16ESTests {
             let error = abs(inverted - value) / value
             #expect(error < 0.01)
         }
+        
+        // Verify inverted scale mapping: value=100 → position 0, value=0.01 → position 1
+        let pos100 = function.transform(100.0)
+        let pos001 = function.transform(0.01)
+        #expect(abs(pos100 - 0.0) < 0.01, "100 should map to position 0")
+        #expect(abs(pos001 - 1.0) < 0.01, "0.01 should map to position 1")
     }
     
     @Test("Frequency function - Four decade span")
@@ -249,7 +256,7 @@ struct PickettN16ESTests {
     
     @Test("Angular frequency function - ω = 2πf relationship")
     func testAngularFrequencyFunction() async throws {
-        let function = AngularFrequencyFunction(cycles: 12)
+        let function = AngularFrequencyOmegaFunction(cycles: 12)
         
         // Test that function properly encodes ω = 2πf
         let frequency = 1000.0  // 1 kHz
@@ -355,9 +362,9 @@ struct PickettN16ESTests {
         
         #expect(scale.name == "Lr")
         #expect(scale.function.name == "inductance-reciprocal")
-        #expect(scale.beginValue == 0.001)
-        #expect(scale.endValue == 100.0)
-        #expect(scale.subsections.count == 6)
+        #expect(scale.beginValue == 0.02)   // 4 decades: 0.02 to 200
+        #expect(scale.endValue == 200.0)
+        #expect(scale.subsections.count == 13)  // 13 subsections for 5/10/20 variable tick density
         #expect(scale.constants.count == 2)  // XL and TL markers
     }
     
@@ -367,9 +374,9 @@ struct PickettN16ESTests {
         
         #expect(scale.name == "Cr")
         #expect(scale.function.name == "capacitance-reciprocal")
-        #expect(scale.beginValue == 1e-12)  // 1 pF
-        #expect(scale.endValue == 1e-3)     // 1000 µF
-        #expect(scale.subsections.count == 6)
+        #expect(scale.beginValue == 100.0)  // INVERTED: 100 at position 0 (left)
+        #expect(scale.endValue == 0.01)     // INVERTED: 0.01 at position 1 (right)
+        #expect(scale.subsections.count == 12)  // 12 subsections for 5/10/20 pattern across 4 decades
     }
     
     @Test("Fo scale creation - Six cycle configuration")
@@ -618,7 +625,7 @@ struct N16ESHistoricalTests {
         let lrScale = N16ESScaleBuilder.createLrScale()
         let decades = log10(lrScale.endValue / lrScale.beginValue)
         
-        #expect(abs(decades - 5.0) < 0.1)  // 0.001 to 100 is ~5 decades
+        #expect(abs(decades - 4.0) < 0.1)  // 0.02 to 200 is ~4 decades (10,000:1 ratio)
     }
     
     @Test("Eye-Saver yellow wavelength specification")

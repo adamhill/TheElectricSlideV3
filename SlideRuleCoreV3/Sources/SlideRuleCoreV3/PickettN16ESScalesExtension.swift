@@ -18,55 +18,106 @@ extension StandardScales {
             .withName("Lr")
             .withFormula("1 - log₁₀(x)/12")
             .withFunction(InductanceReciprocalFunction(cycles: 12))
-            .withRange(begin: 0.001, end: 100.0)
+            .withRange(begin: 0.02, end: 200.0)  // Exactly 4 decades (10,000:1 ratio) matching real Pickett N-16 ES
             .withLength(length)
             .withTickDirection(.down)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                // First decade: 0.001 to 0.01 - NO labels (sparse labeling per Pickett N16)
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
-                ScaleSubsection(startValue: 0.002, tickIntervals: [0.001, 0.0002], labelLevels: []),
-                ScaleSubsection(startValue: 0.005, tickIntervals: [0.001, 0.0005], labelLevels: []),
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 0.02 to 0.1 (continues from 0.01-0.1 decade pattern)
+                // Variable tick density: finest in first third, coarsest in last third
+                // ═══════════════════════════════════════════════════════════════════════
                 
-                // Second decade: 0.01 to 0.1 - Labels at 0.03-0.09 only
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
-                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.002], labelLevels: [0]),
-                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005], labelLevels: [0]),
+                // 0.02→0.03: First third of decade (finest = 0.0005)
+                // Major=0.01, Half=0.005, Minor=0.001, Tiny=0.0005
+                // No labels - ticks only at scale edge
+                ScaleSubsection(startValue: 0.02, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: []),
                 
-                // Third decade: 0.1 to 1.0 - Labels at 0.3-0.9 only
-                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: []),
-                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.02], labelLevels: [0]),
-                ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05], labelLevels: [0]),
+                // 0.03→0.06: Second third of decade (finest = 0.001)
+                // Major=0.01, Half=0.005, Minor=0.002, Tiny=0.001
+                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
                 
-                // Fourth decade: 1.0 to 10.0 - Labels at 3-10 only
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
+                // 0.06→0.1: Third third of decade (finest = 0.002)
+                // Major=0.01, Half=0.005, Minor=0.002
+                ScaleSubsection(startValue: 0.06, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0]),
                 
-                // Fifth decade: 10.0 to 100.0 - Labels at 10, 20-100
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
-                ScaleSubsection(startValue: 20.0, tickIntervals: [10, 2], labelLevels: [0]),
-                ScaleSubsection(startValue: 50.0, tickIntervals: [10, 5], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 0.1 to 1.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.3: First third of decade (20 divisions per 0.1, finest = 0.005)
+                // Major=0.1, Half=0.05, Minor=0.01, Tiny=0.005
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // 0.3→0.6: Second third of decade (10 divisions per 0.1, finest = 0.01)
+                // Major=0.1, Half=0.05, Minor=0.02, Tiny=0.01
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.6→1.0: Third third of decade (5 divisions per 0.1, finest = 0.02)
+                // Major=0.1, Half=0.05, Minor=0.02
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 1.0 to 10.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1→3: First third of decade (20 divisions per 1.0, finest = 0.05)
+                // Major=1, Half=0.5, Minor=0.1, Tiny=0.05
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // 3→6: Second third of decade (10 divisions per 1.0, finest = 0.1)
+                // Major=1, Half=0.5, Minor=0.2, Tiny=0.1
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.5, 0.2, 0.1], labelLevels: [0]),
+                
+                // 6→10: Third third of decade (5 divisions per 1.0, finest = 0.2)
+                // Major=1, Half=0.5, Minor=0.2
+                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5, 0.2], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 10.0 to 100.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 10→30: First third of decade (20 divisions per 10, finest = 0.5)
+                // Major=10, Half=5, Minor=1, Tiny=0.5
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1, 0.5], labelLevels: [0]),
+                
+                // 30→60: Second third of decade (10 divisions per 10, finest = 1.0)
+                // Major=10, Half=5, Minor=2, Tiny=1
+                ScaleSubsection(startValue: 30.0, tickIntervals: [10, 5, 2, 1], labelLevels: [0]),
+                
+                // 60→100: Third third of decade (5 divisions per 10, finest = 2.0)
+                // Major=10, Half=5, Minor=2
+                ScaleSubsection(startValue: 60.0, tickIntervals: [10, 5, 2], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 100.0 to 200.0 (continues 100-1000 decade pattern)
+                // First third of decade (finest = 5)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 100→200: First third of decade (20 divisions per 100, finest = 5)
+                // Major=100, Half=50, Minor=10, Tiny=5
+                ScaleSubsection(startValue: 100.0, tickIntervals: [100, 50, 10, 5], labelLevels: [0])
             ])
             .withLabelFormatter { value in
                 guard value > 0 else { return "0" }
                 
                 if value < 1.0 {
-                    // Values less than 1: leading decimal format like ".03", ".04"
+                    // Values less than 1: leading decimal format like ".03", ".4"
                     if value >= 0.1 {
                         // 0.1 to 0.99 → ".1", ".2", ... ".9"
-                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
-                    } else if value >= 0.01 {
-                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
-                        return String(format: ".0%g", value * 100)
+                        let digit = Int((value * 10).rounded())
+                        return ".\(digit)"
                     } else {
-                        // 0.001 to 0.009 → ".001", ".002", etc.
-                        return String(format: ".00%g", value * 1000)
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        let digit = Int((value * 100).rounded())
+                        return ".0\(digit)"
                     }
-                } else if value < 10.0 {
-                    // Values 1-9: just the integer
-                    return String(Int(value.rounded()))
                 } else {
-                    // Values 10+: full integer
+                    // Values >= 1: just the integer
                     return String(Int(value.rounded()))
                 }
             }
@@ -77,62 +128,106 @@ extension StandardScales {
     }
     
     /// Cr - Capacitance with Reciprocal Function for resonance calculations
-    /// Historical: Four-decade span (1pF to 1000µF)
+    /// Historical: Four-decade span (0.01 to 100)
+    /// INVERTED SCALE: Values decrease from left (100) to right (0.01)
     /// Decimal keeper prevents magnitude errors across femtofarads to farads
     public static func capacitanceReciprocalScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Cr")
-            .withFormula("1 - log₁₀(x)/12")
-            .withFunction(CapacitanceReciprocalFunction(cycles: 12))
-            .withRange(begin: 1e-12, end: 1e-3)
+            .withFormula("1 - (log₁₀(x)+2)/4")
+            .withFunction(CapacitanceReciprocalFunction(cycles: 4))
+            .withRange(begin: 100.0, end: 0.01)  // INVERTED: 100 at position 0 (left), 0.01 at position 1 (right)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                // First decade: 0.001 to 0.01 - NO labels (sparse labeling per Pickett N16)
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
-                ScaleSubsection(startValue: 0.002, tickIntervals: [0.001, 0.0002], labelLevels: []),
-                ScaleSubsection(startValue: 0.005, tickIntervals: [0.001, 0.0005], labelLevels: []),
+                // ═══════════════════════════════════════════════════════════════════════
+                // INVERTED SCALE: Values decrease left-to-right (100 → 0.01)
+                // Tick density pattern REVERSED from Lr: 5/10/20 (coarse→fine)
+                // because left side (high values) is compressed, right side (low values) is expanded
+                // ═══════════════════════════════════════════════════════════════════════
                 
-                // Second decade: 0.01 to 0.1 - Labels at 0.03-0.09 only
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
-                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.002], labelLevels: [0]),
-                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005], labelLevels: [0]),
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 100 to 10 (leftmost, compressed end)
+                // ═══════════════════════════════════════════════════════════════════════
                 
-                // Third decade: 0.1 to 1.0 - Labels at 0.3-0.9 only
-                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: []),
-                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.02], labelLevels: [0]),
-                ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05], labelLevels: [0]),
+                // 100→60: First third of decade (5 divisions per 10 = coarse, compressed)
+                // Major=10, Half=5, Minor=2
+                ScaleSubsection(startValue: 100.0, tickIntervals: [10, 5, 2], labelLevels: [0]),
                 
-                // Fourth decade: 1.0 to 10.0 - Labels at 3-10 only
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
+                // 60→30: Second third of decade (10 divisions per 10 = medium)
+                // Major=10, Half=5, Minor=2, Tiny=1
+                ScaleSubsection(startValue: 60.0, tickIntervals: [10, 5, 2, 1], labelLevels: [0]),
                 
-                // Fifth decade: 10.0 to 100.0 - Labels at 10, 20-100
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
-                ScaleSubsection(startValue: 20.0, tickIntervals: [10, 2], labelLevels: [0]),
-                ScaleSubsection(startValue: 50.0, tickIntervals: [10, 5], labelLevels: [0])
+                // 30→10: Third third of decade (20 divisions per 10 = fine)
+                // Major=10, Half=5, Minor=1, Tiny=0.5
+                ScaleSubsection(startValue: 30.0, tickIntervals: [10, 5, 1, 0.5], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 10 to 1
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 10→6: First third of decade (5 divisions per 1 = coarse)
+                // Major=1, Half=0.5, Minor=0.2
+                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.2], labelLevels: [0]),
+                
+                // 6→3: Second third of decade (10 divisions per 1 = medium)
+                // Major=1, Half=0.5, Minor=0.2, Tiny=0.1
+                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5, 0.2, 0.1], labelLevels: [0]),
+                
+                // 3→1: Third third of decade (20 divisions per 1 = fine)
+                // Major=1, Half=0.5, Minor=0.1, Tiny=0.05
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 1 to 0.1
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1→0.6: First third of decade (5 divisions per 0.1 = coarse)
+                // Major=0.1, Half=0.05, Minor=0.02
+                ScaleSubsection(startValue: 1.0, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // 0.6→0.3: Second third of decade (10 divisions per 0.1 = medium)
+                // Major=0.1, Half=0.05, Minor=0.02, Tiny=0.01
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.3→0.1: Third third of decade (20 divisions per 0.1 = fine)
+                // Major=0.1, Half=0.05, Minor=0.01, Tiny=0.005
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 0.1 to 0.01 (rightmost, expanded end)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.06: First third of decade (5 divisions per 0.01 = coarse)
+                // Major=0.01, Half=0.005, Minor=0.002
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0]),
+                
+                // 0.06→0.03: Second third of decade (10 divisions per 0.01 = medium)
+                // Major=0.01, Half=0.005, Minor=0.002, Tiny=0.001
+                ScaleSubsection(startValue: 0.06, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                
+                // 0.03→0.01: Third third of decade (20 divisions per 0.01 = fine, most expanded)
+                // Major=0.01, Half=0.005, Minor=0.001, Tiny=0.0005
+                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0])
             ])
             .withLabelFormatter { value in
                 guard value > 0 else { return "0" }
                 
                 if value < 1.0 {
-                    // Values less than 1: leading decimal format like ".03", ".04"
+                    // Values less than 1: leading decimal format like ".03", ".4"
                     if value >= 0.1 {
                         // 0.1 to 0.99 → ".1", ".2", ... ".9"
-                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
-                    } else if value >= 0.01 {
-                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
-                        return String(format: ".0%g", value * 100)
+                        let digit = Int((value * 10).rounded())
+                        return ".\(digit)"
                     } else {
-                        // 0.001 to 0.009 → ".001", ".002", etc.
-                        return String(format: ".00%g", value * 1000)
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        let digit = Int((value * 100).rounded())
+                        return ".0\(digit)"
                     }
-                } else if value < 10.0 {
-                    // Values 1-9: just the integer
-                    return String(Int(value.rounded()))
                 } else {
-                    // Values 10+: full integer
+                    // Values >= 1: just the integer
                     return String(Int(value.rounded()))
                 }
             }

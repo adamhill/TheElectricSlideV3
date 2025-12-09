@@ -1,5 +1,5 @@
 import Foundation
-import SlideRuleCore
+import SlideRuleCoreV3
 // MARK: - Advanced Scales Usage Examples
 
 /// Comprehensive examples for TIME, CR3S, square root (R), and cube root (Q) scales

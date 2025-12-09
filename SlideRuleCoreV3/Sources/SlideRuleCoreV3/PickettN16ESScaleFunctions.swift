@@ -84,14 +84,21 @@ public struct CapacitanceInductanceFunction: ScaleFunction, Sendable {
     }
 }
 
+//Before: INCORRECTish
 /// ω Scale - Angular Frequency (ω = 2πf)
 /// Formula: log₁₀(2π × f) / 12 cycles  
 /// Range: Radians per second from mrad/s to Grad/s
 /// Used for: AC circuit analysis where phase relationships require radian notation
 /// Relationship: ω = 2πf directly converts between hertz and radians/second
 /// Historical: Critical for impedance calculations in complex notation (Z = R + jωL)
-public struct AngularFrequencyFunction: ScaleFunction, Sendable {
-    public let name = "angular-frequency"
+
+/// After:
+/// ω Scale - Angular Frequency (ω = 2πf)
+/// Formula: log₁₀(ω) / 12 (since ω = 2πf, this equals log₁₀(2πf)/12)
+/// Range: 0.01 to ~60 rad/s on this scale segment
+/// Labeling: Only 18 specific values per physical Pickett N-16 ES
+public struct AngularFrequencyOmegaFunction: ScaleFunction, Sendable {
+    public let name = "angular-frequency-omega"
     public let cycles: Int
     
     public init(cycles: Int = 12) {
@@ -99,13 +106,14 @@ public struct AngularFrequencyFunction: ScaleFunction, Sendable {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // ω = 2πf, so we transform log(2πf) / 12
-        log10(2.0 * .pi * value) / Double(cycles)
+        // Input is ω (rad/s) directly, not f (Hz)
+        // ω = 2πf, so log₁₀(ω)/12 = log₁₀(2πf)/12
+        log10(value) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
         let logValue = transformedValue * Double(cycles)
-        return pow(10, logValue) / (2.0 * .pi)
+        return pow(10, logValue)
     }
 }
 

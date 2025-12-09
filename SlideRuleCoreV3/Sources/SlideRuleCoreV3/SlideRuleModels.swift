@@ -335,11 +335,50 @@ public struct LabelConfig: Sendable, Equatable, Hashable {
 // MARK: - Tick Mark Types
 
 /// Defines the type and visual properties of a tick mark
+///
+/// ## Label Creation Logic (OR Logic)
+///
+/// The `shouldLabel` property participates in OR logic with `labelLevels` in `ScaleSubsection`:
+///
+/// ```swift
+/// let shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
+/// ```
+///
+/// This means labels appear when **EITHER**:
+/// 1. `labelLevels.contains(level)` is true (the subsection explicitly includes this level), **OR**
+/// 2. `style.shouldLabel` is true (the tick style itself requests labeling)
+///
+/// ## Important Notes
+///
+/// - `TickStyle.major` has `shouldLabel: true` by default, meaning major ticks **will** get labels
+///   even if `labelLevels: []` is empty
+/// - To create truly unlabeled ticks, use `TickStyle.absolutelyNone` with `labelLevels: []`
+/// - Other predefined styles (`.medium`, `.minor`, `.tiny`) have `shouldLabel: false`
+///
+/// ## Examples
+///
+/// ```swift
+/// // Major ticks labeled via style (ignores empty labelLevels):
+/// ScaleSubsection(startValue: 1.0, tickIntervals: [1.0], labelLevels: [])
+/// // Uses default .major style → labels appear due to style.shouldLabel = true
+///
+/// // Truly unlabeled ticks:
+/// // Use TickStyle.absolutelyNone as the first tick style:
+/// defaultTickStyles: [.absolutelyNone, .medium, .minor, .tiny]
+/// // Combined with labelLevels: [] → no labels appear
+/// ```
 public struct TickStyle: Sendable, Hashable {
     /// Relative length of the tick (1.0 = full height)
     public let relativeLength: Double
     
-    /// Whether this tick should have a label
+    /// Whether this tick should have a label.
+    ///
+    /// This participates in OR logic with `labelLevels` in `ScaleSubsection`:
+    /// - If `true`, labels appear regardless of `labelLevels`
+    /// - If `false`, labels only appear if `labelLevels.contains(level)`
+    ///
+    /// Note: `TickStyle.major` has this set to `true` by default.
+    /// Use `TickStyle.absolutelyNone` when you need tick marks that are never labeled.
     public let shouldLabel: Bool
     
     /// Line width in points
@@ -355,11 +394,50 @@ public struct TickStyle: Sendable, Hashable {
         self.lineWidth = lineWidth
     }
     
-    /// Predefined tick styles
+    // MARK: - Predefined Tick Styles
+    
+    /// Major tick mark - full height with labels enabled by default.
+    ///
+    /// - `relativeLength`: 1.0 (full height)
+    /// - `shouldLabel`: **true** (labels appear even with `labelLevels: []`)
+    /// - `lineWidth`: 1.0
     public static let major = TickStyle(relativeLength: 1.0, shouldLabel: true, lineWidth: 1.0)
-    public static let medium = TickStyle(relativeLength: 0.75, shouldLabel: false, lineWidth: 0.75)
-    public static let minor = TickStyle(relativeLength: 0.5, shouldLabel: false, lineWidth: 0.5)
-    public static let tiny = TickStyle(relativeLength: 0.25, shouldLabel: false, lineWidth: 0.35)
+    
+    /// Medium tick mark - 75% height without labels.
+    public static let medium = TickStyle(relativeLength: 0.75, shouldLabel: false, lineWidth: 0.85)
+    
+    /// Minor tick mark - 50% height without labels.
+    public static let minor = TickStyle(relativeLength: 0.5, shouldLabel: false, lineWidth: 0.65)
+    
+    /// Tiny tick mark - 25% height without labels.
+    public static let tiny = TickStyle(relativeLength: 0.25, shouldLabel: false, lineWidth: 0.40)
+    
+    /// Major-sized tick that is **never** labeled.
+    ///
+    /// Use this style when you want tick marks at the major level that should never have labels,
+    /// even when combined with `labelLevels: []`. This bypasses the OR logic entirely since
+    /// `shouldLabel` is `false`.
+    ///
+    /// ## When to Use
+    /// - Sparse labeling patterns where some major ticks should be unlabeled
+    /// - Scales with `labelLevels: []` where you don't want the default `.major` style's
+    ///   automatic labeling behavior
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Omega scale unlabeled range (0.5-0.7):
+    /// ScaleSubsection(
+    ///     startValue: 0.5,
+    ///     tickIntervals: [0.1, 0.05, 0.02],
+    ///     labelLevels: []  // No labels from labelLevels
+    /// )
+    /// // Use .absolutelyNone as the major style to ensure no labels
+    /// ```
+    ///
+    /// - `relativeLength`: 1.0 (full height, same as `.major`)
+    /// - `shouldLabel`: **false** (never produces labels)
+    /// - `lineWidth`: 1.0 (same as `.major`)
+    public static let absolutelyNone = TickStyle(relativeLength: 1.0, shouldLabel: false, lineWidth: 1.0)
 }
 
 /// Represents a single tick mark on a scale

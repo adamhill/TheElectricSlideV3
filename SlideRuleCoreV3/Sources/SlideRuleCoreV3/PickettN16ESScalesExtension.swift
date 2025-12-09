@@ -166,64 +166,73 @@ extension StandardScales {
     /// ω - Angular Frequency scale (ω = 2πf)
     /// Used for: Complex impedance, AC analysis in radian notation
     /// Sparse tick pattern matching physical Pickett N-16 ES slide rule
+    ///
+    /// Note: Uses `.absolutelyNone` as the major tick style so that `labelLevels`
+    /// is the sole determinant of labeling. This ensures the 0.5-0.7 range
+    /// has tick marks but no labels.
     public static func angularFrequencyOmegaScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ω")
             .withFormula("log₁₀(2πf)/12")
-            .withFunction(AngularFrequencyFunction(cycles: 12))
-            .withRange(begin: 0.001, end: 1e9)
+            .withFunction(AngularFrequencyOmegaFunction(cycles: 12))
+            .withRange(begin: 0.48, end: 62.0)
             .withLength(length)
             .withTickDirection(.up)
+            // Use .absolutelyNone for major ticks so labelLevels: [] truly produces no labels
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                // Full tick pattern with major, half, and tenth intervals
-                // 0.001 Hz to 0.01 Hz - NO LABEL
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: []),
-                // 0.01 Hz to 0.1 Hz - NO LABEL
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: []),
-                // 0.1 Hz to 1 Hz - LABEL at 0.1
-                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
-                // 1 Hz to 10 Hz - NO LABEL
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: []),
-                // 10 Hz to 100 Hz - NO LABEL
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: []),
-                // 100 Hz to 1 kHz - LABEL at 100
-                ScaleSubsection(startValue: 100.0, tickIntervals: [100, 50, 10], labelLevels: [0]),
-                // 1 kHz to 10 kHz - NO LABEL
-                ScaleSubsection(startValue: 1e3, tickIntervals: [1e3, 5e2, 1e2], labelLevels: []),
-                // 10 kHz to 100 kHz - NO LABEL
-                ScaleSubsection(startValue: 1e4, tickIntervals: [1e4, 5e3, 1e3], labelLevels: []),
-                // 100 kHz to 1 MHz - LABEL at 100k
-                ScaleSubsection(startValue: 1e5, tickIntervals: [1e5, 5e4, 1e4], labelLevels: [0]),
-                // 1 MHz to 10 MHz - NO LABEL
-                ScaleSubsection(startValue: 1e6, tickIntervals: [1e6, 5e5, 1e5], labelLevels: []),
-                // 10 MHz to 100 MHz - NO LABEL
-                ScaleSubsection(startValue: 1e7, tickIntervals: [1e7, 5e6, 1e6], labelLevels: []),
-                // 100 MHz to 1 GHz - LABEL at 100M
-                ScaleSubsection(startValue: 1e8, tickIntervals: [1e8, 5e7, 1e7], labelLevels: [0])
-            ])
-            .withLabelFormatter { value in
-                guard value > 0 else { return "0" }
-                
-                if value < 1.0 {
-                    // Values less than 1: leading decimal format like ".03", ".04"
-                    if value >= 0.1 {
-                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
-                        return String(format: ".%g", value * 10).replacingOccurrences(of: ".0", with: "")
-                    } else if value >= 0.01 {
-                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
-                        return String(format: ".0%g", value * 100)
-                    } else {
-                        // 0.001 to 0.009 → ".001", ".002", etc.
-                        return String(format: ".00%g", value * 1000)
-                    }
-                } else if value < 10.0 {
-                    // Values 1-9: just the integer
-                    return String(Int(value.rounded()))
-                } else {
-                    // Values 10+: full integer
-                    return String(Int(value.rounded()))
-                }
+    // ═══════════════════════════════════════════════════════
+    // 0.5 to 0.7 — Ticks only, NO labels
+    // ═══════════════════════════════════════════════════════
+    // Major ticks at 0.5, 0.6 (unlabeled) - uses .absolutelyNone style
+    // Minor ticks between majors
+    ScaleSubsection(
+        startValue: 0.5,
+        tickIntervals: [0.1, 0.05, 0.02],  // Major/half/minor
+        labelLevels: []                     // NO labels (and .absolutelyNone ensures this)
+    ),
+    
+    // ═══════════════════════════════════════════════════════
+    // 0.7 to 1.0 — Labels at .7, .8, .9
+    // ═══════════════════════════════════════════════════════
+    ScaleSubsection(
+        startValue: 0.7,
+        tickIntervals: [0.1, 0.05, 0.02],
+        labelLevels: [0]                    // Label major ticks via labelLevels
+    ),
+    
+    // ═══════════════════════════════════════════════════════
+    // 1 to 10 — Labels at 1, 2, 3, 4, 5, 6, 7, 8, 9
+    // ═══════════════════════════════════════════════════════
+    ScaleSubsection(
+        startValue: 1.0,
+        tickIntervals: [1.0, 0.5, 0.1],
+        labelLevels: [0]                    // Label major ticks via labelLevels
+    ),
+    
+    // ═══════════════════════════════════════════════════════
+    // 10 to 60+ — Labels at 10, 20, 30, 40, 50, 60
+    // ═══════════════════════════════════════════════════════
+    ScaleSubsection(
+        startValue: 10.0,
+        tickIntervals: [10.0, 5.0, 1.0],
+        labelLevels: [0]                    // Label major ticks via labelLevels
+    )
+])            .withLabelFormatter { omega in
+            guard omega > 0 else { return "" }
+            
+            if omega < 1.0 {
+                // Format as ".7", ".8", ".9"
+                let digit = Int((omega * 10).rounded())
+                return ".\(digit)"
+            } else if omega < 10.0 {
+                // Format as "1", "2", ... "9"
+                return String(Int(omega.rounded()))
+            } else {
+                // Format as "10", "20", ... "60"
+                return String(Int(omega.rounded()))
             }
+        }
             .build()
     }
     

@@ -281,8 +281,11 @@ static func generateCombinations() -> [String] {
 
 ### Building (Local Agents)
 
+CRITICAL: Prefer using Terminal commands first to build the app for checking for syntax errors and running tests
+
 **Using Xcodebuild MCP Server (Recommended for Local Agents):**
 ```swift
+
 // List available iOS simulators
 mcp_xcodebuildmcp_list_sims({ enabled: true })
 

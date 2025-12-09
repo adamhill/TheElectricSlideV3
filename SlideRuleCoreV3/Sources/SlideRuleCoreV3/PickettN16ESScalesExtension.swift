@@ -181,44 +181,68 @@ extension StandardScales {
             // Use .absolutelyNone for major ticks so labelLevels: [] truly produces no labels
             .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-    // ═══════════════════════════════════════════════════════
-    // 0.5 to 0.7 — Ticks only, NO labels
-    // ═══════════════════════════════════════════════════════
-    // Major ticks at 0.5, 0.6 (unlabeled) - uses .absolutelyNone style
-    // Minor ticks between majors
-    ScaleSubsection(
-        startValue: 0.5,
-        tickIntervals: [0.1, 0.05, 0.02],  // Major/half/minor
-        labelLevels: []                     // NO labels (and .absolutelyNone ensures this)
-    ),
-    
-    // ═══════════════════════════════════════════════════════
-    // 0.7 to 1.0 — Labels at .7, .8, .9
-    // ═══════════════════════════════════════════════════════
-    ScaleSubsection(
-        startValue: 0.7,
-        tickIntervals: [0.1, 0.05, 0.02],
-        labelLevels: [0]                    // Label major ticks via labelLevels
-    ),
-    
-    // ═══════════════════════════════════════════════════════
-    // 1 to 10 — Labels at 1, 2, 3, 4, 5, 6, 7, 8, 9
-    // ═══════════════════════════════════════════════════════
-    ScaleSubsection(
-        startValue: 1.0,
-        tickIntervals: [1.0, 0.5, 0.1],
-        labelLevels: [0]                    // Label major ticks via labelLevels
-    ),
-    
-    // ═══════════════════════════════════════════════════════
-    // 10 to 60+ — Labels at 10, 20, 30, 40, 50, 60
-    // ═══════════════════════════════════════════════════════
-    ScaleSubsection(
-        startValue: 10.0,
-        tickIntervals: [10.0, 5.0, 1.0],
-        labelLevels: [0]                    // Label major ticks via labelLevels
-    )
-])            .withLabelFormatter { omega in
+          // ═══════════════════════════════════════════════════════
+            // DECADE: 0.5 to 1.0 — Tick pattern for 10ths of this decade
+            // ═══════════════════════════════════════════════════════
+            
+            // 0.5 to 0.7: Ticks only, NO labels
+            // Major=0.1, Half=0.05, Minor=0.02
+            ScaleSubsection(
+                startValue: 0.5,
+                tickIntervals: [0.1, 0.05, 0.02],
+                labelLevels: []  // NO labels
+            ),
+            
+            // 0.7 to 1.0: Labels at .7, .8, .9
+            ScaleSubsection(
+                startValue: 0.7,
+                tickIntervals: [0.1, 0.05, 0.02],
+                labelLevels: [0]  // Label major ticks only
+            ),
+            
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 1 to 10 — Intervals scale up 10×
+            // Major=1.0, Half=0.5, Minor=0.1
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 1.0,
+                tickIntervals: [1.0, 0.5, 0.1, 0.02],  // Added 0.02 for finest ticks matching real Pickett N-16 ES
+                labelLevels: [0]  // Label 1,2,3,4,5,6,7,8,9
+            ),
+            
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 20 — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0, Tiny=0.5, Micro=0.25
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 10.0,
+                tickIntervals: [10.0, 5.0, 1.0, 0.5,0.25],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 20 — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0, Tiny=0.5, Micro=0.25
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 20.0,
+                tickIntervals: [10.0, 5.0, 1.0, 0.5],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 60+ — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 50.0,
+                tickIntervals: [10.0, 5.0, 1.0],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            
+        ])
+        .withLabelFormatter { omega in
             guard omega > 0 else { return "" }
             
             if omega < 1.0 {
@@ -233,8 +257,8 @@ extension StandardScales {
                 return String(Int(omega.rounded()))
             }
         }
-            .build()
-    }
+        .build()
+}
     
     /// λ - Wavelength scale (c/f relationship)
     /// Shows wavelength corresponding to frequency (c = fλ)

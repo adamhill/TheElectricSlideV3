@@ -18,25 +18,24 @@ extension StandardScales {
             .withName("Lr")
             .withFormula("1 - log₁₀(x)/12")
             .withFunction(InductanceReciprocalFunction(cycles: 12))
-            .withRange(begin: 0.02, end: 200.0)  // Exactly 4 decades (10,000:1 ratio) matching real Pickett N-16 ES
+            // FIX: Changed from 0.02 to 0.027 to match real Pickett N-16 ES slide rule
+            // This offset prevents major tick marks from aligning between Lr and Cr scales
+            // Real Pickett N-16 ES shows Lr starting at approximately 0.03
+            .withRange(begin: 0.027, end: 200.0)  // Offset 4-decade range matching real Pickett N-16 ES
             .withLength(length)
             .withTickDirection(.down)
             // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
             .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
                 // ═══════════════════════════════════════════════════════════════════════
-                // PARTIAL DECADE: 0.02 to 0.1 (continues from 0.01-0.1 decade pattern)
+                // PARTIAL DECADE: 0.027 to 0.1 (continues from 0.01-0.1 decade pattern)
                 // Variable tick density: finest in first third, coarsest in last third
+                // FIX: Scale now starts at 0.027 to match real Pickett N-16 ES
                 // ═══════════════════════════════════════════════════════════════════════
                 
-                // 0.02→0.03: First third of decade (finest = 0.0005)
-                // Major=0.01, Half=0.005, Minor=0.001, Tiny=0.0005
-                // No labels - ticks only at scale edge
-                ScaleSubsection(startValue: 0.02, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: []),
-                
-                // 0.03→0.06: Second third of decade (finest = 0.001)
+                // 0.03→0.06: First section (finest = 0.001)
                 // Major=0.01, Half=0.005, Minor=0.002, Tiny=0.001
-                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                ScaleSubsection(startValue: 0.027, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
                 
                 // 0.06→0.1: Third third of decade (finest = 0.002)
                 // Major=0.01, Half=0.005, Minor=0.002

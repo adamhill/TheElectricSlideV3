@@ -122,9 +122,20 @@ public struct AngularFrequencyOmegaFunction: ScaleFunction, Sendable {
     }
 }
 
-/// τ Scale - Time Constant Scale  
-/// Formula: log₁₀(RC or L/R) / 12 cycles
-/// Range: Microseconds to seconds across 12 decades
+/// τ Scale - Time Constant Scale (τ = 1/ω)
+/// Formula: -log₁₀(τ) / 12 (negative to create reciprocal relationship with ω)
+/// CRITICAL: This scale is mathematically tied to the ω scale via τ × ω = 1
+/// Range: ~2.08 to ~0.016 (reciprocal of ω range 0.48 to 62)
+/// INVERTED SCALE: Values DECREASE from left (2.08) to right (0.016)
+///
+/// Alignment verification (from REAL Pickett N16-ES):
+/// - ω=1 aligns with τ=1
+/// - ω=2 aligns with τ=0.5
+/// - ω=5 aligns with τ=0.2
+/// - ω=10 aligns with τ=0.1
+/// - ω=20 aligns with τ=0.05
+/// - ω=50 aligns with τ=0.02
+///
 /// Dual function: τ = RC for capacitive circuits, τ = L/R for inductive circuits
 /// Used for: Charging/discharging rates, transient response, settling time
 /// Applications: Timing circuits, amplifier response, control systems
@@ -138,11 +149,18 @@ public struct TimeConstantFunction: ScaleFunction, Sendable {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        log10(value) / Double(cycles)
+        // NEGATIVE log for reciprocal relationship with ω
+        // τ = 1/ω means: -log₁₀(τ) = -log₁₀(1/ω) = log₁₀(ω)
+        // So transform_τ(τ) = transform_ω(1/τ)
+        -log10(value) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        pow(10, transformedValue * Double(cycles))
+        // Inverse: position → value
+        // position = -log₁₀(value) / cycles
+        // log₁₀(value) = -position * cycles
+        // value = 10^(-position * cycles)
+        pow(10, -transformedValue * Double(cycles))
     }
 }
 

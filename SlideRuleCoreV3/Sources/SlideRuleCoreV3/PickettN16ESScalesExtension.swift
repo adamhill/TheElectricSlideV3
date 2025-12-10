@@ -509,34 +509,102 @@ extension StandardScales {
     
     // MARK: - Pickett N-16 ES Time Constant Scale
     
-    /// τ - Time constant scale (τ = RC or L/R)
-    /// Dual function: Capacitive (RC) or inductive (L/R) circuits
+    /// τ - Time constant scale (τ = 1/ω, reciprocal relationship)
+    /// CRITICAL: This scale is mathematically tied to the ω scale via τ × ω = 1
+    /// INVERTED SCALE: Values DECREASE from left (~2.08) to right (~0.016)
+    /// Range: 1/0.48 ≈ 2.083 to 1/62 ≈ 0.0161 (reciprocal of ω range)
+    ///
+    /// Required alignments (from REAL Pickett N16-ES, NON-NEGOTIABLE):
+    /// - ω=1 aligns with τ=1
+    /// - ω=2 aligns with τ=0.5
+    /// - ω=5 aligns with τ=0.2
+    /// - ω=10 aligns with τ=0.1
+    /// - ω=20 aligns with τ=0.05
+    /// - ω=50 aligns with τ=0.02
+    ///
+    /// Dual function: τ = RC for capacitive circuits, τ = L/R for inductive circuits
     /// Applications: Charging rates, transient response, settling time
     public static func timeConstantTauScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("τ")
-            .withFormula("log₁₀(τ)/12")
+            .withFormula("-log₁₀(τ)/12")
             .withFunction(TimeConstantFunction(cycles: 12))
-            .withRange(begin: 1e-9, end: 1e3)
+            // INVERTED RANGE: τ = 1/ω, so begin = 1/0.48, end = 1/62
+            .withRange(begin: 1.0/0.48, end: 1.0/62.0)  // ≈2.083 to ≈0.0161
             .withLength(length)
-            .withTickDirection(.up)
+            .withTickDirection(.down)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // INVERTED SCALE: Values decrease left-to-right (2.08 → 0.016)
+                // Subsections ordered from HIGH value to LOW value
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 2.08 to 1.0 (corresponds to ω: 0.48 to 1)
+                // Left portion of scale - compressed region
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 2.08→1.5: Sparse ticks (very compressed, minimal labeling in this region)
+                ScaleSubsection(startValue: 2.08, tickIntervals: [0.5, 0.1, 0.05], labelLevels: []),
+                
+                // 1.5→1.0: Transition to labeled region
+                ScaleSubsection(startValue: 1.5, tickIntervals: [0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 1.0 to 0.1 (corresponds to ω: 1 to 10)
+                // This is the primary labeled decade on the τ scale
+                // Variable tick density: coarse→medium→fine
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1.0→0.6: First third of decade (coarse, leftward portion)
+                // Labels: 1, .9, .8, .7, .6
+                ScaleSubsection(startValue: 1.0, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // 0.6→0.3: Second third of decade (medium)
+                // Labels: .6, .5, .4, .3
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.3→0.1: Third third of decade (fine, more expanded)
+                // Labels: .3, .2, .1
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 0.1 to 0.016 (corresponds to ω: 10 to 62)
+                // Right portion of scale - most expanded region
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.05: Labels at .1, .09, .08, .07, .06, .05
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                
+                // 0.05→0.02: Labels at .05, .04, .03, .02
+                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                
+                // 0.02→0.016: Final portion (sparse, edge of scale)
+                ScaleSubsection(startValue: 0.02, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0])
             ])
             .withLabelFormatter { value in
-                // Convert to appropriate time unit
-                if value < 1e-6 {
-                    return String(format: "%.1f ns", value * 1e9)
-                } else if value < 1e-3 {
-                    return String(format: "%.1f µs", value * 1e6)
-                } else if value < 1 {
-                    return String(format: "%.1f ms", value * 1e3)
-                } else if value < 60 {
-                    return String(format: "%.2f s", value)
+                guard value > 0 else { return "0" }
+                
+                if value >= 1.0 {
+                    // Values >= 1: show as integer if close to integer, else one decimal
+                    let rounded = value.rounded()
+                    if abs(value - rounded) < 0.01 {
+                        return String(Int(rounded))
+                    }
+                    return String(format: "%.1f", value)
+                } else if value >= 0.1 {
+                    // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                    let digit = Int((value * 10).rounded())
+                    return ".\(digit)"
                 } else {
-                    return String(format: "%.1f min", value / 60.0)
+                    // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                    let twoDigits = Int((value * 100).rounded())
+                    if twoDigits < 10 {
+                        return ".0\(twoDigits)"
+                    }
+                    return ".\(twoDigits)"
                 }
             }
             .build()

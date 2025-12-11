@@ -34,9 +34,10 @@ public struct InductanceReciprocalFunction: ScaleFunction, Sendable {
     }
 }
 
-/// Cr Scale - Capacitance with Reciprocal Function (4-decade span)  
-/// Formula: 1 - log₁₀(value) / 12 cycles
-/// Range: 1 pF to 1000 µF across 12 logarithmic decades
+/// Cr Scale - Capacitance with Reciprocal Function (4-decade span)
+/// Formula: 1 - (log₁₀(value) + 2) / cycles
+/// Range: 0.01 to 100 across 4 logarithmic decades
+/// INVERTED SCALE: Values DECREASE from left (100) to right (0.01)
 /// Special feature: Embedded reciprocal square root transformation for resonance calculations
 /// Used with: Lr scale for direct resonant frequency reading
 /// Decimal keeper: Prevents order-of-magnitude errors spanning femtofarads to farads
@@ -45,18 +46,22 @@ public struct CapacitanceReciprocalFunction: ScaleFunction, Sendable {
     public let name = "capacitance-reciprocal"
     public let cycles: Int
     
-    public init(cycles: Int = 12) {
+    public init(cycles: Int = 4) {
         self.cycles = cycles
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // Same transformation as Lr scale - reciprocal relationship
-        // Enables direct f = 1/(2π√LC) calculation
-        1.0 - log10(value) / Double(cycles)
+        // INVERTED scale: higher values on left, lower on right
+        // Maps value=100 → position 0 (left end)
+        // Maps value=0.01 → position 1 (right end)
+        1.0 - (log10(value) + 2.0) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        let logValue = (1.0 - transformedValue) * Double(cycles)
+        // Inverse: position → value
+        // position = 1 - (log₁₀(value) + 2) / cycles
+        // log₁₀(value) = (1 - position) * cycles - 2
+        let logValue = (1.0 - transformedValue) * Double(cycles) - 2.0
         return pow(10, logValue)
     }
 }
@@ -84,14 +89,21 @@ public struct CapacitanceInductanceFunction: ScaleFunction, Sendable {
     }
 }
 
+//Before: INCORRECTish
 /// ω Scale - Angular Frequency (ω = 2πf)
 /// Formula: log₁₀(2π × f) / 12 cycles  
 /// Range: Radians per second from mrad/s to Grad/s
 /// Used for: AC circuit analysis where phase relationships require radian notation
 /// Relationship: ω = 2πf directly converts between hertz and radians/second
 /// Historical: Critical for impedance calculations in complex notation (Z = R + jωL)
-public struct AngularFrequencyFunction: ScaleFunction, Sendable {
-    public let name = "angular-frequency"
+
+/// After:
+/// ω Scale - Angular Frequency (ω = 2πf)
+/// Formula: log₁₀(ω) / 12 (since ω = 2πf, this equals log₁₀(2πf)/12)
+/// Range: 0.01 to ~60 rad/s on this scale segment
+/// Labeling: Only 18 specific values per physical Pickett N-16 ES
+public struct AngularFrequencyOmegaFunction: ScaleFunction, Sendable {
+    public let name = "angular-frequency-omega"
     public let cycles: Int
     
     public init(cycles: Int = 12) {
@@ -99,19 +111,31 @@ public struct AngularFrequencyFunction: ScaleFunction, Sendable {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        // ω = 2πf, so we transform log(2πf) / 12
-        log10(2.0 * .pi * value) / Double(cycles)
+        // Input is ω (rad/s) directly, not f (Hz)
+        // ω = 2πf, so log₁₀(ω)/12 = log₁₀(2πf)/12
+        log10(value) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
         let logValue = transformedValue * Double(cycles)
-        return pow(10, logValue) / (2.0 * .pi)
+        return pow(10, logValue)
     }
 }
 
-/// τ Scale - Time Constant Scale  
-/// Formula: log₁₀(RC or L/R) / 12 cycles
-/// Range: Microseconds to seconds across 12 decades
+/// τ Scale - Time Constant Scale (τ = 1/ω)
+/// Formula: -log₁₀(τ) / 12 (negative to create reciprocal relationship with ω)
+/// CRITICAL: This scale is mathematically tied to the ω scale via τ × ω = 1
+/// Range: ~2.08 to ~0.016 (reciprocal of ω range 0.48 to 62)
+/// INVERTED SCALE: Values DECREASE from left (2.08) to right (0.016)
+///
+/// Alignment verification (from REAL Pickett N16-ES):
+/// - ω=1 aligns with τ=1
+/// - ω=2 aligns with τ=0.5
+/// - ω=5 aligns with τ=0.2
+/// - ω=10 aligns with τ=0.1
+/// - ω=20 aligns with τ=0.05
+/// - ω=50 aligns with τ=0.02
+///
 /// Dual function: τ = RC for capacitive circuits, τ = L/R for inductive circuits
 /// Used for: Charging/discharging rates, transient response, settling time
 /// Applications: Timing circuits, amplifier response, control systems
@@ -125,11 +149,18 @@ public struct TimeConstantFunction: ScaleFunction, Sendable {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        log10(value) / Double(cycles)
+        // NEGATIVE log for reciprocal relationship with ω
+        // τ = 1/ω means: -log₁₀(τ) = -log₁₀(1/ω) = log₁₀(ω)
+        // So transform_τ(τ) = transform_ω(1/τ)
+        -log10(value) / Double(cycles)
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        pow(10, transformedValue * Double(cycles))
+        // Inverse: position → value
+        // position = -log₁₀(value) / cycles
+        // log₁₀(value) = -position * cycles
+        // value = 10^(-position * cycles)
+        pow(10, -transformedValue * Double(cycles))
     }
 }
 
@@ -140,7 +171,7 @@ public struct TimeConstantFunction: ScaleFunction, Sendable {
 /// Used for: Antenna design, transmission line length, RF/microwave work
 /// Dual labeling: Shows both frequency and corresponding wavelength
 /// Historical: Essential for radio and radar work, physical antenna dimensions
-public struct WavelengthFunction: ScaleFunction, Sendable {
+public struct WavelengthMeterFunction: ScaleFunction, Sendable {
     public let name = "wavelength"
     public let cycles: Int
     private let speedOfLight: Double = 299792458.0 // m/s
@@ -168,6 +199,39 @@ public struct WavelengthFunction: ScaleFunction, Sendable {
     /// Convert wavelength in meters to frequency
     public func wavelengthToFrequency(_ wavelength: Double) -> Double {
         speedOfLight / wavelength
+    }
+}
+
+/// F Scale - Frequency in MHz (F × λ = 300)
+/// Formula: 1 - log₁₀(300/F) / cycles
+/// Range: 0.1 to 10 MHz (corresponding to λ = 3000m to 30m)
+/// Relationship: c ≈ 300 × 10⁶ m/s = F(MHz) × λ(m), so F × λ = 300
+/// This scale aligns perfectly with the λ scale: when F = 0.1, λ = 3000; when F = 10, λ = 30
+/// Used with: λ scale for direct frequency-wavelength conversion
+/// Historical: Essential for radio frequency calculations, antenna design
+/// Applications: RF engineering, radio broadcasting, amateur radio band calculations
+public struct PickettFFunction: ScaleFunction, Sendable {
+    public let name = "frequency-mhz"
+    public let cycles: Int
+    
+    public init(cycles: Int = 6) {
+        self.cycles = cycles
+    }
+    
+    public func transform(_ value: ScaleValue) -> Double {
+        // F and λ align at same position where F × λ = 300
+        // λ position = 1.0 - log10(λ) / cycles
+        // Since λ = 300/F: position = 1.0 - log10(300/F) / cycles
+        1.0 - log10(300.0 / value) / Double(cycles)
+    }
+    
+    public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
+        // position = 1.0 - log10(300/F) / cycles
+        // log10(300/F) = (1.0 - position) * cycles
+        // 300/F = 10^((1.0 - position) * cycles)
+        // F = 300 / 10^((1.0 - position) * cycles)
+        let logLambda = (1.0 - transformedValue) * Double(cycles)
+        return 300.0 / pow(10, logLambda)
     }
 }
 
@@ -393,7 +457,7 @@ public enum N16ESScaleBuilder {
         layout: ScaleLayout = .linear,
         tickDirection: TickDirection = .up
     ) -> ScaleDefinition {
-        StandardScales.foScale(length: scaleLengthInPoints)
+        StandardScales.eefoScale(length: scaleLengthInPoints)
     }
     
     /// Create phase angle (Θ) scale for filter response

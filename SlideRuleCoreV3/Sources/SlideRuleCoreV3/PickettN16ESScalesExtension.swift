@@ -18,18 +18,108 @@ extension StandardScales {
             .withName("Lr")
             .withFormula("1 - log₁₀(x)/12")
             .withFunction(InductanceReciprocalFunction(cycles: 12))
-            .withRange(begin: 0.001, end: 100.0)
+            // FIX: Changed from 0.02 to 0.027 to match real Pickett N-16 ES slide rule
+            // This offset prevents major tick marks from aligning between Lr and Cr scales
+            // Real Pickett N-16 ES shows Lr starting at approximately 0.03
+            .withRange(begin: 0.027, end: 200.0)  // Offset 4-decade range matching real Pickett N-16 ES
             .withLength(length)
             .withTickDirection(.down)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: []),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
-                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5], labelLevels: []),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 0.027 to 0.1 (continues from 0.01-0.1 decade pattern)
+                // Variable tick density: finest in first third, coarsest in last third
+                // FIX: Scale now starts at 0.027 to match real Pickett N-16 ES
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.03→0.06: First section (finest = 0.001)
+                // Major=0.01, Half=0.005, Minor=0.002, Tiny=0.001
+                ScaleSubsection(startValue: 0.027, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                
+                // 0.06→0.1: Third third of decade (finest = 0.002)
+                // Major=0.01, Half=0.005, Minor=0.002
+                ScaleSubsection(startValue: 0.06, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 0.1 to 1.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.3: First third of decade (20 divisions per 0.1, finest = 0.005)
+                // Major=0.1, Half=0.05, Minor=0.01, Tiny=0.005
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // 0.3→0.6: Second third of decade (10 divisions per 0.1, finest = 0.01)
+                // Major=0.1, Half=0.05, Minor=0.02, Tiny=0.01
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.6→1.0: Third third of decade (5 divisions per 0.1, finest = 0.02)
+                // Major=0.1, Half=0.05, Minor=0.02
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 1.0 to 10.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1→3: First third of decade (20 divisions per 1.0, finest = 0.05)
+                // Major=1, Half=0.5, Minor=0.1, Tiny=0.05
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // 3→6: Second third of decade (10 divisions per 1.0, finest = 0.1)
+                // Major=1, Half=0.5, Minor=0.2, Tiny=0.1
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.5, 0.2, 0.1], labelLevels: [0]),
+                
+                // 6→10: Third third of decade (5 divisions per 1.0, finest = 0.2)
+                // Major=1, Half=0.5, Minor=0.2
+                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5, 0.2], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 10.0 to 100.0
+                // Variable tick density: 20 divisions (first), 10 divisions (middle), 5 divisions (last)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 10→30: First third of decade (20 divisions per 10, finest = 0.5)
+                // Major=10, Half=5, Minor=1, Tiny=0.5
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1, 0.5], labelLevels: [0]),
+                
+                // 30→60: Second third of decade (10 divisions per 10, finest = 1.0)
+                // Major=10, Half=5, Minor=2, Tiny=1
+                ScaleSubsection(startValue: 30.0, tickIntervals: [10, 5, 2, 1], labelLevels: [0]),
+                
+                // 60→100: Third third of decade (5 divisions per 10, finest = 2.0)
+                // Major=10, Half=5, Minor=2
+                ScaleSubsection(startValue: 60.0, tickIntervals: [10, 5, 2], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 100.0 to 200.0 (continues 100-1000 decade pattern)
+                // First third of decade (finest = 5)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 100→200: First third of decade (20 divisions per 100, finest = 5)
+                // Major=100, Half=50, Minor=10, Tiny=5
+                ScaleSubsection(startValue: 100.0, tickIntervals: [100, 50, 10, 5], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { value in
+                guard value > 0 else { return "0" }
+                
+                if value < 1.0 {
+                    // Values less than 1: leading decimal format like ".03", ".4"
+                    if value >= 0.1 {
+                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                        let digit = Int((value * 10).rounded())
+                        return ".\(digit)"
+                    } else {
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        let digit = Int((value * 100).rounded())
+                        return ".0\(digit)"
+                    }
+                } else {
+                    // Values >= 1: just the integer
+                    return String(Int(value.rounded()))
+                }
+            }
             .withLabelColor(red: 0.0, green: 0.5, blue: 0.0)
             .addConstant(value: 25.12, label: "XL", style: .major)
             .addConstant(value: 26.30, label: "TL", style: .major)
@@ -37,25 +127,109 @@ extension StandardScales {
     }
     
     /// Cr - Capacitance with Reciprocal Function for resonance calculations
-    /// Historical: Four-decade span (1pF to 1000µF)
+    /// Historical: Four-decade span (0.01 to 100)
+    /// INVERTED SCALE: Values decrease from left (100) to right (0.01)
     /// Decimal keeper prevents magnitude errors across femtofarads to farads
     public static func capacitanceReciprocalScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Cr")
-            .withFormula("1 - log₁₀(x)/12")
-            .withFunction(CapacitanceReciprocalFunction(cycles: 12))
-            .withRange(begin: 1e-12, end: 1e-3)
+            .withFormula("1 - (log₁₀(x)+2)/4")
+            .withFunction(CapacitanceReciprocalFunction(cycles: 4))
+            .withRange(begin: 100.0, end: 0.01)  // INVERTED: 100 at position 0 (left), 0.01 at position 1 (right)
             .withLength(length)
-            .withTickDirection(.down)
+            .withTickDirection(.up)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.2], labelLevels: []),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0]),
-                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5], labelLevels: []),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // INVERTED SCALE: Values decrease left-to-right (100 → 0.01)
+                // Tick density pattern REVERSED from Lr: 5/10/20 (coarse→fine)
+                // because left side (high values) is compressed, right side (low values) is expanded
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 100 to 10 (leftmost, compressed end)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 100→60: First third of decade (5 divisions per 10 = coarse, compressed)
+                // Major=10, Half=5, Minor=2
+                ScaleSubsection(startValue: 100.0, tickIntervals: [10, 5, 2], labelLevels: [0]),
+                
+                // 60→30: Second third of decade (10 divisions per 10 = medium)
+                // Major=10, Half=5, Minor=2, Tiny=1
+                ScaleSubsection(startValue: 60.0, tickIntervals: [10, 5, 2, 1], labelLevels: [0]),
+                
+                // 30→10: Third third of decade (20 divisions per 10 = fine)
+                // Major=10, Half=5, Minor=1, Tiny=0.5
+                ScaleSubsection(startValue: 30.0, tickIntervals: [10, 5, 1, 0.5], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 10 to 1
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 10→6: First third of decade (5 divisions per 1 = coarse)
+                // Major=1, Half=0.5, Minor=0.2
+                ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.2], labelLevels: [0]),
+                
+                // 6→3: Second third of decade (10 divisions per 1 = medium)
+                // Major=1, Half=0.5, Minor=0.2, Tiny=0.1
+                ScaleSubsection(startValue: 6.0, tickIntervals: [1, 0.5, 0.2, 0.1], labelLevels: [0]),
+                
+                // 3→1: Third third of decade (20 divisions per 1 = fine)
+                // Major=1, Half=0.5, Minor=0.1, Tiny=0.05
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 1 to 0.1
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1→0.6: First third of decade (5 divisions per 0.1 = coarse)
+                // Major=0.1, Half=0.05, Minor=0.02
+                ScaleSubsection(startValue: 1.0, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // 0.6→0.3: Second third of decade (10 divisions per 0.1 = medium)
+                // Major=0.1, Half=0.05, Minor=0.02, Tiny=0.01
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.3→0.1: Third third of decade (20 divisions per 0.1 = fine)
+                // Major=0.1, Half=0.05, Minor=0.01, Tiny=0.005
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // DECADE: 0.1 to 0.01 (rightmost, expanded end)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.06: First third of decade (5 divisions per 0.01 = coarse)
+                // Major=0.01, Half=0.005, Minor=0.002
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0]),
+                
+                // 0.06→0.03: Second third of decade (10 divisions per 0.01 = medium)
+                // Major=0.01, Half=0.005, Minor=0.002, Tiny=0.001
+                ScaleSubsection(startValue: 0.06, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0]),
+                
+                // 0.03→0.01: Third third of decade (20 divisions per 0.01 = fine, most expanded)
+                // Major=0.01, Half=0.005, Minor=0.001, Tiny=0.0005
+                ScaleSubsection(startValue: 0.03, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { value in
+                guard value > 0 else { return "0" }
+                
+                if value < 1.0 {
+                    // Values less than 1: leading decimal format like ".03", ".4"
+                    if value >= 0.1 {
+                        // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                        let digit = Int((value * 10).rounded())
+                        return ".\(digit)"
+                    } else {
+                        // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                        let digit = Int((value * 100).rounded())
+                        return ".0\(digit)"
+                    }
+                } else {
+                    // Values >= 1: just the integer
+                    return String(Int(value.rounded()))
+                }
+            }
             .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
             .build()
     }
@@ -85,73 +259,269 @@ extension StandardScales {
     
     /// ω - Angular Frequency scale (ω = 2πf)
     /// Used for: Complex impedance, AC analysis in radian notation
+    /// Sparse tick pattern matching physical Pickett N-16 ES slide rule
+    ///
+    /// Note: Uses `.absolutelyNone` as the major tick style so that `labelLevels`
+    /// is the sole determinant of labeling. This ensures the 0.5-0.7 range
+    /// has tick marks but no labels.
     public static func angularFrequencyOmegaScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ω")
             .withFormula("log₁₀(2πf)/12")
-            .withFunction(AngularFrequencyFunction(cycles: 12))
-            .withRange(begin: 0.001, end: 1e9)
+            .withFunction(AngularFrequencyOmegaFunction(cycles: 12))
+            .withRange(begin: 0.48, end: 62.0)
             .withLength(length)
             .withTickDirection(.up)
+            // Use .absolutelyNone for major ticks so labelLevels: [] truly produces no labels
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                // Subsections must use actual frequency values (Hz) across the 12-decade range
-                // 0.001 Hz to 0.01 Hz (millihertz range)
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001], labelLevels: [0]),
-                // 0.01 Hz to 0.1 Hz
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001], labelLevels: [0]),
-                // 0.1 Hz to 1 Hz
-                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
-                // 1 Hz to 10 Hz
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                // 10 Hz to 100 Hz
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0]),
-                // 100 Hz to 1 kHz
-                ScaleSubsection(startValue: 100.0, tickIntervals: [100, 50, 10], labelLevels: [0]),
-                // 1 kHz to 10 kHz
-                ScaleSubsection(startValue: 1e3, tickIntervals: [1e3, 5e2, 1e2], labelLevels: [0]),
-                // 10 kHz to 100 kHz
-                ScaleSubsection(startValue: 1e4, tickIntervals: [1e4, 5e3, 1e3], labelLevels: [0]),
-                // 100 kHz to 1 MHz
-                ScaleSubsection(startValue: 1e5, tickIntervals: [1e5, 5e4, 1e4], labelLevels: [0]),
-                // 1 MHz to 10 MHz
-                ScaleSubsection(startValue: 1e6, tickIntervals: [1e6, 5e5, 1e5], labelLevels: [0]),
-                // 10 MHz to 100 MHz
-                ScaleSubsection(startValue: 1e7, tickIntervals: [1e7, 5e6, 1e6], labelLevels: [0]),
-                // 100 MHz to 1 GHz
-                ScaleSubsection(startValue: 1e8, tickIntervals: [1e8, 5e7, 1e7], labelLevels: [0])
+          // ═══════════════════════════════════════════════════════
+            // DECADE: 0.5 to 1.0 — Tick pattern for 10ths of this decade
+            // ═══════════════════════════════════════════════════════
+            
+            // 0.5 to 0.7: Ticks only, NO labels
+            // Major=0.1, Half=0.05, Minor=0.02
+            ScaleSubsection(
+                startValue: 0.5,
+                tickIntervals: [0.1, 0.05, 0.02],
+                labelLevels: []  // NO labels
+            ),
+            
+            // 0.7 to 1.0: Labels at .7, .8, .9
+            ScaleSubsection(
+                startValue: 0.7,
+                tickIntervals: [0.1, 0.05, 0.02],
+                labelLevels: [0]  // Label major ticks only
+            ),
+            
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 1 to 10 — Intervals scale up 10×
+            // Major=1.0, Half=0.5, Minor=0.1
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 1.0,
+                tickIntervals: [1.0, 0.5, 0.1, 0.02],  // Added 0.02 for finest ticks matching real Pickett N-16 ES
+                labelLevels: [0]  // Label 1,2,3,4,5,6,7,8,9
+            ),
+            
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 20 — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0, Tiny=0.5, Micro=0.25
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 10.0,
+                tickIntervals: [10.0, 5.0, 1.0, 0.5,0.25],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 20 — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0, Tiny=0.5, Micro=0.25
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 20.0,
+                tickIntervals: [10.0, 5.0, 1.0, 0.5],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            // ═══════════════════════════════════════════════════════
+            // DECADE: 10 to 60+ — Intervals scale up another 10×
+            // Major=10.0, Half=5.0, Minor=1.0
+            // ═══════════════════════════════════════════════════════
+            ScaleSubsection(
+                startValue: 50.0,
+                tickIntervals: [10.0, 5.0, 1.0],
+                labelLevels: [0]  // Label 10,20,30,40,50,60
+            ),
+
+            
+        ])
+        .withLabelFormatter { omega in
+            guard omega > 0 else { return "" }
+            
+            if omega < 1.0 {
+                // Format as ".7", ".8", ".9"
+                let digit = Int((omega * 10).rounded())
+                return ".\(digit)"
+            } else if omega < 10.0 {
+                // Format as "1", "2", ... "9"
+                return String(Int(omega.rounded()))
+            } else {
+                // Format as "10", "20", ... "60"
+                return String(Int(omega.rounded()))
+            }
+        }
+        .build()
+}
+    
+    /// λ Scale: Wavelength scale in METERS (not frequency!)
+    /// Shows wavelength values directly: 3000m to 30m (2 decades, inverted)
+    /// Essential for RF and antenna work - matches real Pickett N16-ES
+    /// Formula: Inverted logarithmic scale with wavelength in meters
+    /// Range: 3000.0 to 30.0 meters (2 decades, high values on left)
+    /// Used for: antenna-design, RF-propagation, wavelength-calculations, electromagnetic-theory
+    ///
+    /// **Physical Applications:**
+    /// - Antenna Design: Calculate antenna dimensions directly from wavelength (λ/4, λ/2 antennas)
+    /// - RF Propagation: Direct wavelength reading for path loss calculations
+    /// - Amateur Radio: Shows wavelength bands (160m, 80m, 40m, 20m, etc.)
+    /// - Radio Broadcasting: Match antenna size to broadcast wavelength
+    ///
+    /// **Example 1:** Design quarter-wave antenna for 40m amateur band
+    /// 1. Locate 40m on λ scale
+    /// 2. Quarter-wave length = 40m/4 = 10m
+    ///
+    /// **Example 2:** Find wavelength for FM broadcast band
+    /// 1. FM band is approximately 100 MHz
+    /// 2. λ = c/f = 3×10⁸ / 100×10⁶ = 3m
+    /// 3. Locate 3m on λ scale (right end, smaller values)
+    public static func wavelengthLambdaScale(length: Distance = 250.0) -> ScaleDefinition {
+        let wavelengthFunction = WavelengthMeterFunction()
+        
+        return ScaleBuilder()
+            .withName("λ")  // Lambda symbol for wavelength scale (matches real Pickett N16-ES)
+            .withFormula("λ (meters)")
+            .withFunction(wavelengthFunction)
+            .withRange(begin: 3000.0, end: 30.0)  // 3000m to 30m (2 decades, inverted - high values on left)
+            .withLength(length)
+            .withTickDirection(.down)
+            .withSubsections([
+                // SPARSE LABELING: Matches real Pickett N16-ES λ scale
+                // Labels from reference image: 3000, 2000, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 90, 80, 70, 60, 50, 40, 30
+                // Scale spans 3000m to 30m = 2 decades (inverted)
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FIRST DECADE: 3000m to 300m (leftmost portion)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 3000→1000: First third (coarse, compressed)
+                // Labels: 3000, 2000, 1000
+                ScaleSubsection(startValue: 3000.0, tickIntervals: [1000.0, 500.0, 100.0], labelLevels: [0]),
+                
+                // 1000→300: Second portion
+                // Labels: 1000, 900, 800, 700, 600, 500, 400, 300
+                ScaleSubsection(startValue: 1000.0, tickIntervals: [100.0, 50.0, 10.0], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // SECOND DECADE: 300m to 30m (rightmost portion, more expanded)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 300→100: First portion of second decade
+                // Labels: 300, 200, 100
+                ScaleSubsection(startValue: 300.0, tickIntervals: [100.0, 50.0, 10.0], labelLevels: [0]),
+                
+                // 100→30: Second portion of second decade (finest)
+                // Labels: 100, 90, 80, 70, 60, 50, 40, 30
+                ScaleSubsection(startValue: 100.0, tickIntervals: [10.0, 5.0, 1.0], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withLabelFormatter { wavelength in
+                // Show integer wavelength values at major positions
+                // Real Pickett N16-ES shows: 3000, 2000, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 90, 80, 70, 60, 50, 40, 30
+                guard wavelength > 0 else { return "" }
+                
+                let rounded = wavelength.rounded()
+                
+                // Only label at these specific positions (major decade and mid-decade values)
+                let labelValues: Set<Double> = [
+                    3000, 2000, 1000,
+                    900, 800, 700, 600, 500, 400, 300, 200, 100,
+                    90, 80, 70, 60, 50, 40, 30
+                ]
+                
+                if labelValues.contains(rounded) && abs(wavelength - rounded) < 0.5 {
+                    return String(format: "%.0f", rounded)
+                }
+                return ""
+            }
             .build()
     }
     
-    /// λ - Wavelength scale (c/f relationship)
-    /// Shows wavelength corresponding to frequency (c = fλ)
-    public static func wavelengthLambdaScale(length: Distance = 250.0) -> ScaleDefinition {
-        // Helper to convert wavelength (meters) to frequency (Hz)
-        let c = 299792458.0  // Speed of light m/s
-        func wavelengthToFreq(_ wavelength: Double) -> Double {
-            c / wavelength
-        }
+    /// F Scale: Frequency in MHz (F × λ = 300)
+    /// Shows frequency values directly: 0.1 to 10 MHz (2 decades)
+    /// Essential for RF and antenna work - matches real Pickett N16-ES
+    /// Formula: 1 - log₁₀(300/F) / 6 (aligns with λ scale where F × λ = 300)
+    /// Range: 0.1 to 10 MHz (2 decades, low values on left)
+    /// Used for: RF-frequency-calculations, antenna-design, electromagnetic-theory
+    ///
+    /// **Physical Applications:**
+    /// - RF Engineering: Direct frequency reading in MHz
+    /// - Antenna Design: Convert directly to wavelength via λ scale alignment
+    /// - Amateur Radio: Shows frequency bands corresponding to wavelength bands
+    /// - Radio Broadcasting: Match frequency to antenna dimensions
+    ///
+    /// **Alignment with λ Scale:**
+    /// The F scale is mathematically tied to the λ scale via F × λ = 300
+    /// (where F is in MHz, λ is in meters, and 300 ≈ c in convenient units)
+    /// | F (MHz) | λ (m) | F × λ |
+    /// |---------|-------|-------|
+    /// | 0.1     | 3000  | 300   |
+    /// | 1.0     | 300   | 300   |
+    /// | 10      | 30    | 300   |
+    ///
+    /// **Example:** Find frequency for 40m amateur band
+    /// 1. Locate 40m on λ scale
+    /// 2. Read corresponding F value: F = 300/40 = 7.5 MHz
+    public static func pickettFScale(length: Distance = 250.0) -> ScaleDefinition {
+        let frequencyFunction = PickettFFunction(cycles: 6)
         
         return ScaleBuilder()
-            .withName("λ")
-            .withFormula("1 - log₁₀(f)/6")
-            .withFunction(WavelengthFunction(cycles: 6))
-            .withRange(begin: 1e5, end: 1e11)
+            .withName("F")  // F for Frequency scale (matches real Pickett N16-ES)
+            .withFormula("F (MHz)")
+            .withFunction(frequencyFunction)
+            .withRange(begin: 0.1, end: 10.0)  // 0.1 to 10 MHz (2 decades, low values on left)
             .withLength(length)
-            .withTickDirection(.up)
+            .withTickDirection(.up)  // Opposite to λ scale which is .down
             .withSubsections([
-                // Subsections must use frequency values (Hz), not wavelength (m)
-                // These correspond to wavelengths in the 3000m to 3mm range
-                ScaleSubsection(startValue: wavelengthToFreq(3000), tickIntervals: [1e5, 5e4, 1e4], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(300), tickIntervals: [1e6, 5e5, 1e5], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(30), tickIntervals: [1e7, 5e6, 1e6], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(3), tickIntervals: [1e8, 5e7, 1e7], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(0.3), tickIntervals: [1e9, 5e8, 1e8], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(0.03), tickIntervals: [1e10, 5e9, 1e9], labelLevels: [0])
+                // SPARSE LABELING: Matches real Pickett N16-ES F scale
+                // Labels from reference: .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+                // Scale spans 0.1 to 10 MHz = 2 decades
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FIRST DECADE: 0.1 to 1.0 MHz (leftmost portion)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.3: First portion (finest ticks)
+                // Labels: .1, .2, .3
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // 0.3→0.6: Middle portion
+                // Labels: .3, .4, .5, .6
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0]),
+                
+                // 0.6→1.0: Last portion of first decade (coarser)
+                // Labels: .6, .7, .8, .9
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // SECOND DECADE: 1.0 to 10 MHz (rightmost portion, more compressed)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1→3: First portion of second decade (finest)
+                // Labels: 1, 2, 3
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // 3→6: Middle portion
+                // Labels: 3, 4, 5, 6
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.5, 0.2, 0.1], labelLevels: [0]),
+                
+                // 6→10: Last portion (coarsest)
+                // Labels: 6, 7, 8, 9, 10
+                ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5, 0.2], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelFormatter { frequency in
+                // Show frequency values at major positions
+                // Real Pickett N16-ES shows: .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+                guard frequency > 0 else { return "" }
+                
+                if frequency < 1.0 {
+                    // Values less than 1: leading decimal format like ".1", ".2", etc.
+                    let digit = Int((frequency * 10).rounded())
+                    return ".\(digit)"
+                } else {
+                    // Values >= 1: just the integer
+                    return String(Int(frequency.rounded()))
+                }
+            }
             .build()
     }
     
@@ -279,34 +649,109 @@ extension StandardScales {
     
     // MARK: - Pickett N-16 ES Time Constant Scale
     
-    /// τ - Time constant scale (τ = RC or L/R)
-    /// Dual function: Capacitive (RC) or inductive (L/R) circuits
+    /// τ - Time constant scale (τ = 1/ω, reciprocal relationship)
+    /// CRITICAL: This scale is mathematically tied to the ω scale via τ × ω = 1
+    /// INVERTED SCALE: Values DECREASE from left (~2.08) to right (~0.016)
+    /// Range: 1/0.48 ≈ 2.083 to 1/62 ≈ 0.0161 (reciprocal of ω range)
+    ///
+    /// Required alignments (from REAL Pickett N16-ES, NON-NEGOTIABLE):
+    /// - ω=1 aligns with τ=1
+    /// - ω=2 aligns with τ=0.5
+    /// - ω=5 aligns with τ=0.2
+    /// - ω=10 aligns with τ=0.1
+    /// - ω=20 aligns with τ=0.05
+    /// - ω=50 aligns with τ=0.02
+    ///
+    /// Dual function: τ = RC for capacitive circuits, τ = L/R for inductive circuits
     /// Applications: Charging rates, transient response, settling time
     public static func timeConstantTauScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("τ")
-            .withFormula("log₁₀(τ)/12")
+            .withFormula("-log₁₀(τ)/12")
             .withFunction(TimeConstantFunction(cycles: 12))
-            .withRange(begin: 1e-9, end: 1e3)
+            // INVERTED RANGE: τ = 1/ω, so begin = 1/0.48, end = 1/62
+            .withRange(begin: 1.0/0.48, end: 1.0/62.0)  // ≈2.083 to ≈0.0161
             .withLength(length)
-            .withTickDirection(.up)
+            .withTickDirection(.down)
+            // Use .absolutelyNone for major ticks so labelLevels is the sole determinant of labeling
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.2], labelLevels: [0]),
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1, 0.5], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // INVERTED SCALE: Values decrease left-to-right (2.08 → 0.016)
+                // Subsections ordered from HIGH value to LOW value
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 2.08 to 1.0 (corresponds to ω: 0.48 to 1)
+                // Left portion of scale - compressed region
+                // ═══════════════════════════════════════════════════════════════════════
+                // 2.08→1.5: Sparse ticks (very compressed, minimal labeling in this region)
+                // Cursor precision: +1 decimal from automatic (3→4 decimals)
+                ScaleSubsection(startValue: 2.08, tickIntervals: [0.5, 0.1, 0.05], labelLevels: [], cursorPrecision: .fixed(places: 4)),
+                
+                // 1.5→1.0: Transition to labeled region
+                // Cursor precision: +1 decimal from automatic (3→4 decimals)
+                ScaleSubsection(startValue: 1.5, tickIntervals: [0.5, 0.1, 0.05], labelLevels: [0], cursorPrecision: .fixed(places: 4)),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FULL DECADE: 1.0 to 0.1 (corresponds to ω: 1 to 10)
+                // This is the primary labeled decade on the τ scale
+                // Variable tick density: coarse→medium→fine
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1.0→0.6: First third of decade (coarse, leftward portion)
+                // Labels: 1, .9, .8, .7, .6
+                // Cursor precision: +1 decimal from automatic (3→4 decimals)
+                ScaleSubsection(startValue: 1.0, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0], cursorPrecision: .fixed(places: 4)),
+                
+                // 0.6→0.3: Second third of decade (medium)
+                // Labels: .6, .5, .4, .3
+                // Cursor precision: +1 decimal from automatic (3→4 decimals)
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05, 0.02, 0.01], labelLevels: [0], cursorPrecision: .fixed(places: 4)),
+                
+                // 0.3→0.1: Third third of decade (fine, more expanded)
+                // Labels: .3, .2, .1
+                // Cursor precision: +1 decimal from automatic (4→5 decimals)
+                ScaleSubsection(startValue: 0.3, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0], cursorPrecision: .fixed(places: 5)),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // PARTIAL DECADE: 0.1 to 0.016 (corresponds to ω: 10 to 62)
+                // Right portion of scale - most expanded region
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1→0.05: Labels at .1, .09, .08, .07, .06, .05
+                // Cursor precision: +1 decimal from automatic (4→5 decimals)
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0], cursorPrecision: .fixed(places: 5)),
+                
+                // 0.05→0.02: Labels at .05, .04, .03, .02
+                // Cursor precision: +1 decimal from automatic (4→5 decimals)
+                ScaleSubsection(startValue: 0.05, tickIntervals: [0.01, 0.005, 0.002, 0.001], labelLevels: [0], cursorPrecision: .fixed(places: 5)),
+                
+                // 0.02→0.016: Final portion (sparse, edge of scale)
+                // Cursor precision: +1 decimal from automatic (4→5 decimals)
+                ScaleSubsection(startValue: 0.02, tickIntervals: [0.01, 0.005, 0.002], labelLevels: [0], cursorPrecision: .fixed(places: 5))
             ])
             .withLabelFormatter { value in
-                // Convert to appropriate time unit
-                if value < 1e-6 {
-                    return String(format: "%.1f ns", value * 1e9)
-                } else if value < 1e-3 {
-                    return String(format: "%.1f µs", value * 1e6)
-                } else if value < 1 {
-                    return String(format: "%.1f ms", value * 1e3)
-                } else if value < 60 {
-                    return String(format: "%.2f s", value)
+                guard value > 0 else { return "0" }
+                
+                if value >= 1.0 {
+                    // Values >= 1: show as integer if close to integer, else one decimal
+                    let rounded = value.rounded()
+                    if abs(value - rounded) < 0.01 {
+                        return String(Int(rounded))
+                    }
+                    return String(format: "%.1f", value)
+                } else if value >= 0.1 {
+                    // 0.1 to 0.99 → ".1", ".2", ... ".9"
+                    let digit = Int((value * 10).rounded())
+                    return ".\(digit)"
                 } else {
-                    return String(format: "%.1f min", value / 60.0)
+                    // 0.01 to 0.099 → ".01", ".02", ... ".09"
+                    let twoDigits = Int((value * 100).rounded())
+                    if twoDigits < 10 {
+                        return ".0\(twoDigits)"
+                    }
+                    return ".\(twoDigits)"
                 }
             }
             .build()

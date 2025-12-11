@@ -1,5 +1,5 @@
 import Foundation
-import SlideRuleCore
+import SlideRuleCoreV3
 
 // MARK: - Usage Examples
 

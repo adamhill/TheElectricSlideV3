@@ -279,6 +279,17 @@ struct CursorView: View {
     /// Height of the drag handle (positioned ABOVE the slide rule)
     static let handleHeight: CGFloat = 16
     
+    /// True 1-pixel hairline width (accounts for screen scale factor)
+    static var hairlineWidth: CGFloat {
+        #if os(iOS) || os(tvOS)
+        return 1.0 / UIScreen.main.scale
+        #elseif os(macOS)
+        return 1.0 / (NSScreen.main?.backingScaleFactor ?? 1.0)
+        #else
+        return 1.0
+        #endif
+    }
+    
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
@@ -369,10 +380,10 @@ struct CursorView: View {
                     }
                 }
                 
-                // 1pt hairline down center - solid black
+                // True 1-pixel hairline down center - solid black
                 Rectangle()
                     .fill(.black)
-                    .frame(width: 1, height: height)
+                    .frame(width: Self.hairlineWidth, height: height)
                     .offset(x: Self.cursorWidth / 2)
                 
                 // Scale readings drawn with Canvas for maximum performance

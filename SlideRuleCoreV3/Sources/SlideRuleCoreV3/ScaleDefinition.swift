@@ -583,19 +583,38 @@ extension ScaleDefinition {
         
         return subsection.decimalPlaces(for: value, zoomLevel: zoomLevel)
     }
-    
     /// Find the subsection that applies to a given value
     /// - Parameter value: Scale value to query
     /// - Returns: Active subsection, or nil if none found
     public func activeSubsection(for value: Double) -> ScaleSubsection? {
+        // Determine if this is an inverted scale (beginValue > endValue)
+        let isInverted = beginValue > endValue
+        
         var active: ScaleSubsection? = nil
         
-        for subsection in subsections {
-            if value >= subsection.startValue {
-                active = subsection
-            } else {
-                // Subsections assumed to be sorted by startValue
-                break
+        if isInverted {
+            // For inverted scales, subsections are sorted in DESCENDING order
+            // (largest startValue first, smallest last)
+            // We want the subsection where value <= startValue
+            for subsection in subsections {
+                if value <= subsection.startValue {
+                    active = subsection
+                } else {
+                    // Found a subsection with startValue smaller than our value
+                    // The previous subsection (now in 'active') is the correct one
+                    break
+                }
+            }
+        } else {
+            // For normal scales, subsections are sorted in ASCENDING order
+            // We want the subsection where value >= startValue
+            for subsection in subsections {
+                if value >= subsection.startValue {
+                    active = subsection
+                } else {
+                    // Subsections assumed to be sorted by startValue
+                    break
+                }
             }
         }
         

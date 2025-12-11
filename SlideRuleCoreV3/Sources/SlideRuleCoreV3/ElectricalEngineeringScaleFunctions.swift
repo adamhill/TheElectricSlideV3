@@ -53,6 +53,8 @@ public struct CapacitiveReactanceFunction: ScaleFunction {
     }
 }
 
+
+
 /// F Scale - Frequency Scale (Hz, kHz, MHz, GHz)
 /// Used for: RF calculations, signal processing, filter design
 /// Range: 0.001 Hz to 1 GHz over 12 logarithmic cycles
@@ -207,7 +209,6 @@ public struct CapacitanceFrequencyFunction: ScaleFunction {
         return pow(10, logValue) / scaleFactor
     }
 }
-
 /// Fo Scale - Frequency/Wavelength Scale
 /// Used for: RF and microwave work, wavelength calculations, antenna design
 /// Formula: Inverted log scale over 6 cycles showing frequency and corresponding wavelength
@@ -231,6 +232,41 @@ public struct FrequencyWavelengthFunction: ScaleFunction {
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
         let logValue = (1.0 - transformedValue) * Double(cycles)
         return pow(10, logValue)
+    }
+}
+
+/// λ Scale - Wavelength in Meters (Direct Wavelength Domain)
+/// Used for: Antenna design, RF propagation, wavelength-to-frequency conversion
+/// Formula: Simple 2-cycle logarithmic scale using WAVELENGTH values (not frequency)
+/// Range: 3000m to 30m (2 decades, inverted - high values on left)
+/// Historical note: Essential for amateur radio and RF work, shows wavelength directly
+///
+/// This function takes wavelength in meters and maps to scale position:
+/// - At 3000m: position = 0 (left)
+/// - At 30m: position = 1 (right)
+public struct WavelengthFunction: ScaleFunction {
+    public let name = "wavelength"
+    
+    /// Reference wavelength for position 0 (left side of scale)
+    private let referenceWavelength: Double = 3000.0
+    
+    /// Number of decades the scale spans
+    private let decades: Double = 2.0
+    
+    public init() {}
+    
+    public func transform(_ wavelength: ScaleValue) -> Double {
+        // Inverted logarithmic scale: higher wavelengths on left, lower on right
+        // position = log10(referenceWavelength / wavelength) / decades
+        // At 3000m: log10(3000/3000) / 2 = 0 (left)
+        // At 30m: log10(3000/30) / 2 = log10(100) / 2 = 2/2 = 1 (right)
+        guard wavelength > 0 else { return 0 }
+        return log10(referenceWavelength / wavelength) / decades
+    }
+    
+    public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
+        // wavelength = referenceWavelength / 10^(position * decades)
+        return referenceWavelength / pow(10, transformedValue * decades)
     }
 }
 

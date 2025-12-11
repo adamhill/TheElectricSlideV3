@@ -5,7 +5,7 @@
 //  Created by Adam Hill on 10/18/25.
 //
 import Foundation
-import SlideRuleCore
+import SlideRuleCoreV3
 
 func demoBScales() {
     exampleBScales()

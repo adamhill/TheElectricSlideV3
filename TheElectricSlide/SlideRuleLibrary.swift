@@ -22,7 +22,8 @@ struct SlideRuleLibrary {
     /// Version 8: Fixed K&E 4081-3 corruption (sortOrder collision with Pickett N-16 ES)
     /// Version 9: Fixed Hemmi 266 sortOrder collision with K&E 4081-3
     /// Version 10: Added Faber-Castell 62/83 N with W scale aliases (W1→R1, W2→R2, W1'→SQ1, W2'→SQ2)
-    static let libraryVersion = 10
+    /// Version 11: Implemented Pickett N-16 ES pickettF (PF) Scale (frequency in MHz, 0.1-10 MHz range)
+    static let libraryVersion = 11
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -89,7 +90,7 @@ struct SlideRuleLibrary {
                 Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
                 phase/gain/dB scales for complete filter characterization from single cursor position.
                 """,
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ)",
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
@@ -102,7 +103,8 @@ struct SlideRuleLibrary {
                 "Θ": "θ",            // Phase angle (lowercase Greek)
                 "λ": "λ",            // Wavelength (lowercase Greek)
                 "ω": "ω",            // Angular frequency (lowercase Greek)
-                "τ": "τ"             // Time constant (lowercase Greek)
+                "τ": "τ",
+                "PF": "F"            // Time constant (lowercase Greek)
             ]
         )
     }

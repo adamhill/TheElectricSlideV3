@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9C601A522EA430A8003812CD /* SlideRuleCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9C601A512EA430A8003812CD /* SlideRuleCore */; };
+		9C84807E2EE7DA930043D0DB /* SlideRuleCoreV3 in Frameworks */ = {isa = PBXBuildFile; productRef = 9C84807D2EE7DA930043D0DB /* SlideRuleCoreV3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9C601A522EA430A8003812CD /* SlideRuleCore in Frameworks */,
+				9C84807E2EE7DA930043D0DB /* SlideRuleCoreV3 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,7 +82,7 @@
 			);
 			name = TheElectricSlideConsole;
 			packageProductDependencies = (
-				9C601A512EA430A8003812CD /* SlideRuleCore */,
+				9C84807D2EE7DA930043D0DB /* SlideRuleCoreV3 */,
 			);
 			productName = TheElectricSlideConsole;
 			productReference = 9C601A002EA4190C003812CD /* TheElectricSlideConsole */;
@@ -113,6 +113,7 @@
 			mainGroup = 9C6019F72EA4190C003812CD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				9C84807C2EE7DA930043D0DB /* XCLocalSwiftPackageReference "../SlideRuleCoreV3" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9C601A012EA4190C003812CD /* Products */;
@@ -304,10 +305,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		9C84807C2EE7DA930043D0DB /* XCLocalSwiftPackageReference "../SlideRuleCoreV3" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../SlideRuleCoreV3;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		9C601A512EA430A8003812CD /* SlideRuleCore */ = {
+		9C84807D2EE7DA930043D0DB /* SlideRuleCoreV3 */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = SlideRuleCore;
+			productName = SlideRuleCoreV3;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

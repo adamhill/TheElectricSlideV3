@@ -270,17 +270,20 @@ struct PickettN16ESTests {
     
     @Test("Wavelength function - Inverted scale relationship")
     func testWavelengthFunction() async throws {
-        let function = WavelengthFunction(cycles: 6)
+        let function = WavelengthFunction()
         
-        // Test that higher frequencies give lower transformed values (inverted)
-        let f1 = 1e6   // 1 MHz
-        let f2 = 1e9   // 1 GHz
+        // Test that higher wavelengths give lower transformed values (inverted)
+        // WavelengthFunction takes wavelength in meters, not frequency
+        let lambda1 = 3000.0  // 3000 meters (corresponds to 0.1 MHz)
+        let lambda2 = 30.0    // 30 meters (corresponds to 10 MHz)
         
-        let pos1 = function.transform(f1)
-        let pos2 = function.transform(f2)
+        let pos1 = function.transform(lambda1)
+        let pos2 = function.transform(lambda2)
         
-        // Higher frequency should have lower position (inverted scale)
-        #expect(pos2 < pos1)
+        // Higher wavelength should have lower position (inverted scale)
+        // λ=3000m → position ~0, λ=30m → position ~1
+        #expect(pos1 < pos2,
+               "Higher wavelength (\(lambda1)m) should have lower position than lower wavelength (\(lambda2)m)")
     }
     
     @Test("Phase angle function - 0° to 90° range")
@@ -870,6 +873,140 @@ struct LrCrAlignmentTests {
         // Document the current alignment for reference
         print("Product L*C = \(0.1 * alignedCrValue)")
         print("Resonant frequency = \(1.0 / (2.0 * .pi * sqrt(0.1 * alignedCrValue))) Hz")
+    }
+}
+
+// MARK: - F × λ = 300 Alignment Tests
+
+@Suite("F × λ = 300 Scale Alignment", .tags(.pickettN16ES))
+struct FLambdaAlignmentTests {
+    
+    /// Verify that F scale and λ scale align correctly per F × λ = 300 relationship
+    /// This is the fundamental alignment that makes the scales useful for RF calculations
+    ///
+    /// The relationship F × λ = 300 comes from c = fλ where:
+    /// - F is frequency in MHz
+    /// - λ is wavelength in meters
+    /// - c ≈ 300 × 10⁶ m/s (speed of light in convenient RF units)
+    @Test("F × λ = 300 alignment at key points")
+    func testFLambdaAlignment() async throws {
+        let fFunction = PickettFFunction(cycles: 6)
+        let lambdaFunction = WavelengthMeterFunction(cycles: 6)
+        
+        // Test points where F × λ = 300
+        // | F (MHz) | λ (m) | F × λ |
+        // |---------|-------|-------|
+        // | 0.1     | 3000  | 300   |
+        // | 0.2     | 1500  | 300   |
+        // | 0.3     | 1000  | 300   |
+        // | 0.5     | 600   | 300   |
+        // | 1.0     | 300   | 300   |
+        // | 3.0     | 100   | 300   |
+        // | 5.0     | 60    | 300   |
+        // | 10      | 30    | 300   |
+        
+        let testPoints: [(f: Double, lambda: Double)] = [
+            (0.1, 3000),
+            (0.2, 1500),
+            (0.3, 1000),
+            (0.5, 600),
+            (1.0, 300),
+            (3.0, 100),
+            (5.0, 60),
+            (10.0, 30)
+        ]
+        
+        let tolerance = 1e-10  // Floating point tolerance
+        
+        for (f, lambda) in testPoints {
+            let fPosition = fFunction.transform(f)
+            let lambdaPosition = lambdaFunction.transform(lambda)
+            
+            // Verify the product is 300
+            let product = f * lambda
+            #expect(abs(product - 300.0) < 0.001,
+                   "F × λ should equal 300, got \(product) for F=\(f), λ=\(lambda)")
+            
+            // Verify positions align
+            let positionDifference = abs(fPosition - lambdaPosition)
+            #expect(positionDifference < tolerance,
+                   "F=\(f) MHz (pos=\(fPosition)) should align with λ=\(lambda)m (pos=\(lambdaPosition)), diff=\(positionDifference)")
+            
+            print("✓ F=\(f) MHz aligns with λ=\(lambda)m at position \(fPosition)")
+        }
+    }
+    
+    @Test("F and λ scale inverse transform roundtrip")
+    func testFLambdaRoundtrip() async throws {
+        let fFunction = PickettFFunction(cycles: 6)
+        let lambdaFunction = WavelengthMeterFunction(cycles: 6)
+        
+        // Test that transform → inverseTransform roundtrips correctly
+        let fValues = [0.1, 0.5, 1.0, 5.0, 10.0]
+        let lambdaValues = [30.0, 100.0, 300.0, 1000.0, 3000.0]
+        
+        for f in fValues {
+            let pos = fFunction.transform(f)
+            let recovered = fFunction.inverseTransform(pos)
+            let error = abs(recovered - f) / f
+            #expect(error < 0.001,
+                   "F roundtrip error for \(f) should be < 0.1%, got \(error * 100)%")
+        }
+        
+        for lambda in lambdaValues {
+            let pos = lambdaFunction.transform(lambda)
+            let recovered = lambdaFunction.inverseTransform(pos)
+            let error = abs(recovered - lambda) / lambda
+            #expect(error < 0.001,
+                   "λ roundtrip error for \(lambda) should be < 0.1%, got \(error * 100)%")
+        }
+    }
+    
+    @Test("F scale position bounds check")
+    func testFScalePositionBounds() async throws {
+        let fFunction = PickettFFunction(cycles: 6)
+        
+        // F scale range: 0.1 to 10 MHz
+        let posAt01 = fFunction.transform(0.1)
+        let posAt10 = fFunction.transform(10.0)
+        
+        // At F=0.1: position = 1.0 - log10(300/0.1)/6 = 1.0 - log10(3000)/6 ≈ 0.42
+        // At F=10:  position = 1.0 - log10(300/10)/6 = 1.0 - log10(30)/6 ≈ 0.754
+        
+        print("F=0.1 MHz → position \(posAt01)")
+        print("F=10 MHz → position \(posAt10)")
+        
+        // Verify positions are in expected range (within [0, 1])
+        #expect(posAt01 >= 0 && posAt01 <= 1,
+               "F=0.1 position should be in [0,1], got \(posAt01)")
+        #expect(posAt10 >= 0 && posAt10 <= 1,
+               "F=10 position should be in [0,1], got \(posAt10)")
+        
+        // Verify F scale increases left to right (lower F = lower position)
+        #expect(posAt01 < posAt10,
+               "Higher F values should have higher positions (F scale increases left to right)")
+    }
+    
+    @Test("λ scale position bounds check")
+    func testLambdaScalePositionBounds() async throws {
+        let lambdaFunction = WavelengthMeterFunction(cycles: 6)
+        
+        // λ scale range: 3000 to 30 meters (inverted - high values on left)
+        let posAt3000 = lambdaFunction.transform(3000.0)
+        let posAt30 = lambdaFunction.transform(30.0)
+        
+        print("λ=3000m → position \(posAt3000)")
+        print("λ=30m → position \(posAt30)")
+        
+        // Verify positions are in expected range (within [0, 1])
+        #expect(posAt3000 >= 0 && posAt3000 <= 1,
+               "λ=3000 position should be in [0,1], got \(posAt3000)")
+        #expect(posAt30 >= 0 && posAt30 <= 1,
+               "λ=30 position should be in [0,1], got \(posAt30)")
+        
+        // Verify λ scale decreases left to right (higher λ = lower position - inverted)
+        #expect(posAt3000 < posAt30,
+               "Higher λ values should have lower positions (λ scale is inverted)")
     }
 }
 

@@ -22,7 +22,8 @@ struct SlideRuleLibrary {
     /// Version 8: Fixed K&E 4081-3 corruption (sortOrder collision with Pickett N-16 ES)
     /// Version 9: Fixed Hemmi 266 sortOrder collision with K&E 4081-3
     /// Version 10: Added Faber-Castell 62/83 N with W scale aliases (W1→R1, W2→R2, W1'→SQ1, W2'→SQ2)
-    static let libraryVersion = 10
+    /// Version 11: Implemented Pickett N-16 ES pickettF (PF) Scale (frequency in MHz, 0.1-10 MHz range)
+    static let libraryVersion = 11
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version

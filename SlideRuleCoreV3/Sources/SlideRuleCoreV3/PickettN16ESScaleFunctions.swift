@@ -202,6 +202,39 @@ public struct WavelengthMeterFunction: ScaleFunction, Sendable {
     }
 }
 
+/// F Scale - Frequency in MHz (F × λ = 300)
+/// Formula: 1 - log₁₀(300/F) / cycles
+/// Range: 0.1 to 10 MHz (corresponding to λ = 3000m to 30m)
+/// Relationship: c ≈ 300 × 10⁶ m/s = F(MHz) × λ(m), so F × λ = 300
+/// This scale aligns perfectly with the λ scale: when F = 0.1, λ = 3000; when F = 10, λ = 30
+/// Used with: λ scale for direct frequency-wavelength conversion
+/// Historical: Essential for radio frequency calculations, antenna design
+/// Applications: RF engineering, radio broadcasting, amateur radio band calculations
+public struct PickettFFunction: ScaleFunction, Sendable {
+    public let name = "frequency-mhz"
+    public let cycles: Int
+    
+    public init(cycles: Int = 6) {
+        self.cycles = cycles
+    }
+    
+    public func transform(_ value: ScaleValue) -> Double {
+        // F and λ align at same position where F × λ = 300
+        // λ position = 1.0 - log10(λ) / cycles
+        // Since λ = 300/F: position = 1.0 - log10(300/F) / cycles
+        1.0 - log10(300.0 / value) / Double(cycles)
+    }
+    
+    public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
+        // position = 1.0 - log10(300/F) / cycles
+        // log10(300/F) = (1.0 - position) * cycles
+        // 300/F = 10^((1.0 - position) * cycles)
+        // F = 300 / 10^((1.0 - position) * cycles)
+        let logLambda = (1.0 - transformedValue) * Double(cycles)
+        return 300.0 / pow(10, logLambda)
+    }
+}
+
 /// Θ (Theta) Scale - Phase Angle for RC/RL Circuits
 /// Formula: α = cot⁻¹(2πfRC) for capacitive circuits
 ///          α = tan⁻¹(2πfL/R) for inductive circuits  

@@ -1747,7 +1747,7 @@ public enum StandardScales {
         case "PICKETTL", "C/L": return pickettLScale(length: length)
         
         // Frequency and wavelength scales
-        case "PF": return pickettfScale(length: length)
+        case "PF": return pickettFScale(length: length)
         case "OMEGA", "Ω", "ω": return angularFrequencyOmegaScale(length: length)
         case "LAMBDA", "Λ", "λ": return wavelengthLambdaScale(length: length)
         

@@ -72,4 +72,31 @@ enum ViewMode: String, CaseIterable, Identifiable, Sendable {
         // Otherwise, current mode is valid for this device
         return self
     }
+    
+    /// Returns the next view mode in the cycle for the given device category.
+    ///
+    /// The cycle order depends on available modes:
+    /// - Compact devices (phone, watch): .front → .back → .front → ...
+    /// - Regular devices (pad, mac, vision): .front → .back → .both → .front → ...
+    ///
+    /// - Parameter category: The device category to determine available modes
+    /// - Returns: The next ViewMode in the cycle
+    ///
+    /// ## Examples
+    /// ```swift
+    /// ViewMode.front.next(for: .phone)  // Returns .back
+    /// ViewMode.back.next(for: .phone)   // Returns .front
+    /// ViewMode.front.next(for: .pad)    // Returns .back
+    /// ViewMode.back.next(for: .pad)     // Returns .both
+    /// ViewMode.both.next(for: .pad)     // Returns .front
+    /// ```
+    func next(for category: DeviceCategory) -> ViewMode {
+        let availableModes = ViewMode.availableModes(for: category)
+        guard let currentIndex = availableModes.firstIndex(of: self) else {
+            // Fallback to first mode if current mode is not available
+            return availableModes.first ?? .front
+        }
+        let nextIndex = (currentIndex + 1) % availableModes.count
+        return availableModes[nextIndex]
+    }
 }

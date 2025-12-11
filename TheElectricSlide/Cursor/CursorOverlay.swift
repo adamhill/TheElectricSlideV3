@@ -63,22 +63,21 @@ struct CursorOverlay: View {
     
     // MARK: - Precision Mode State
     
-    /// Whether precision (slow-move) mode is active
-    @State private var isPrecisionMode: Bool = false
+    /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
+    @GestureState private var isPrecisionDragging: Bool = false
     
-    /// Cooldown period after precision mode ends to prevent normal gesture interference
-    @State private var isPrecisionCooldown: Bool = false
+    /// Tracks if we're in the precision gesture sequence (long press started)
+    @State private var isPrecisionSequenceActive: Bool = false
     
-    // MARK: - Precision Mode Constants (tweak these values)
+    /// Session ID to ignore stale gesture events from previous sessions
+    @State private var precisionSessionID: UUID? = nil
     
-    /// Long press duration required to activate precision mode (seconds)
-    private static let longPressMinimumDuration: TimeInterval = 1.0
+    /// Position snapshot when precision mode started (to reject stale normal gestures)
+    @State private var positionAtPrecisionStart: CGFloat? = nil
     
-    /// Precision mode reduces drag sensitivity by this factor
-    private static let precisionFactor: CGFloat = 4.0
-    
-    /// Cooldown duration after precision mode ends (seconds)
-    private static let precisionCooldownDuration: TimeInterval = 0.75
+    /// Last translation applied during precision drag (use this in onEnded, not the gesture's final value)
+    /// This prevents the "finger lift jitter" where onEnded has a different translation than the last onChanged
+    @State private var lastAppliedPrecisionTranslation: CGFloat = 0
     
     // MARK: - Body
     
@@ -115,30 +114,50 @@ struct CursorOverlay: View {
                     onResetZoom?()
                 }
                 // Normal drag gesture for standard cursor movement
-                // Suppressed during precision mode and cooldown period
+                // Suppressed when precision sequence is active
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
-                            #if DEBUG
-                            if isPrecisionMode || isPrecisionCooldown {
-                                print("⚠️ [NormalDrag.onChanged] BLOCKED - precisionMode=\(isPrecisionMode), cooldown=\(isPrecisionCooldown), translation=\(String(format: "%.2f", gesture.translation.width))")
+                            // Block if precision sequence is active
+                            guard !isPrecisionSequenceActive else {
+                                #if DEBUG
+                                print("⚠️ [NormalDrag.onChanged] BLOCKED - precision sequence active")
+                                #endif
+                                return
                             }
-                            #endif
-                            // Skip if in precision mode or cooldown
-                            guard !isPrecisionMode && !isPrecisionCooldown else { return }
+                            
+                            // Check if this gesture would be a micro-movement (stale event)
+                            let proposedNormalizedDelta = abs(gesture.translation.width) / effectiveWidth
+                            if proposedNormalizedDelta < PrecisionDragConstants.minimumMovementThreshold {
+                                #if DEBUG
+                                print("⚠️ [NormalDrag.onChanged] IGNORED - below threshold (\(String(format: "%.6f", proposedNormalizedDelta)) < \(PrecisionDragConstants.minimumMovementThreshold))")
+                                #endif
+                                return
+                            }
+                            
                             #if DEBUG
                             print("📍 [NormalDrag.onChanged] ALLOWED - translation=\(String(format: "%.2f", gesture.translation.width))")
                             #endif
                             handleDrag(gesture, effectiveWidth: effectiveWidth, isPrecision: false)
                         }
                         .onEnded { gesture in
-                            #if DEBUG
-                            if isPrecisionMode || isPrecisionCooldown {
-                                print("⚠️ [NormalDrag.onEnded] BLOCKED - precisionMode=\(isPrecisionMode), cooldown=\(isPrecisionCooldown), translation=\(String(format: "%.2f", gesture.translation.width))")
+                            // Block if precision sequence is active
+                            guard !isPrecisionSequenceActive else {
+                                #if DEBUG
+                                print("⚠️ [NormalDrag.onEnded] BLOCKED - precision sequence active")
+                                #endif
+                                return
                             }
-                            #endif
-                            // Skip if in precision mode or cooldown
-                            guard !isPrecisionMode && !isPrecisionCooldown else { return }
+                            
+                            // Check if this gesture would be a micro-movement (stale event)
+                            let proposedNormalizedDelta = abs(gesture.translation.width) / effectiveWidth
+                            if proposedNormalizedDelta < PrecisionDragConstants.minimumMovementThreshold {
+                                #if DEBUG
+                                print("⚠️ [NormalDrag.onEnded] IGNORED - below threshold (\(String(format: "%.6f", proposedNormalizedDelta)) < \(PrecisionDragConstants.minimumMovementThreshold))")
+                                #endif
+                                return
+                            }
+                            
                             #if DEBUG
                             print("📍 [NormalDrag.onEnded] ALLOWED - translation=\(String(format: "%.2f", gesture.translation.width))")
                             #endif
@@ -149,18 +168,28 @@ struct CursorOverlay: View {
                             }
                         }
                 )
-                // Long-press sequenced with drag for precision mode (4x slower)
+                // Long-press sequenced with drag for precision mode (reduced sensitivity)
+                // Uses @GestureState for automatic reset and session tracking
                 .simultaneousGesture(
-                    LongPressGesture(minimumDuration: Self.longPressMinimumDuration)
+                    LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                         .onEnded { _ in
-                            // Enter precision mode with haptic feedback
-                            isPrecisionMode = true
+                            // Enter precision sequence with haptic feedback
+                            // Generate new session ID to invalidate any pending normal gesture events
+                            precisionSessionID = UUID()
+                            isPrecisionSequenceActive = true
+                            positionAtPrecisionStart = cursorState.position(for: side)
                             HapticManager.longBuzz()
                             #if DEBUG
-                            print("🎯 [Precision] MODE ACTIVATED - longPress completed")
+                            print("🎯 [Precision] MODE ACTIVATED - session=\(precisionSessionID?.uuidString.prefix(8) ?? "nil")")
                             #endif
                         }
                         .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                        .updating($isPrecisionDragging) { value, state, _ in
+                            // Track active drag state via @GestureState (auto-resets on gesture end)
+                            if case .second(true, _) = value {
+                                state = true
+                            }
+                        }
                         .onChanged { value in
                             // Handle the sequenced gesture phases
                             switch value {
@@ -173,6 +202,8 @@ struct CursorOverlay: View {
                             case .second(true, let drag):
                                 // Now in precision drag mode
                                 if let drag = drag {
+                                    // Store the translation we're about to apply (for use in onEnded)
+                                    lastAppliedPrecisionTranslation = drag.translation.width
                                     #if DEBUG
                                     print("🎯 [Precision.onChanged] .second - dragging, translation=\(String(format: "%.2f", drag.translation.width))")
                                     #endif
@@ -187,15 +218,17 @@ struct CursorOverlay: View {
                         }
                         .onEnded { value in
                             #if DEBUG
-                            print("🎯 [Precision.onEnded] START - value=\(value)")
+                            print("🎯 [Precision.onEnded] START - session=\(precisionSessionID?.uuidString.prefix(8) ?? "nil")")
                             #endif
                             
-                            // Commit position if we were dragging
-                            if case .second(true, let drag) = value, let drag = drag {
+                            // Commit position using the LAST APPLIED translation, not the gesture's final value
+                            // This prevents "finger lift jitter" where onEnded has different translation than last onChanged
+                            if case .second(true, _) = value {
                                 #if DEBUG
-                                print("🎯 [Precision.onEnded] Committing position, translation=\(String(format: "%.2f", drag.translation.width))")
+                                print("🎯 [Precision.onEnded] Using last applied translation=\(String(format: "%.2f", lastAppliedPrecisionTranslation)) (gesture final was different)")
                                 #endif
-                                handleDragEnd(drag, width: effectiveWidth, isPrecision: true)
+                                // Create a synthetic position based on last applied translation
+                                handlePrecisionDragEnd(lastAppliedTranslation: lastAppliedPrecisionTranslation, width: effectiveWidth)
                             } else {
                                 #if DEBUG
                                 print("🎯 [Precision.onEnded] No drag to commit (long press only, no movement)")
@@ -207,19 +240,23 @@ struct CursorOverlay: View {
                                 cursorState.activeDragOffset = 0
                             }
                             
-                            // Exit precision mode and enter cooldown to prevent normal gesture interference
-                            isPrecisionMode = false
-                            isPrecisionCooldown = true
-                            
+                            // Snapshot position before clearing state
+                            let finalPosition = cursorState.position(for: side)
                             #if DEBUG
-                            print("🎯 [Precision.onEnded] MODE OFF, COOLDOWN ON (\(Self.precisionCooldownDuration)s)")
+                            print("🎯 [Precision.onEnded] Final position=\(String(format: "%.6f", finalPosition))")
                             #endif
                             
-                            // Clear cooldown after delay
-                            DispatchQueue.main.asyncAfter(deadline: .now() + Self.precisionCooldownDuration) {
-                                isPrecisionCooldown = false
+                            // Reset the last applied translation for next session
+                            lastAppliedPrecisionTranslation = 0
+                            
+                            // Clear precision sequence after a short delay
+                            // This gives SwiftUI time to flush any pending gesture events
+                            DispatchQueue.main.asyncAfter(deadline: .now() + PrecisionDragConstants.cooldownDuration) {
+                                isPrecisionSequenceActive = false
+                                precisionSessionID = nil
+                                positionAtPrecisionStart = nil
                                 #if DEBUG
-                                print("🎯 [Precision] COOLDOWN ENDED")
+                                print("🎯 [Precision] SEQUENCE ENDED - ready for normal gestures")
                                 #endif
                             }
                         }
@@ -259,7 +296,7 @@ struct CursorOverlay: View {
         
         // Apply precision factor if in precision mode
         let translationWidth = isPrecision
-            ? gesture.translation.width / Self.precisionFactor
+            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
             : gesture.translation.width
         
         // Calculate what the new position would be with this translation
@@ -292,7 +329,7 @@ struct CursorOverlay: View {
     private func handleDragEnd(_ gesture: DragGesture.Value, width: CGFloat, isPrecision: Bool) {
         // Apply precision factor if in precision mode (must match drag calculation)
         let translationWidth = isPrecision
-            ? gesture.translation.width / Self.precisionFactor
+            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
             : gesture.translation.width
         
         // Calculate new position based on translation from current position
@@ -305,6 +342,26 @@ struct CursorOverlay: View {
         // Update immediately without animation to prevent vibration
         // Note: Position stored is for the LEFT EDGE of cursor
         // Reading calculations must add half cursor width to get hairline position
+        cursorState.setPosition(clampedPosition, for: side)
+    }
+    
+    /// Handle precision drag end using the LAST APPLIED translation instead of gesture's final value
+    /// This prevents "finger lift jitter" where the onEnded translation differs from the last onChanged
+    /// - Parameters:
+    ///   - lastAppliedTranslation: The raw translation from the last onChanged event (before precision factor)
+    ///   - width: Effective width for movement
+    private func handlePrecisionDragEnd(lastAppliedTranslation: CGFloat, width: CGFloat) {
+        // Apply precision factor (same as during onChanged)
+        let translationWidth = lastAppliedTranslation / PrecisionDragConstants.precisionFactor
+        
+        // Calculate new position based on translation from current position
+        let currentPosition = cursorState.position(for: side)
+        let currentPixelPosition = currentPosition * width
+        let newPixelPosition = currentPixelPosition + translationWidth
+        let normalizedPosition = newPixelPosition / width
+        let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
+        
+        // Update immediately without animation to prevent vibration
         cursorState.setPosition(clampedPosition, for: side)
     }
 }

@@ -37,8 +37,8 @@ struct SlideRuleDetailView: View {
     @Binding var currentZoomScale: CGFloat  // Current zoom level for pinch-to-zoom
     @Binding var panOffset: CGSize  // Pan offset for moving zoomed content
     
-    let handleDragChanged: (DragGesture.Value) -> Void
-    let handleDragEnded: (DragGesture.Value) -> Void
+    let handleDragChanged: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
+    let handleDragEnded: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
     let handleZoomChanged: (CGFloat) -> Void  // Pinch zoom changed
     let handleZoomEnded: (CGFloat) -> Void  // Pinch zoom ended
     let handlePanChanged: (DragGesture.Value) -> Void  // Pan gesture for zoomed content

@@ -16,10 +16,19 @@ extension ContentView {
     
     /// Handles drag gesture changes for slider movement
     /// Marks cursor state as dragging, delegates to viewModel, and triggers tick haptics
-    func handleDragChanged(_ gesture: DragGesture.Value) {
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - isPrecision: Whether precision mode is active (reduced sensitivity)
+    func handleDragChanged(_ gesture: DragGesture.Value, isPrecision: Bool) {
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
-        viewModel.handleSliderDragChanged(translation: gesture.translation.width)
+        
+        // Apply precision factor if in precision mode
+        let translationWidth = isPrecision
+            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
+            : gesture.translation.width
+        
+        viewModel.handleSliderDragChanged(translation: translationWidth)
         
         // Trigger tick haptics when crossing C scale tick marks
         // Find the C scale on the front slide
@@ -40,7 +49,12 @@ extension ContentView {
     
     /// Handles drag gesture end for slider movement
     /// Commits slider position, marks drag as ended, and resets tick haptic coordinator
-    func handleDragEnded(_ gesture: DragGesture.Value) {
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - isPrecision: Whether precision mode is active (for consistent factor application)
+    func handleDragEnded(_ gesture: DragGesture.Value, isPrecision: Bool) {
+        // Note: For precision mode, the translation has already been tracked and applied
+        // during onChanged, so we don't need to reapply the factor here
         viewModel.handleSliderDragEnded()
         // Mark slide drag as ended
         cursorState.setSlideDragging(false)

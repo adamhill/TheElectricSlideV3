@@ -38,8 +38,8 @@ struct DynamicSlideRuleContent: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let handleDragChanged: (DragGesture.Value) -> Void
-    let handleDragEnded: (DragGesture.Value) -> Void
+    let handleDragChanged: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
+    let handleDragEnded: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
     let handlePanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
     let handlePanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
     let handleResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×

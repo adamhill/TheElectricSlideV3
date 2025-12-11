@@ -26,8 +26,8 @@ struct SideView: View, Equatable {
     let cursorState: CursorState?
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let onDragChanged: (DragGesture.Value) -> Void
-    let onDragEnded: (DragGesture.Value) -> Void
+    let onDragChanged: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
+    let onDragEnded: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
     let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
     let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
     let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
@@ -40,6 +40,14 @@ struct SideView: View, Equatable {
     
     /// Tracks if a vertical swipe has been triggered during current gesture
     @State private var hasTriggeredFlip: Bool = false
+    
+    // MARK: - Slide Precision Mode State
+    
+    /// Precision drag state for the slide (shared constants, local state)
+    @State private var slidePrecisionState = PrecisionDragState()
+    
+    /// Whether precision mode is active (for GestureState tracking)
+    @GestureState private var isSlidePrecisionDragging: Bool = false
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: Closures and cursorState are not compared in Equatable
@@ -106,10 +114,81 @@ struct SideView: View, Equatable {
                 // Triple-tap to reset zoom to 1.0×
                 onResetZoom?()
             }
+            // Normal drag gesture for standard slide movement
+            // Suppressed when precision sequence is active
             .gesture(
                 DragGesture()
-                    .onChanged(onDragChanged)
-                    .onEnded(onDragEnded)
+                    .onChanged { gesture in
+                        // Block if precision sequence is active
+                        guard !slidePrecisionState.isSequenceActive else {
+                            #if DEBUG
+                            print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active")
+                            #endif
+                            return
+                        }
+                        onDragChanged(gesture, false)  // false = not precision
+                    }
+                    .onEnded { gesture in
+                        // Block if precision sequence is active
+                        guard !slidePrecisionState.isSequenceActive else {
+                            #if DEBUG
+                            print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active")
+                            #endif
+                            return
+                        }
+                        onDragEnded(gesture, false)  // false = not precision
+                    }
+            )
+            // Long-press sequenced with drag for precision slide movement
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
+                    .onEnded { _ in
+                        // Enter precision sequence with haptic feedback
+                        slidePrecisionState.beginSession()
+                        HapticManager.longBuzz()
+                        #if DEBUG
+                        print("🎯 [Slide.Precision] MODE ACTIVATED")
+                        #endif
+                    }
+                    .sequenced(before: DragGesture())
+                    .updating($isSlidePrecisionDragging) { value, state, _ in
+                        if case .second(true, _) = value {
+                            state = true
+                        }
+                    }
+                    .onChanged { value in
+                        switch value {
+                        case .first(true):
+                            // Long press in progress
+                            break
+                        case .second(true, let drag):
+                            if let drag = drag {
+                                // Track translation for use in onEnded
+                                slidePrecisionState.trackTranslation(drag.translation.width)
+                                #if DEBUG
+                                print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
+                                #endif
+                                onDragChanged(drag, true)  // true = precision mode
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    .onEnded { value in
+                        #if DEBUG
+                        print("🎯 [Slide.Precision.onEnded] Using last applied translation=\(String(format: "%.2f", slidePrecisionState.lastAppliedTranslation))")
+                        #endif
+                        
+                        // Create a synthetic gesture value using last applied translation
+                        // to prevent finger-lift jitter
+                        if case .second(true, let drag) = value, let drag = drag {
+                            // Call with the gesture but handler should use lastAppliedTranslation
+                            onDragEnded(drag, true)  // true = precision mode
+                        }
+                        
+                        // End precision session with cooldown
+                        slidePrecisionState.endSession()
+                    }
             )
             .animation(.interactiveSpring(), value: sliderOffset)
             .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change

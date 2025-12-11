@@ -31,6 +31,15 @@ struct SideView: View, Equatable {
     let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
     let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
     let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
+    let onFlip: (() -> Void)?  // Vertical swipe to flip between front/back sides
+    
+    // MARK: - Vertical Swipe State
+    
+    /// Threshold for vertical swipe detection (points)
+    private static let verticalSwipeThreshold: CGFloat = 50
+    
+    /// Tracks if a vertical swipe has been triggered during current gesture
+    @State private var hasTriggeredFlip: Bool = false
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: Closures and cursorState are not compared in Equatable
@@ -47,6 +56,7 @@ struct SideView: View, Equatable {
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
+        // Note: onFlip closure not compared (same pattern as other closures)
     }
     
     /// Unique identifier string combining side and rule ID for child view identity
@@ -125,5 +135,30 @@ struct SideView: View, Equatable {
             .equatable()
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
+        // MARK: - Vertical Swipe Gesture for Side Flip
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30, coordinateSpace: .local)
+                .onChanged { gesture in
+                    // Only trigger flip once per gesture and only if vertical motion dominates
+                    guard !hasTriggeredFlip,
+                          onFlip != nil else { return }
+                    
+                    let verticalDistance = abs(gesture.translation.height)
+                    let horizontalDistance = abs(gesture.translation.width)
+                    
+                    // Require vertical motion to be significantly greater than horizontal
+                    // and exceed threshold
+                    if verticalDistance > Self.verticalSwipeThreshold &&
+                       verticalDistance > horizontalDistance * 1.5 {
+                        hasTriggeredFlip = true
+                        HapticManager.flipFeedback()
+                        onFlip?()
+                    }
+                }
+                .onEnded { _ in
+                    // Reset flip trigger for next gesture
+                    hasTriggeredFlip = false
+                }
+        )
     }
 }

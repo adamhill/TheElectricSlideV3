@@ -43,8 +43,13 @@ struct ContentView: View {
     // Note: internal access for extension in ContentView+Gestures.swift
     @State var viewModel = SlideRuleViewModel()
     
+    // MARK: - Tick Haptic Coordinator
+    // Provides haptic feedback when cursor crosses C scale tick marks during slide movement
+    @State var tickHapticCoordinator = TickHapticCoordinator()
+    
     // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
-    @State private var viewMode: ViewMode = .both  // View mode selector
+    // Note: viewMode is internal for access from ContentView+Gestures extension
+    @State var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
@@ -136,6 +141,7 @@ struct ContentView: View {
                     handlePanChanged: handlePanChanged,
                     handlePanEnded: handlePanEnded,
                     handleResetZoom: handleResetZoom,
+                    handleFlip: handleFlip,
                     totalScaleHeight: totalScaleHeight
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in

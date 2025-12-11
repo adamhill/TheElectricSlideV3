@@ -44,6 +44,7 @@ struct SlideRuleDetailView: View {
     let handlePanChanged: (DragGesture.Value) -> Void  // Pan gesture for zoomed content
     let handlePanEnded: (DragGesture.Value) -> Void  // Pan gesture end
     let handleResetZoom: () -> Void  // Triple-tap to reset zoom
+    let handleFlip: () -> Void  // Vertical swipe to flip sides
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
@@ -81,6 +82,7 @@ struct SlideRuleDetailView: View {
                 handlePanChanged: handlePanChanged,  // Pan gesture for zoomed content
                 handlePanEnded: handlePanEnded,  // Pan gesture end
                 handleResetZoom: handleResetZoom,  // Triple-tap to reset zoom
+                handleFlip: handleFlip,  // Vertical swipe to flip sides
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory

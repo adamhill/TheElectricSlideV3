@@ -43,6 +43,7 @@ struct DynamicSlideRuleContent: View {
     let handlePanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
     let handlePanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
     let handleResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
+    let handleFlip: (() -> Void)?  // Vertical swipe to flip sides
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
@@ -131,7 +132,8 @@ struct DynamicSlideRuleContent: View {
                         onDragEnded: handleDragEnded,
                         onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
                         onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
+                        onResetZoom: handleResetZoom,  // Triple-tap to reset zoom
+                        onFlip: handleFlip  // Vertical swipe to flip sides
                     )
                     .equatable()
                     .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -196,7 +198,8 @@ struct DynamicSlideRuleContent: View {
                         onDragEnded: handleDragEnded,
                         onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
                         onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
+                        onResetZoom: handleResetZoom,  // Triple-tap to reset zoom
+                        onFlip: handleFlip  // Vertical swipe to flip sides
                     )
                     .equatable()
                     .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change

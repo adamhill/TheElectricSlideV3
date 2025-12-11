@@ -1728,7 +1728,7 @@ public enum StandardScales {
         // Note: These use "ee" prefix to distinguish from standard scales with similar names
         case "EEXL", "XL": return xlScale(length: length)
         case "EEXC", "XC": return xcScale(length: length)
-        case "EEF": return fScale(length: length)
+        case "EEF": return eefScale(length: length)
         case "EER1", "R1EE": return eeReflectionCoefficientScale(length: length)
         case "EER2", "R2EE": return eeReflectionCoefficient2Scale(length: length)
         case "EEP": return eePowerRatioScale(length: length)
@@ -1738,7 +1738,7 @@ public enum StandardScales {
         case "EECZ", "CZ": return czScale(length: length)
         case "EEL": return eeInductanceScale(length: length)
         case "EEZ", "Z": return zScale(length: length)
-        case "EEFO", "FO": return foScale(length: length)
+        case "EEFO", "FO": return eefoScale(length: length)
         
         // Pickett N-16 ES Electronic Scales
         // Component value scales (four-decade span)
@@ -1747,7 +1747,7 @@ public enum StandardScales {
         case "PICKETTL", "C/L": return pickettLScale(length: length)
         
         // Frequency and wavelength scales
-        case "F": return fScale(length: length)
+        case "PF": return pickettfScale(length: length)
         case "OMEGA", "Ω", "ω": return angularFrequencyOmegaScale(length: length)
         case "LAMBDA", "Λ", "λ": return wavelengthLambdaScale(length: length)
         

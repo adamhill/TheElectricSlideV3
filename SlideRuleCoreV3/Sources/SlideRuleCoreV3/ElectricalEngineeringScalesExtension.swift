@@ -165,41 +165,70 @@ extension StandardScales {
     /// 1. Locate 2.5kHz on F scale
     /// 2. Use with L or C scales to calculate component values
     /// 3. Verify frequency response across audio spectrum
-    public static func fScale(length: Distance = 250.0) -> ScaleDefinition {
+    public static func eefScale(length: Distance = 250.0) -> ScaleDefinition {
         let fFunction = FrequencyFunction(cycles: 12)
         
         return ScaleBuilder()
             .withName("F")
             .withFormula("log₁₀ f")
             .withFunction(fFunction)
-            .withRange(begin: 1.0, end: 100.0)
+            .withRange(begin: 1.0, end: 1e12)  // 1 Hz to 1 THz (12 decades)
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
-                // Mathematical: Frequency selection requires 1% precision for resonance calculations
-                // Historical: Radio engineers used for tuning circuits from audio to RF frequencies
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0]),
-                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.2], labelLevels: [0]),
-                // Cursor Precision: 2 decimals (from 0.2 quaternary interval)
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.2], labelLevels: []),
-                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
-                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
-                ScaleSubsection(startValue: 6.0, tickIntervals: [1.0, 0.5], labelLevels: []),
-                // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
-                ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
+                // SPARSE LABELING: Matches real Pickett N16-ES F scale
+                // Only major decade boundaries labeled (1, 2, 5 positions)
+                // Very sparse tick marks - one subsection per decade
+                
+                // Decade 0 (1-10)
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5], labelLevels: [0]),
+                
+                // Decade 1 (10-100)
+                ScaleSubsection(startValue: 10.0, tickIntervals: [10.0, 5.0], labelLevels: [0]),
+                
+                // Decade 2 (100-1000)
+                ScaleSubsection(startValue: 100.0, tickIntervals: [100.0, 50.0], labelLevels: [0]),
+                
+                // Decade 3 (1k-10k)
+                ScaleSubsection(startValue: 1e3, tickIntervals: [1e3, 5e2], labelLevels: [0]),
+                
+                // Decade 4 (10k-100k)
+                ScaleSubsection(startValue: 1e4, tickIntervals: [1e4, 5e3], labelLevels: [0]),
+                
+                // Decade 5 (100k-1M)
+                ScaleSubsection(startValue: 1e5, tickIntervals: [1e5, 5e4], labelLevels: [0]),
+                
+                // Decade 6 (1M-10M)
+                ScaleSubsection(startValue: 1e6, tickIntervals: [1e6, 5e5], labelLevels: [0]),
+                
+                // Decade 7 (10M-100M)
+                ScaleSubsection(startValue: 1e7, tickIntervals: [1e7, 5e6], labelLevels: [0]),
+                
+                // Decade 8 (100M-1G)
+                ScaleSubsection(startValue: 1e8, tickIntervals: [1e8, 5e7], labelLevels: [0]),
+                
+                // Decade 9 (1G-10G)
+                ScaleSubsection(startValue: 1e9, tickIntervals: [1e9, 5e8], labelLevels: [0]),
+                
+                // Decade 10 (10G-100G)
+                ScaleSubsection(startValue: 1e10, tickIntervals: [1e10, 5e9], labelLevels: [0]),
+                
+                // Decade 11 (100G-1T)
+                ScaleSubsection(startValue: 1e11, tickIntervals: [1e11, 5e10], labelLevels: [0])
             ])
             .withLabelFormatter { value in
-                let units = [".001Hz", "*", "**", "1Hz", "*", "**", "1KHz", "*", "**", "1MHz", "*", "**", "1GHz"]
-                let cycle = Int(log10(value))
-                let index = cycle >= 0 && cycle < units.count ? cycle : 0
-                let unit = units[index]
-                if unit == "*" || unit == "**" {
-                    return "\(Int(value.rounded()))"
+                // SPARSE LABELING: Show only mantissa digit (1, 2, 3...9) like real Pickett N16-ES
+                // The real rule shows just "1", "2", "3"... "9" without units
+                guard value > 0 else { return "" }
+                let exponent = floor(log10(value))
+                let mantissa = value / pow(10, exponent)
+                
+                // Only label at integer mantissa values (1, 2, 3, 4, 5, 6, 7, 8, 9)
+                let roundedMantissa = mantissa.rounded()
+                if abs(mantissa - roundedMantissa) < 0.01 {
+                    return String(format: "%.0f", roundedMantissa)
                 }
-                return unit
+                return ""
             }
             .build()
     }
@@ -228,7 +257,7 @@ extension StandardScales {
     /// 1. Locate 2.4 GHz on Fo scale
     /// 2. Read wavelength: λ ≈ 12.5cm
     /// 3. Use for antenna design and Fresnel zone calculations
-    public static func foScale(length: Distance = 250.0) -> ScaleDefinition {
+    public static func eefoScale(length: Distance = 250.0) -> ScaleDefinition {
         let foFunction = FrequencyWavelengthFunction(cycles: 6)
         
         return ScaleBuilder()

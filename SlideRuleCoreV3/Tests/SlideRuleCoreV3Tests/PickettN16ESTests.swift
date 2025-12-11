@@ -380,14 +380,18 @@ struct PickettN16ESTests {
         #expect(scale.subsections.count == 12)  // 12 subsections for 5/10/20 pattern across 4 decades
     }
     
-    @Test("Fo scale creation - Six cycle configuration")
+    @Test("λ scale creation - Wavelength in meters (2 decades)")
     func testFoScaleCreation() async throws {
         let scale = N16ESScaleBuilder.createFoScale()
         
-        #expect(scale.name == "Fo")
-        #expect(scale.function.name == "frequency-wavelength")
-        #expect(scale.beginValue == 100.0)   // Inverted scale starts high
-        #expect(scale.endValue == 1.0)       // Ends low
+        // FIXED: Scale now uses WAVELENGTH values in meters (not frequency in Hz)
+        // This matches the real Pickett N16-ES λ (lambda) scale
+        #expect(scale.name == "λ")
+        #expect(scale.function.name == "wavelength-meters")
+        // λ scale uses wavelength values directly in meters
+        // Range: 3000m to 30m (2 decades, inverted - high values on left)
+        #expect(scale.beginValue == 3000.0)   // 3000m at position 0 (left)
+        #expect(scale.endValue == 30.0)       // 30m at position 1 (right)
     }
     
     @Test("Phase angle scale creation")

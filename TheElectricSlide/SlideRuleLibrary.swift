@@ -89,7 +89,7 @@ struct SlideRuleLibrary {
                 Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
                 phase/gain/dB scales for complete filter characterization from single cursor position.
                 """,
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ)",
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
@@ -102,7 +102,8 @@ struct SlideRuleLibrary {
                 "Θ": "θ",            // Phase angle (lowercase Greek)
                 "λ": "λ",            // Wavelength (lowercase Greek)
                 "ω": "ω",            // Angular frequency (lowercase Greek)
-                "τ": "τ"             // Time constant (lowercase Greek)
+                "τ": "τ",
+                "PF": "F"            // Time constant (lowercase Greek)
             ]
         )
     }

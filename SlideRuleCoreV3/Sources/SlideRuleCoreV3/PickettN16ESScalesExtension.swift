@@ -354,34 +354,85 @@ extension StandardScales {
         .build()
 }
     
-    /// λ - Wavelength scale (c/f relationship)
-    /// Shows wavelength corresponding to frequency (c = fλ)
+    /// λ Scale: Wavelength scale in METERS (not frequency!)
+    /// Shows wavelength values directly: 3000m to 30m (2 decades, inverted)
+    /// Essential for RF and antenna work - matches real Pickett N16-ES
+    /// Formula: Inverted logarithmic scale with wavelength in meters
+    /// Range: 3000.0 to 30.0 meters (2 decades, high values on left)
+    /// Used for: antenna-design, RF-propagation, wavelength-calculations, electromagnetic-theory
+    ///
+    /// **Physical Applications:**
+    /// - Antenna Design: Calculate antenna dimensions directly from wavelength (λ/4, λ/2 antennas)
+    /// - RF Propagation: Direct wavelength reading for path loss calculations
+    /// - Amateur Radio: Shows wavelength bands (160m, 80m, 40m, 20m, etc.)
+    /// - Radio Broadcasting: Match antenna size to broadcast wavelength
+    ///
+    /// **Example 1:** Design quarter-wave antenna for 40m amateur band
+    /// 1. Locate 40m on λ scale
+    /// 2. Quarter-wave length = 40m/4 = 10m
+    ///
+    /// **Example 2:** Find wavelength for FM broadcast band
+    /// 1. FM band is approximately 100 MHz
+    /// 2. λ = c/f = 3×10⁸ / 100×10⁶ = 3m
+    /// 3. Locate 3m on λ scale (right end, smaller values)
     public static func wavelengthLambdaScale(length: Distance = 250.0) -> ScaleDefinition {
-        // Helper to convert wavelength (meters) to frequency (Hz)
-        let c = 299792458.0  // Speed of light m/s
-        func wavelengthToFreq(_ wavelength: Double) -> Double {
-            c / wavelength
-        }
+        let wavelengthFunction = WavelengthMeterFunction()
         
         return ScaleBuilder()
-            .withName("λ")
-            .withFormula("1 - log₁₀(f)/6")
-            .withFunction(WavelengthFunction(cycles: 6))
-            .withRange(begin: 1e5, end: 1e11)
+            .withName("λ")  // Lambda symbol for wavelength scale (matches real Pickett N16-ES)
+            .withFormula("λ (meters)")
+            .withFunction(wavelengthFunction)
+            .withRange(begin: 3000.0, end: 30.0)  // 3000m to 30m (2 decades, inverted - high values on left)
             .withLength(length)
-            .withTickDirection(.up)
+            .withTickDirection(.down)
             .withSubsections([
-                // Subsections must use frequency values (Hz), not wavelength (m)
-                // These correspond to wavelengths in the 3000m to 3mm range
-                ScaleSubsection(startValue: wavelengthToFreq(3000), tickIntervals: [1e5, 5e4, 1e4], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(300), tickIntervals: [1e6, 5e5, 1e5], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(30), tickIntervals: [1e7, 5e6, 1e6], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(3), tickIntervals: [1e8, 5e7, 1e7], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(0.3), tickIntervals: [1e9, 5e8, 1e8], labelLevels: [0]),
-                ScaleSubsection(startValue: wavelengthToFreq(0.03), tickIntervals: [1e10, 5e9, 1e9], labelLevels: [0])
+                // SPARSE LABELING: Matches real Pickett N16-ES λ scale
+                // Labels from reference image: 3000, 2000, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 90, 80, 70, 60, 50, 40, 30
+                // Scale spans 3000m to 30m = 2 decades (inverted)
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // FIRST DECADE: 3000m to 300m (leftmost portion)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 3000→1000: First third (coarse, compressed)
+                // Labels: 3000, 2000, 1000
+                ScaleSubsection(startValue: 3000.0, tickIntervals: [1000.0, 500.0, 100.0], labelLevels: [0]),
+                
+                // 1000→300: Second portion
+                // Labels: 1000, 900, 800, 700, 600, 500, 400, 300
+                ScaleSubsection(startValue: 1000.0, tickIntervals: [100.0, 50.0, 10.0], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // SECOND DECADE: 300m to 30m (rightmost portion, more expanded)
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 300→100: First portion of second decade
+                // Labels: 300, 200, 100
+                ScaleSubsection(startValue: 300.0, tickIntervals: [100.0, 50.0, 10.0], labelLevels: [0]),
+                
+                // 100→30: Second portion of second decade (finest)
+                // Labels: 100, 90, 80, 70, 60, 50, 40, 30
+                ScaleSubsection(startValue: 100.0, tickIntervals: [10.0, 5.0, 1.0], labelLevels: [0])
             ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelFormatter { wavelength in
+                // Show integer wavelength values at major positions
+                // Real Pickett N16-ES shows: 3000, 2000, 1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 90, 80, 70, 60, 50, 40, 30
+                guard wavelength > 0 else { return "" }
+                
+                let rounded = wavelength.rounded()
+                
+                // Only label at these specific positions (major decade and mid-decade values)
+                let labelValues: Set<Double> = [
+                    3000, 2000, 1000,
+                    900, 800, 700, 600, 500, 400, 300, 200, 100,
+                    90, 80, 70, 60, 50, 40, 30
+                ]
+                
+                if labelValues.contains(rounded) && abs(wavelength - rounded) < 0.5 {
+                    return String(format: "%.0f", rounded)
+                }
+                return ""
+            }
             .build()
     }
     

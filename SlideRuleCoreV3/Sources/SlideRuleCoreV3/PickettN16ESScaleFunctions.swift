@@ -171,7 +171,7 @@ public struct TimeConstantFunction: ScaleFunction, Sendable {
 /// Used for: Antenna design, transmission line length, RF/microwave work
 /// Dual labeling: Shows both frequency and corresponding wavelength
 /// Historical: Essential for radio and radar work, physical antenna dimensions
-public struct WavelengthFunction: ScaleFunction, Sendable {
+public struct WavelengthMeterFunction: ScaleFunction, Sendable {
     public let name = "wavelength"
     public let cycles: Int
     private let speedOfLight: Double = 299792458.0 // m/s
@@ -424,7 +424,7 @@ public enum N16ESScaleBuilder {
         layout: ScaleLayout = .linear,
         tickDirection: TickDirection = .up
     ) -> ScaleDefinition {
-        StandardScales.foScale(length: scaleLengthInPoints)
+        StandardScales.eefoScale(length: scaleLengthInPoints)
     }
     
     /// Create phase angle (Θ) scale for filter response

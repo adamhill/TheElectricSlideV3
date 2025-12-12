@@ -5,6 +5,9 @@
 //  Renders multiple scales for a stator (fixed portion of slide rule)
 //  Extracted from ContentView.swift for better organization
 //
+//  Phase 4 Bold Refactor: Added @Environment(\.gestureHandler) support
+//  Pan and reset zoom gestures now prefer gestureHandler, fall back to callbacks.
+//
 
 import SwiftUI
 import SlideRuleCoreV3
@@ -12,6 +15,8 @@ import SlideRuleCoreV3
 // MARK: - StatorView Component (renders multiple scales)
 
 struct StatorView: View, Equatable {
+    @Environment(\.gestureHandler) private var gestureHandler
+    
     let stator: Stator
     let width: CGFloat
     let backgroundColor: Color
@@ -21,9 +26,11 @@ struct StatorView: View, Equatable {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
-    let cursorState: CursorState? // NEW: Reference to cursor state for interaction tracking
+    let cursorState: CursorState? // Reference to cursor state for interaction tracking
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level to enable/disable pan
+    
+    // MARK: - Legacy Callbacks (for backward compatibility)
     let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
     let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
     let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
@@ -82,7 +89,12 @@ struct StatorView: View, Equatable {
             TapGesture(count: 3)
                 .onEnded {
                     // Triple-tap to reset zoom to 1.0×
-                    onResetZoom?()
+                    // Phase 4: Prefer gestureHandler, fall back to callback
+                    if let handler = gestureHandler {
+                        handler.handleResetZoom()
+                    } else {
+                        onResetZoom?()
+                    }
                 }
         )
         .onTapGesture {
@@ -91,11 +103,98 @@ struct StatorView: View, Equatable {
         }
         .highPriorityGesture(
             // Pan gesture only enabled when zoomed in (>1.0x)
-            (currentZoomScale > 1.0 && onPanChanged != nil && onPanEnded != nil) ?
+            // Phase 4: Check for gestureHandler OR callbacks
+            (currentZoomScale > 1.0 && (gestureHandler != nil || (onPanChanged != nil && onPanEnded != nil))) ?
                 DragGesture(minimumDistance: 0)
-                    .onChanged { gesture in onPanChanged?(gesture) }
-                    .onEnded { gesture in onPanEnded?(gesture) }
+                    .onChanged { gesture in
+                        // Phase 4: Prefer gestureHandler, fall back to callback
+                        if let handler = gestureHandler {
+                            handler.handlePanChanged(gesture)
+                        } else {
+                            onPanChanged?(gesture)
+                        }
+                    }
+                    .onEnded { gesture in
+                        // Phase 4: Prefer gestureHandler, fall back to callback
+                        if let handler = gestureHandler {
+                            handler.handlePanEnded(gesture)
+                        } else {
+                            onPanEnded?(gesture)
+                        }
+                    }
                 : nil
         )
+    }
+    
+    // MARK: - Convenience Initializer (Environment-based, no callbacks)
+    
+    /// Convenience initializer for environment-based gesture handling.
+    /// Use this when GestureHandler is available in the environment.
+    init(
+        stator: Stator,
+        width: CGFloat,
+        backgroundColor: Color,
+        borderColor: Color,
+        scaleHeight: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font,
+        cursorState: CursorState?,
+        ruleId: UUID?,
+        currentZoomScale: CGFloat
+    ) {
+        self.stator = stator
+        self.width = width
+        self.backgroundColor = backgroundColor
+        self.borderColor = borderColor
+        self.scaleHeight = scaleHeight
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        self.cursorState = cursorState
+        self.ruleId = ruleId
+        self.currentZoomScale = currentZoomScale
+        self.onPanChanged = nil
+        self.onPanEnded = nil
+        self.onResetZoom = nil
+    }
+    
+    // MARK: - Full Initializer (Callback-based, backward compatible)
+    
+    /// Full initializer with all callbacks for backward compatibility.
+    init(
+        stator: Stator,
+        width: CGFloat,
+        backgroundColor: Color,
+        borderColor: Color,
+        scaleHeight: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font,
+        cursorState: CursorState?,
+        ruleId: UUID?,
+        currentZoomScale: CGFloat,
+        onPanChanged: ((DragGesture.Value) -> Void)?,
+        onPanEnded: ((DragGesture.Value) -> Void)?,
+        onResetZoom: (() -> Void)?
+    ) {
+        self.stator = stator
+        self.width = width
+        self.backgroundColor = backgroundColor
+        self.borderColor = borderColor
+        self.scaleHeight = scaleHeight
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        self.cursorState = cursorState
+        self.ruleId = ruleId
+        self.currentZoomScale = currentZoomScale
+        self.onPanChanged = onPanChanged
+        self.onPanEnded = onPanEnded
+        self.onResetZoom = onResetZoom
     }
 }

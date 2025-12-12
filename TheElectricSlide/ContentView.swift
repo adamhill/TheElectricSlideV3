@@ -51,9 +51,10 @@ struct ContentView: View {
     // Unified precision mode state management for slide and cursor (Phase 3 refactoring)
     @State var precisionCoordinator = PrecisionDragCoordinator()
     
-    // MARK: - Slide Rule Context
-    // Phase 4: Combined context for slide rule data accessible via environment
-    @State var slideRuleContext: SlideRuleContext?
+    // MARK: - Gesture Handler
+    // Phase 4 Bold Refactor: Centralized gesture handling via environment
+    // Eliminates callback prop drilling through SlideRuleDetailView → DynamicSlideRuleContent → SideView/CursorOverlay
+    @State private var gestureHandler: GestureHandler?
     
     // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
     // Note: viewMode is internal for access from ContentView+Gestures extension
@@ -184,7 +185,23 @@ struct ContentView: View {
         .environment(\.precisionCoordinator, precisionCoordinator)
         .environment(\.slideRuleViewModel, viewModel)
         .environment(\.tickHapticCoordinator, tickHapticCoordinator)
+        .environment(\.gestureHandler, gestureHandler)
         .onAppear {
+            // Phase 4: Create GestureHandler with closures for dynamic data
+            let handler = GestureHandler(
+                viewModel: viewModel,
+                cursorState: cursorState,
+                tickHapticCoordinator: tickHapticCoordinator,
+                getViewMode: { [self] in self.viewMode },
+                getSlideRule: { [self] in self.currentSlideRule },
+                getDimensions: { [self] in self.calculatedDimensions }
+            )
+            // Set up flip callback (handleFlip modifies viewMode binding)
+            handler.onFlipRequested = { [self] in
+                self.handleFlip()
+            }
+            gestureHandler = handler
+            
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
             // Set stator touched to show readings by default

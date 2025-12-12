@@ -5,6 +5,9 @@
 //  Renders a complete side of the slide rule: top stator, slide, bottom stator
 //  Extracted from ContentView.swift for better organization
 //
+//  Phase 4 Bold Refactor: Replaced callback prop drilling with @Environment(\.gestureHandler)
+//  Views now call gestureHandler methods directly instead of passing callbacks through layers.
+//
 
 import SwiftUI
 import SlideRuleCoreV3
@@ -14,6 +17,7 @@ import SlideRuleCoreV3
 struct SideView: View, Equatable {
     @Environment(\.hapticService) private var haptics
     @Environment(\.precisionCoordinator) private var precisionCoordinator
+    @Environment(\.gestureHandler) private var gestureHandler
     
     let side: RuleSide
     let topStator: Stator
@@ -29,12 +33,101 @@ struct SideView: View, Equatable {
     let cursorState: CursorState?
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let onDragChanged: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
-    let onDragEnded: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
-    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
-    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
-    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
-    let onFlip: (() -> Void)?  // Vertical swipe to flip between front/back sides
+    
+    // MARK: - Legacy Callbacks (for backward compatibility during migration)
+    // These will be removed once all parent views inject GestureHandler via environment
+    let onDragChanged: ((DragGesture.Value, Bool) -> Void)?  // Bool = isPrecision (optional)
+    let onDragEnded: ((DragGesture.Value, Bool) -> Void)?  // Bool = isPrecision (optional)
+    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content (optional)
+    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end (optional)
+    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0× (optional)
+    let onFlip: (() -> Void)?  // Vertical swipe to flip between front/back sides (optional)
+    
+    // MARK: - Convenience Initializer (without callbacks - uses environment)
+    
+    init(
+        side: RuleSide,
+        topStator: Stator,
+        slide: Slide,
+        bottomStator: Stator,
+        width: CGFloat,
+        scaleHeight: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font,
+        sliderOffset: CGFloat,
+        cursorState: CursorState?,
+        ruleId: UUID?,
+        currentZoomScale: CGFloat
+    ) {
+        self.side = side
+        self.topStator = topStator
+        self.slide = slide
+        self.bottomStator = bottomStator
+        self.width = width
+        self.scaleHeight = scaleHeight
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        self.sliderOffset = sliderOffset
+        self.cursorState = cursorState
+        self.ruleId = ruleId
+        self.currentZoomScale = currentZoomScale
+        self.onDragChanged = nil
+        self.onDragEnded = nil
+        self.onPanChanged = nil
+        self.onPanEnded = nil
+        self.onResetZoom = nil
+        self.onFlip = nil
+    }
+    
+    // MARK: - Full Initializer (with callbacks - for backward compatibility)
+    
+    init(
+        side: RuleSide,
+        topStator: Stator,
+        slide: Slide,
+        bottomStator: Stator,
+        width: CGFloat,
+        scaleHeight: CGFloat,
+        leftMarginWidth: CGFloat,
+        rightMarginWidth: CGFloat,
+        nameFont: Font,
+        formulaFont: Font,
+        sliderOffset: CGFloat,
+        cursorState: CursorState?,
+        ruleId: UUID?,
+        currentZoomScale: CGFloat,
+        onDragChanged: ((DragGesture.Value, Bool) -> Void)?,
+        onDragEnded: ((DragGesture.Value, Bool) -> Void)?,
+        onPanChanged: ((DragGesture.Value) -> Void)?,
+        onPanEnded: ((DragGesture.Value) -> Void)?,
+        onResetZoom: (() -> Void)?,
+        onFlip: (() -> Void)?
+    ) {
+        self.side = side
+        self.topStator = topStator
+        self.slide = slide
+        self.bottomStator = bottomStator
+        self.width = width
+        self.scaleHeight = scaleHeight
+        self.leftMarginWidth = leftMarginWidth
+        self.rightMarginWidth = rightMarginWidth
+        self.nameFont = nameFont
+        self.formulaFont = formulaFont
+        self.sliderOffset = sliderOffset
+        self.cursorState = cursorState
+        self.ruleId = ruleId
+        self.currentZoomScale = currentZoomScale
+        self.onDragChanged = onDragChanged
+        self.onDragEnded = onDragEnded
+        self.onPanChanged = onPanChanged
+        self.onPanEnded = onPanEnded
+        self.onResetZoom = onResetZoom
+        self.onFlip = onFlip
+    }
     
     // MARK: - Vertical Swipe State
     
@@ -112,7 +205,12 @@ struct SideView: View, Equatable {
             .offset(x: sliderOffset)
             .onTapGesture(count: 3) {
                 // Triple-tap to reset zoom to 1.0×
-                onResetZoom?()
+                // Phase 4: Prefer gestureHandler, fall back to callback
+                if let handler = gestureHandler {
+                    handler.handleResetZoom()
+                } else {
+                    onResetZoom?()
+                }
             }
             // Normal drag gesture for standard slide movement
             // Suppressed when precision sequence is active for slide
@@ -126,7 +224,12 @@ struct SideView: View, Equatable {
                             #endif
                             return
                         }
-                        onDragChanged(gesture, false)  // false = not precision
+                        // Phase 4: Prefer gestureHandler, fall back to callback
+                        if let handler = gestureHandler {
+                            handler.handleSlideDragChanged(gesture, isPrecision: false)
+                        } else {
+                            onDragChanged?(gesture, false)  // false = not precision
+                        }
                     }
                     .onEnded { gesture in
                         // Block if precision sequence is active for slide
@@ -136,7 +239,12 @@ struct SideView: View, Equatable {
                             #endif
                             return
                         }
-                        onDragEnded(gesture, false)  // false = not precision
+                        // Phase 4: Prefer gestureHandler, fall back to callback
+                        if let handler = gestureHandler {
+                            handler.handleSlideDragEnded(gesture, isPrecision: false)
+                        } else {
+                            onDragEnded?(gesture, false)  // false = not precision
+                        }
                     }
             )
             // Long-press sequenced with drag for precision slide movement
@@ -168,7 +276,12 @@ struct SideView: View, Equatable {
                                 #if DEBUG
                                 print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
                                 #endif
-                                onDragChanged(drag, true)  // true = precision mode
+                                // Phase 4: Prefer gestureHandler, fall back to callback
+                                if let handler = gestureHandler {
+                                    handler.handleSlideDragChanged(drag, isPrecision: true)
+                                } else {
+                                    onDragChanged?(drag, true)  // true = precision mode
+                                }
                             }
                         default:
                             break
@@ -183,7 +296,12 @@ struct SideView: View, Equatable {
                         // to prevent finger-lift jitter
                         if case .second(true, let drag) = value, let drag = drag {
                             // Call with the gesture but handler should use coordinator's lastAppliedTranslation
-                            onDragEnded(drag, true)  // true = precision mode
+                            // Phase 4: Prefer gestureHandler, fall back to callback
+                            if let handler = gestureHandler {
+                                handler.handleSlideDragEnded(drag, isPrecision: true)
+                            } else {
+                                onDragEnded?(drag, true)  // true = precision mode
+                            }
                         }
                         
                         // End precision session with cooldown
@@ -219,8 +337,9 @@ struct SideView: View, Equatable {
             DragGesture(minimumDistance: 30, coordinateSpace: .local)
                 .onChanged { gesture in
                     // Only trigger flip once per gesture and only if vertical motion dominates
-                    guard !hasTriggeredFlip,
-                          onFlip != nil else { return }
+                    // Phase 4: Check gestureHandler OR callback availability
+                    let canHandleFlip = gestureHandler != nil || onFlip != nil
+                    guard !hasTriggeredFlip, canHandleFlip else { return }
                     
                     let verticalDistance = abs(gesture.translation.height)
                     let horizontalDistance = abs(gesture.translation.width)
@@ -231,7 +350,12 @@ struct SideView: View, Equatable {
                        verticalDistance > horizontalDistance * 1.5 {
                         hasTriggeredFlip = true
                         haptics.fire(.flip)
-                        onFlip?()
+                        // Phase 4: Prefer gestureHandler, fall back to callback
+                        if let handler = gestureHandler {
+                            handler.handleFlip()
+                        } else {
+                            onFlip?()
+                        }
                     }
                 }
                 .onEnded { _ in

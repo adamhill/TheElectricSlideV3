@@ -8,6 +8,8 @@
 //  Phase 7 Cleanup: Removed callback prop drilling - all gestures now use
 //  @Environment(\.gestureHandler). No more legacy callback initializers.
 //
+//  Refactored to use ScaleContainerView to eliminate duplication with SlideView
+//
 
 import SwiftUI
 import SlideRuleCoreV3
@@ -21,20 +23,18 @@ struct StatorView: View, Equatable {
     let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
-    let scaleHeight: CGFloat // Configurable height per scale
+    let scaleHeight: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
-    let cursorState: CursorState? // Reference to cursor state for interaction tracking
-    let ruleId: UUID?  // Track rule identity for view updates
-    let currentZoomScale: CGFloat  // Current zoom level to enable/disable pan
+    let cursorState: CursorState?
+    let ruleId: UUID?
+    let currentZoomScale: CGFloat
     
-    // ✅ Equatable conformance - only compare properties that affect rendering
-    // Note: cursorState is not compared (reference)
-    // ruleId is compared to force re-render when rule changes
+    // Equatable conformance - delegate to ScaleContainerView's comparison plus zoom scale
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
-        lhs.ruleId == rhs.ruleId &&  // Compare rule ID first to detect rule changes
+        lhs.ruleId == rhs.ruleId &&
         lhs.width == rhs.width &&
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
@@ -45,40 +45,21 @@ struct StatorView: View, Equatable {
         lhs.currentZoomScale == rhs.currentZoomScale
     }
     
-    // Calculate total max height based on number of scales
-    private var maxTotalHeight: CGFloat {
-        scaleHeight * CGFloat(stator.scales.count)
-    }
-    
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(stator.scales.enumerated()), id: \.offset) { index, generatedScale in
-                ScaleView(
-                    generatedScale: generatedScale,  // ✅ Pass entire GeneratedScale
-                    width: width,
-                    height: scaleHeight,
-                    leftMarginWidth: leftMarginWidth,
-                    rightMarginWidth: rightMarginWidth,
-                    nameFont: nameFont,
-                    formulaFont: formulaFont
-                )
-                .equatable()  // ✅ Prevent unnecessary redraws when inputs unchanged
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(backgroundColor)
+        ScaleContainerView(
+            container: stator,
+            width: width,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            nameFont: nameFont,
+            formulaFont: formulaFont,
+            ruleId: ruleId,
+            scaleCount: stator.scales.count
         )
-        .overlay(
-            Group {
-                if stator.showBorder {
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(borderColor, lineWidth: 2)
-                }
-            }
-        )
-        .frame(width: width, height: maxTotalHeight)
-        .fixedSize(horizontal: false, vertical: true)
+        .equatable()
         .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
         .simultaneousGesture(
             TapGesture(count: 3)

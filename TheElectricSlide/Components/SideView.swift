@@ -13,6 +13,7 @@ import SlideRuleCoreV3
 
 struct SideView: View, Equatable {
     @Environment(\.hapticService) private var haptics
+    @Environment(\.precisionCoordinator) private var precisionCoordinator
     
     let side: RuleSide
     let topStator: Stator
@@ -45,10 +46,7 @@ struct SideView: View, Equatable {
     
     // MARK: - Slide Precision Mode State
     
-    /// Precision drag state for the slide (shared constants, local state)
-    @State private var slidePrecisionState = PrecisionDragState()
-    
-    /// Whether precision mode is active (for GestureState tracking)
+    /// Whether precision mode is active (for GestureState tracking - auto-resets)
     @GestureState private var isSlidePrecisionDragging: Bool = false
     
     // ✅ Equatable conformance - only compare properties affecting rendering
@@ -117,12 +115,12 @@ struct SideView: View, Equatable {
                 onResetZoom?()
             }
             // Normal drag gesture for standard slide movement
-            // Suppressed when precision sequence is active
+            // Suppressed when precision sequence is active for slide
             .gesture(
                 DragGesture()
                     .onChanged { gesture in
-                        // Block if precision sequence is active
-                        guard !slidePrecisionState.isSequenceActive else {
+                        // Block if precision sequence is active for slide
+                        guard precisionCoordinator.activeTarget != .slide else {
                             #if DEBUG
                             print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active")
                             #endif
@@ -131,8 +129,8 @@ struct SideView: View, Equatable {
                         onDragChanged(gesture, false)  // false = not precision
                     }
                     .onEnded { gesture in
-                        // Block if precision sequence is active
-                        guard !slidePrecisionState.isSequenceActive else {
+                        // Block if precision sequence is active for slide
+                        guard precisionCoordinator.activeTarget != .slide else {
                             #if DEBUG
                             print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active")
                             #endif
@@ -146,10 +144,10 @@ struct SideView: View, Equatable {
                 LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                     .onEnded { _ in
                         // Enter precision sequence with haptic feedback
-                        slidePrecisionState.beginSession()
+                        precisionCoordinator.activate(for: .slide)
                         haptics.fire(.longBuzz)
                         #if DEBUG
-                        print("🎯 [Slide.Precision] MODE ACTIVATED")
+                        print("🎯 [Slide.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
                         #endif
                     }
                     .sequenced(before: DragGesture())
@@ -166,7 +164,7 @@ struct SideView: View, Equatable {
                         case .second(true, let drag):
                             if let drag = drag {
                                 // Track translation for use in onEnded
-                                slidePrecisionState.trackTranslation(drag.translation.width)
+                                precisionCoordinator.recordTranslation(drag.translation)
                                 #if DEBUG
                                 print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
                                 #endif
@@ -178,18 +176,18 @@ struct SideView: View, Equatable {
                     }
                     .onEnded { value in
                         #if DEBUG
-                        print("🎯 [Slide.Precision.onEnded] Using last applied translation=\(String(format: "%.2f", slidePrecisionState.lastAppliedTranslation))")
+                        print("🎯 [Slide.Precision.onEnded] Using coordinator's lastAppliedTranslation")
                         #endif
                         
                         // Create a synthetic gesture value using last applied translation
                         // to prevent finger-lift jitter
                         if case .second(true, let drag) = value, let drag = drag {
-                            // Call with the gesture but handler should use lastAppliedTranslation
+                            // Call with the gesture but handler should use coordinator's lastAppliedTranslation
                             onDragEnded(drag, true)  // true = precision mode
                         }
                         
                         // End precision session with cooldown
-                        slidePrecisionState.endSession()
+                        precisionCoordinator.deactivate()
                     }
             )
             .animation(.interactiveSpring(), value: sliderOffset)

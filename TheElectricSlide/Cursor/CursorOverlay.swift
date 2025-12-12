@@ -23,6 +23,7 @@ struct CursorOverlay: View {
     // MARK: - Properties
     
     @Environment(\.hapticService) private var haptics
+    @Environment(\.precisionCoordinator) private var precisionCoordinator
     
     /// Shared cursor state
     let cursorState: CursorState
@@ -69,24 +70,13 @@ struct CursorOverlay: View {
     
     /// Callback when cursor drag ends (for resetting tick haptic coordinator)
     var onCursorDragEnded: (() -> Void)? = nil
-    
     // MARK: - Precision Mode State
     
     /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
     @GestureState private var isPrecisionDragging: Bool = false
     
-    /// Tracks if we're in the precision gesture sequence (long press started)
-    @State private var isPrecisionSequenceActive: Bool = false
-    
-    /// Session ID to ignore stale gesture events from previous sessions
-    @State private var precisionSessionID: UUID? = nil
-    
-    /// Position snapshot when precision mode started (to reject stale normal gestures)
-    @State private var positionAtPrecisionStart: CGFloat? = nil
-    
-    /// Last translation applied during precision drag (use this in onEnded, not the gesture's final value)
-    /// This prevents the "finger lift jitter" where onEnded has a different translation than the last onChanged
-    @State private var lastAppliedPrecisionTranslation: CGFloat = 0
+    // NOTE: Other precision state (isPrecisionSequenceActive, sessionID, lastAppliedTranslation)
+    // now managed by PrecisionDragCoordinator via @Environment(\.precisionCoordinator)
     
     // MARK: - Body
     
@@ -123,12 +113,12 @@ struct CursorOverlay: View {
                     onResetZoom?()
                 }
                 // Normal drag gesture for standard cursor movement
-                // Suppressed when precision sequence is active
+                // Suppressed when precision sequence is active for cursor
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
-                            // Block if precision sequence is active
-                            guard !isPrecisionSequenceActive else {
+                            // Block if precision sequence is active for cursor
+                            guard precisionCoordinator.activeTarget != .cursor else {
                                 #if DEBUG
                                 print("⚠️ [NormalDrag.onChanged] BLOCKED - precision sequence active")
                                 #endif
@@ -150,8 +140,8 @@ struct CursorOverlay: View {
                             handleDrag(gesture, effectiveWidth: effectiveWidth, isPrecision: false)
                         }
                         .onEnded { gesture in
-                            // Block if precision sequence is active
-                            guard !isPrecisionSequenceActive else {
+                            // Block if precision sequence is active for cursor
+                            guard precisionCoordinator.activeTarget != .cursor else {
                                 #if DEBUG
                                 print("⚠️ [NormalDrag.onEnded] BLOCKED - precision sequence active")
                                 #endif
@@ -178,18 +168,15 @@ struct CursorOverlay: View {
                         }
                 )
                 // Long-press sequenced with drag for precision mode (reduced sensitivity)
-                // Uses @GestureState for automatic reset and session tracking
+                // Uses @GestureState for automatic reset and PrecisionDragCoordinator for state
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                         .onEnded { _ in
-                            // Enter precision sequence with haptic feedback
-                            // Generate new session ID to invalidate any pending normal gesture events
-                            precisionSessionID = UUID()
-                            isPrecisionSequenceActive = true
-                            positionAtPrecisionStart = cursorState.position(for: side)
+                            // Enter precision sequence with haptic feedback via coordinator
+                            precisionCoordinator.activate(for: .cursor, startPosition: cursorState.position(for: side))
                             haptics.fire(.longBuzz)
                             #if DEBUG
-                            print("🎯 [Precision] MODE ACTIVATED - session=\(precisionSessionID?.uuidString.prefix(8) ?? "nil")")
+                            print("🎯 [Cursor.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
                             #endif
                         }
                         .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
@@ -205,42 +192,43 @@ struct CursorOverlay: View {
                             case .first(true):
                                 // Long press recognized but drag not started yet
                                 #if DEBUG
-                                print("🎯 [Precision.onChanged] .first(true) - long press in progress")
+                                print("🎯 [Cursor.Precision.onChanged] .first(true) - long press in progress")
                                 #endif
                                 break
                             case .second(true, let drag):
                                 // Now in precision drag mode
                                 if let drag = drag {
-                                    // Store the translation we're about to apply (for use in onEnded)
-                                    lastAppliedPrecisionTranslation = drag.translation.width
+                                    // Store the translation via coordinator (for use in onEnded)
+                                    precisionCoordinator.recordTranslation(drag.translation)
                                     #if DEBUG
-                                    print("🎯 [Precision.onChanged] .second - dragging, translation=\(String(format: "%.2f", drag.translation.width))")
+                                    print("🎯 [Cursor.Precision.onChanged] .second - dragging, translation=\(String(format: "%.2f", drag.translation.width))")
                                     #endif
                                     handleDrag(drag, effectiveWidth: effectiveWidth, isPrecision: true)
                                 }
                             default:
                                 #if DEBUG
-                                print("🎯 [Precision.onChanged] default case")
+                                print("🎯 [Cursor.Precision.onChanged] default case")
                                 #endif
                                 break
                             }
                         }
                         .onEnded { value in
                             #if DEBUG
-                            print("🎯 [Precision.onEnded] START - session=\(precisionSessionID?.uuidString.prefix(8) ?? "nil")")
+                            print("🎯 [Cursor.Precision.onEnded] START")
                             #endif
                             
-                            // Commit position using the LAST APPLIED translation, not the gesture's final value
+                            // Commit position using the LAST APPLIED translation from coordinator
                             // This prevents "finger lift jitter" where onEnded has different translation than last onChanged
                             if case .second(true, _) = value {
+                                let lastApplied = precisionCoordinator.lastTranslationWidth
                                 #if DEBUG
-                                print("🎯 [Precision.onEnded] Using last applied translation=\(String(format: "%.2f", lastAppliedPrecisionTranslation)) (gesture final was different)")
+                                print("🎯 [Cursor.Precision.onEnded] Using coordinator's last applied translation=\(String(format: "%.2f", lastApplied))")
                                 #endif
                                 // Create a synthetic position based on last applied translation
-                                handlePrecisionDragEnd(lastAppliedTranslation: lastAppliedPrecisionTranslation, width: effectiveWidth)
+                                handlePrecisionDragEnd(lastAppliedTranslation: lastApplied, width: effectiveWidth)
                             } else {
                                 #if DEBUG
-                                print("🎯 [Precision.onEnded] No drag to commit (long press only, no movement)")
+                                print("🎯 [Cursor.Precision.onEnded] No drag to commit (long press only, no movement)")
                                 #endif
                             }
                             
@@ -252,22 +240,14 @@ struct CursorOverlay: View {
                             // Snapshot position before clearing state
                             let finalPosition = cursorState.position(for: side)
                             #if DEBUG
-                            print("🎯 [Precision.onEnded] Final position=\(String(format: "%.6f", finalPosition))")
+                            print("🎯 [Cursor.Precision.onEnded] Final position=\(String(format: "%.6f", finalPosition))")
                             #endif
                             
-                            // Reset the last applied translation for next session
-                            lastAppliedPrecisionTranslation = 0
-                            
-                            // Clear precision sequence after a short delay
-                            // This gives SwiftUI time to flush any pending gesture events
-                            DispatchQueue.main.asyncAfter(deadline: .now() + PrecisionDragConstants.cooldownDuration) {
-                                isPrecisionSequenceActive = false
-                                precisionSessionID = nil
-                                positionAtPrecisionStart = nil
-                                #if DEBUG
-                                print("🎯 [Precision] SEQUENCE ENDED - ready for normal gestures")
-                                #endif
-                            }
+                            // Deactivate precision mode via coordinator (handles cooldown internally)
+                            precisionCoordinator.deactivate()
+                            #if DEBUG
+                            print("🎯 [Cursor.Precision] DEACTIVATED via PrecisionDragCoordinator")
+                            #endif
                         }
                 )
             }

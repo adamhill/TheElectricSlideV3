@@ -47,6 +47,14 @@ struct ContentView: View {
     // Provides haptic feedback when cursor crosses C scale tick marks during slide movement
     @State var tickHapticCoordinator = TickHapticCoordinator()
     
+    // MARK: - Precision Drag Coordinator
+    // Unified precision mode state management for slide and cursor (Phase 3 refactoring)
+    @State var precisionCoordinator = PrecisionDragCoordinator()
+    
+    // MARK: - Slide Rule Context
+    // Phase 4: Combined context for slide rule data accessible via environment
+    @State var slideRuleContext: SlideRuleContext?
+    
     // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
     // Note: viewMode is internal for access from ContentView+Gestures extension
     @State var viewMode: ViewMode = .both  // View mode selector
@@ -172,6 +180,10 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
+        // Phase 3 & 4: Inject environment values for gesture handling
+        .environment(\.precisionCoordinator, precisionCoordinator)
+        .environment(\.slideRuleViewModel, viewModel)
+        .environment(\.tickHapticCoordinator, tickHapticCoordinator)
         .onAppear {
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true

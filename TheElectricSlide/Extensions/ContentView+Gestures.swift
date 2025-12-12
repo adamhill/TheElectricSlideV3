@@ -7,6 +7,9 @@
 
 import SwiftUI
 import SlideRuleCoreV3
+import os.log
+
+private let gestureLogger = Logger(subsystem: "com.theelectricslide", category: "Gestures")
 
 // MARK: - Gesture Handlers
 
@@ -30,20 +33,30 @@ extension ContentView {
         
         viewModel.handleSliderDragChanged(translation: translationWidth)
         
-        // Trigger tick haptics when crossing C scale tick marks
-        // Find the C scale on the front slide
-        if let cScale = currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" }) {
-            // Calculate hairline position (cursor position + half cursor width)
-            let scaleWidth = calculatedDimensions.width
-            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
-            let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
+        // Trigger tick haptics when crossing tick marks on the slide
+        // Use the C scale if available, otherwise fall back to the first scale on the slide
+        let currentSlide: Slide? = (viewMode == .back)
+            ? currentSlideRule.backSlide
+            : currentSlideRule.frontSlide
+        
+        if let slide = currentSlide {
+            // Prefer C scale if available, otherwise use first scale on the slide
+            let hapticScale = slide.scales.first(where: { $0.definition.name == "C" })
+                ?? slide.scales.first
             
-            tickHapticCoordinator.checkTickCrossing(
-                cursorNormalizedPosition: hairlinePosition,
-                slideOffset: viewModel.sliderOffset,
-                scaleWidth: scaleWidth,
-                cScale: cScale
-            )
+            if let scale = hapticScale {
+                // Calculate hairline position (cursor position + half cursor width)
+                let scaleWidth = calculatedDimensions.width
+                let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+                let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
+                
+                tickHapticCoordinator.checkTickCrossing(
+                    cursorNormalizedPosition: hairlinePosition,
+                    slideOffset: viewModel.sliderOffset,
+                    scaleWidth: scaleWidth,
+                    cScale: scale
+                )
+            }
         }
     }
     

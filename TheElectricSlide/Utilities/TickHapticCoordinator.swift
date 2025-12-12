@@ -8,6 +8,9 @@
 
 import Foundation
 import SlideRuleCoreV3
+import os.log
+
+private let tickHapticLogger = Logger(subsystem: "com.theelectricslide", category: "TickHaptic")
 
 /// Coordinates haptic feedback for tick mark crossings during slide movement
 /// Tracks cursor position relative to C scale ticks and fires appropriate haptics
@@ -18,6 +21,16 @@ final class TickHapticCoordinator {
     
     /// Whether tick haptics are enabled
     var isEnabled: Bool = true
+    
+    // MARK: - Debug Configuration
+    
+    /// Enable verbose logging for debugging tick haptics
+    /// Set to false for production builds
+    private static let debugLogging = false
+    
+    /// Counter to throttle debug logs (only log every Nth call)
+    @ObservationIgnored private var debugCallCount = 0
+    private static let debugLogInterval = 10  // Log every 10th call
     
     // MARK: - Internal State
     
@@ -45,7 +58,22 @@ final class TickHapticCoordinator {
         scaleWidth: CGFloat,
         cScale: GeneratedScale
     ) {
-        guard isEnabled, scaleWidth > 0 else { return }
+        debugCallCount += 1
+        let shouldLog = Self.debugLogging && (debugCallCount % Self.debugLogInterval == 1)
+        
+        if shouldLog {
+            tickHapticLogger.debug("checkTickCrossing called #\(self.debugCallCount): cursor=\(cursorNormalizedPosition, format: .fixed(precision: 4)), slideOffset=\(slideOffset), scaleWidth=\(scaleWidth), tickCount=\(cScale.tickMarks.count)")
+        }
+        
+        guard isEnabled else {
+            if shouldLog { tickHapticLogger.debug("  → SKIP: isEnabled=false") }
+            return
+        }
+        
+        guard scaleWidth > 0 else {
+            if shouldLog { tickHapticLogger.debug("  → SKIP: scaleWidth <= 0") }
+            return
+        }
         
         // Calculate where the cursor falls on the C scale, accounting for slide offset
         // When slide moves right (positive offset), the effective cursor position on the scale decreases
@@ -55,13 +83,23 @@ final class TickHapticCoordinator {
         // Clamp to valid range
         let clampedPosition = min(max(effectiveCursorPosition, 0.0), 1.0)
         
+        if shouldLog {
+            tickHapticLogger.debug("  slideOffsetNorm=\(slideOffsetNormalized, format: .fixed(precision: 4)), effectivePos=\(effectiveCursorPosition, format: .fixed(precision: 4)), clamped=\(clampedPosition, format: .fixed(precision: 4))")
+        }
+        
         // Find the nearest tick at this position
-        guard let nearestTick = findNearestTick(at: clampedPosition, in: cScale.tickMarks) else {
+        guard let nearestTick = findNearestTick(at: clampedPosition, in: cScale.tickMarks, shouldLog: shouldLog) else {
+            if shouldLog { tickHapticLogger.debug("  → SKIP: No tick found within 1% threshold") }
             return
+        }
+        
+        if shouldLog {
+            tickHapticLogger.debug("  nearestTick: pos=\(nearestTick.normalizedPosition, format: .fixed(precision: 4)), relLen=\(nearestTick.style.relativeLength, format: .fixed(precision: 2))")
         }
         
         // Only trigger haptics for ticks above minimum level
         guard nearestTick.style.relativeLength >= Self.minimumTickLevel else {
+            if shouldLog { tickHapticLogger.debug("  → SKIP: relativeLength \(nearestTick.style.relativeLength) < minimum \(Self.minimumTickLevel)") }
             return
         }
         
@@ -70,12 +108,14 @@ final class TickHapticCoordinator {
         if let lastPosition = lastTriggeredTickPosition {
             // Skip if we're still at the same tick
             if abs(tickPosition - lastPosition) < Self.tickPositionTolerance {
+                if shouldLog { tickHapticLogger.debug("  → SKIP: Same tick as last (\(lastPosition, format: .fixed(precision: 4)))") }
                 return
             }
         }
         
         // We crossed to a new tick - trigger haptic
         lastTriggeredTickPosition = tickPosition
+        tickHapticLogger.info("🎯 HAPTIC TRIGGERED: tick pos=\(tickPosition, format: .fixed(precision: 4)), relLen=\(nearestTick.style.relativeLength, format: .fixed(precision: 2))")
         HapticManager.tickHaptic(forLevel: nearestTick.style.relativeLength)
     }
     
@@ -88,8 +128,11 @@ final class TickHapticCoordinator {
     
     /// Find the nearest tick mark to the given position
     /// Uses binary search for efficiency with large tick arrays
-    private func findNearestTick(at position: Double, in tickMarks: [TickMark]) -> TickMark? {
-        guard !tickMarks.isEmpty else { return nil }
+    private func findNearestTick(at position: Double, in tickMarks: [TickMark], shouldLog: Bool = false) -> TickMark? {
+        guard !tickMarks.isEmpty else {
+            if shouldLog { tickHapticLogger.debug("  findNearestTick: tickMarks array is EMPTY") }
+            return nil
+        }
         
         // Binary search to find the insertion point
         var low = 0
@@ -118,6 +161,10 @@ final class TickHapticCoordinator {
         // This prevents triggering haptics when cursor is far from any tick
         let closerTick = leftDistance < rightDistance ? leftTick : rightTick
         let closerDistance = min(leftDistance, rightDistance)
+        
+        if shouldLog {
+            tickHapticLogger.debug("  findNearestTick: pos=\(position, format: .fixed(precision: 4)), leftDist=\(leftDistance, format: .fixed(precision: 4)), rightDist=\(rightDistance, format: .fixed(precision: 4)), closerDist=\(closerDistance, format: .fixed(precision: 4)), threshold=0.01")
+        }
         
         // Only return if within 1% of scale width
         return closerDistance < 0.01 ? closerTick : nil

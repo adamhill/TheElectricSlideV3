@@ -691,36 +691,15 @@ struct ElectricalEngineeringScalesTests {
             }
         }
     }
-    
     // MARK: - Tick Generation Tests
     
     @Suite("EE Scale Tick Generation")
     struct EEScaleTickGenerationTests {
         
-        /// Helper to get scale by name for tick generation tests
-        private static func getScale(named name: String) -> ScaleDefinition? {
-            switch name {
-            case "XL": return StandardScales.xlScale(length: 250.0)
-            case "Xc": return StandardScales.xcScale(length: 250.0)
-            case "eeF": return StandardScales.eefScale(length: 250.0)   // Not implemented yet
-            case "Fo": return StandardScales.eefoScale(length: 250.0) // Not implemented yet
-            case "Z": return StandardScales.zScale(length: 250.0)
-            case "P": return StandardScales.eePowerRatioScale(length: 250.0)
-            case "Q": return StandardScales.eePowerRatioInvertedScale(length: 250.0)
-            case "r1": return StandardScales.eeReflectionCoefficientScale(length: 250.0)
-            case "L": return StandardScales.eeInductanceScale(length: 250.0)
-            case "Li": return StandardScales.eeInductanceInvertedScale(length: 250.0)
-            case "Cz": return StandardScales.czScale(length: 250.0)
-            case "Cf": return StandardScales.eeCapacitanceFrequencyScale(length: 250.0)
-            default: return nil
-            }
-        }
-        
         @Test("Generated ticks are within scale domain",
               arguments: ["XL", "Xc", "Z", "eeF", "eeFo", "P", "Q"])
         func ticksWithinDomain(name: String) {
-            guard let scale = EEScaleTickGenerationTests.getScale(named: name) else {
-                Issue.record("Could not find scale named \(name)")
+            guard let scale = TestScaleFactory.getScaleOrFail(named: name) else {
                 return
             }
             let generated = GeneratedScale(definition: scale)
@@ -739,8 +718,7 @@ struct ElectricalEngineeringScalesTests {
         @Test("Tick positions are within [0, 1] range",
               arguments: ["XL", "Xc", "eeF", "P"])  // Note: r1 excluded due to edge case at boundaries, F not implemented
         func tickPositionsInUnitRange(name: String) {
-            guard let scale = EEScaleTickGenerationTests.getScale(named: name) else {
-                Issue.record("Could not find scale named \(name)")
+            guard let scale = TestScaleFactory.getScaleOrFail(named: name) else {
                 return
             }
             let generated = GeneratedScale(definition: scale)
@@ -756,8 +734,7 @@ struct ElectricalEngineeringScalesTests {
         @Test("Major labels are present for all EE scales",
               arguments: ["XL", "Xc", "eeF", "Z", "r1", "P"])
         func majorLabelsPresent(name: String) {
-            guard let scale = EEScaleTickGenerationTests.getScale(named: name) else {
-                Issue.record("Could not find scale named \(name)")
+            guard let scale = TestScaleFactory.getScaleOrFail(named: name) else {
                 return
             }
             let generated = GeneratedScale(definition: scale)
@@ -794,84 +771,50 @@ struct ElectricalEngineeringScalesTests {
     @Suite("EE Scale Round-Trip Accuracy")
     struct EEScaleRoundTripTests {
         
-        /// Tolerance for round-trip accuracy (EE scales may have lower precision)
-        static let standardTolerance = 0.01
-        static let relaxedTolerance = 0.05
-        
         @Test("XL scale round-trip accuracy")
         func xlScaleRoundTrip() {
-            let scale = StandardScales.xlScale(length: 250.0)
-            let testValues = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0]
-            
-            for value in testValues {
-                let position = ScaleCalculator.normalizedPosition(for: value, on: scale)
-                let recovered = ScaleCalculator.value(at: position, on: scale)
-                let relativeError = abs(recovered - value) / value
-                
-                #expect(relativeError < EEScaleRoundTripTests.relaxedTolerance,
-                       "XL scale: Value \(value) round-trip error \(relativeError) exceeds tolerance")
-            }
+            RoundTripTester.testRoundTrips(
+                values: TestValues.logarithmicExtended,
+                on: StandardScales.xlScale(length: 250.0),
+                tolerance: TestTolerance.eeScale
+            )
         }
         
         @Test("Xc scale round-trip accuracy")
         func xcScaleRoundTrip() {
-            let scale = StandardScales.xcScale(length: 250.0)
-            let testValues = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0]
-            
-            for value in testValues {
-                let position = ScaleCalculator.normalizedPosition(for: value, on: scale)
-                let recovered = ScaleCalculator.value(at: position, on: scale)
-                let relativeError = abs(recovered - value) / value
-                
-                #expect(relativeError < EEScaleRoundTripTests.relaxedTolerance,
-                       "Xc scale: Value \(value) round-trip error \(relativeError) exceeds tolerance")
-            }
+            RoundTripTester.testRoundTrips(
+                values: TestValues.logarithmicExtended,
+                on: StandardScales.xcScale(length: 250.0),
+                tolerance: TestTolerance.eeScale
+            )
         }
         
         @Test("eeF scale round-trip accuracy")
         func eefScaleRoundTrip() {
-            let scale = StandardScales.eefScale(length: 250.0)
-            let testValues = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0]
-            
-            for value in testValues {
-                let position = ScaleCalculator.normalizedPosition(for: value, on: scale)
-                let recovered = ScaleCalculator.value(at: position, on: scale)
-                let relativeError = abs(recovered - value) / value
-                
-                #expect(relativeError < EEScaleRoundTripTests.relaxedTolerance,
-                       "eeF scale: Value \(value) round-trip error \(relativeError) exceeds tolerance")
-            }
+            RoundTripTester.testRoundTrips(
+                values: [1.0, 5.0, 10.0, 25.0, 50.0, 100.0],
+                on: StandardScales.eefScale(length: 250.0),
+                tolerance: TestTolerance.eeScale
+            )
         }
         // See PickettN16ESTests.swift for Pickett F scale tests
         
         @Test("Z scale round-trip accuracy")
         func zScaleRoundTrip() {
-            let scale = StandardScales.zScale(length: 250.0)
-            let testValues = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0]
-            
-            for value in testValues {
-                let position = ScaleCalculator.normalizedPosition(for: value, on: scale)
-                let recovered = ScaleCalculator.value(at: position, on: scale)
-                let relativeError = abs(recovered - value) / value
-                
-                #expect(relativeError < EEScaleRoundTripTests.relaxedTolerance,
-                       "Z scale: Value \(value) round-trip error \(relativeError) exceeds tolerance")
-            }
+            RoundTripTester.testRoundTrips(
+                values: [1.0, 5.0, 10.0, 25.0, 50.0, 100.0],
+                on: StandardScales.zScale(length: 250.0),
+                tolerance: TestTolerance.eeScale
+            )
         }
         
         @Test("r1 scale round-trip accuracy")
         func r1ScaleRoundTrip() {
-            let scale = StandardScales.eeReflectionCoefficientScale(length: 250.0)
-            let testValues = [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
-            
-            for value in testValues {
-                let position = ScaleCalculator.normalizedPosition(for: value, on: scale)
-                let recovered = ScaleCalculator.value(at: position, on: scale)
-                let relativeError = abs(recovered - value) / value
-                
-                #expect(relativeError < EEScaleRoundTripTests.relaxedTolerance,
-                       "r1 scale: Value \(value) round-trip error \(relativeError) exceeds tolerance")
-            }
+            RoundTripTester.testRoundTrips(
+                values: [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0],
+                on: StandardScales.eeReflectionCoefficientScale(length: 250.0),
+                tolerance: TestTolerance.eeScale
+            )
         }
         
         @Test("P scale round-trip accuracy for dB values",

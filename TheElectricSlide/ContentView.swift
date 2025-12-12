@@ -142,7 +142,9 @@ struct ContentView: View {
                     handlePanEnded: handlePanEnded,
                     handleResetZoom: handleResetZoom,
                     handleFlip: handleFlip,
-                    totalScaleHeight: totalScaleHeight
+                    totalScaleHeight: totalScaleHeight,
+                    handleCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
+                    handleCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
                     let size = proxy.size

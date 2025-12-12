@@ -48,6 +48,12 @@ struct DynamicSlideRuleContent: View {
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
     
+    /// Callback for tick haptics during cursor drag (passes normalized cursor position)
+    let handleCursorDragChanged: ((CGFloat) -> Void)?
+    
+    /// Callback when cursor drag ends (for resetting tick haptic coordinator)
+    let handleCursorDragEnded: (() -> Void)?
+    
     // MARK: - Stable Dimensions (debounced to avoid intermediate animation values)
     // The system animates geometry changes through intermediate widths (e.g., 876→856→836→816→796)
     // We use stableDimensions to only render with the final settled value
@@ -152,7 +158,9 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
-                            cursorDisplayMode: $cursorDisplayMode
+                            cursorDisplayMode: $cursorDisplayMode,
+                            onCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
+                            onCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
                         )
                     }
                 }
@@ -218,7 +226,9 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients,
                             onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
-                            cursorDisplayMode: $cursorDisplayMode
+                            cursorDisplayMode: $cursorDisplayMode,
+                            onCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
+                            onCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
                         )
                     }
                 }

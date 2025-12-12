@@ -34,29 +34,44 @@ extension ContentView {
         viewModel.handleSliderDragChanged(translation: translationWidth)
         
         // Trigger tick haptics when crossing tick marks on the slide
-        // Use the C scale if available, otherwise fall back to the first scale on the slide
-        let currentSlide: Slide? = (viewMode == .back)
-            ? currentSlideRule.backSlide
-            : currentSlideRule.frontSlide
-        
-        if let slide = currentSlide {
-            // Prefer C scale if available, otherwise use first scale on the slide
-            let hapticScale = slide.scales.first(where: { $0.definition.name == "C" })
-                ?? slide.scales.first
-            
-            if let scale = hapticScale {
-                // Calculate hairline position (cursor position + half cursor width)
-                let scaleWidth = calculatedDimensions.width
-                let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
-                let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
-                
-                tickHapticCoordinator.checkTickCrossing(
-                    cursorNormalizedPosition: hairlinePosition,
-                    slideOffset: viewModel.sliderOffset,
-                    scaleWidth: scaleWidth,
-                    cScale: scale
-                )
+        // Priority: C scale (if available), then first scale on the appropriate slide
+        // For .both mode (iPad), check back slide first for C scale since that's where it typically is
+        let hapticScale: GeneratedScale? = {
+            switch viewMode {
+            case .front:
+                // Front only: check front slide
+                return currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" })
+                    ?? currentSlideRule.frontSlide.scales.first
+            case .back:
+                // Back only: check back slide
+                return currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" })
+                    ?? currentSlideRule.backSlide?.scales.first
+            case .both:
+                // Both sides visible (iPad): prioritize C scale from either slide, preferring front
+                if let cScale = currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" }) {
+                    return cScale
+                }
+                if let cScale = currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" }) {
+                    return cScale
+                }
+                // No C scale on either side, fall back to first scale on front slide (or back if no front)
+                return currentSlideRule.frontSlide.scales.first
+                    ?? currentSlideRule.backSlide?.scales.first
             }
+        }()
+        
+        if let scale = hapticScale {
+            // Calculate hairline position (cursor position + half cursor width)
+            let scaleWidth = calculatedDimensions.width
+            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
+            
+            tickHapticCoordinator.checkTickCrossing(
+                cursorNormalizedPosition: hairlinePosition,
+                slideOffset: viewModel.sliderOffset,
+                scaleWidth: scaleWidth,
+                cScale: scale
+            )
         }
     }
     
@@ -152,5 +167,59 @@ extension ContentView {
             // Toggle between front and back modes (don't toggle to .both)
             viewMode = (viewMode == .front) ? .back : .front
         }
+    }
+    
+    // MARK: - Cursor Drag Haptic Handlers
+    
+    /// Handles cursor drag changes for tick haptics
+    /// Uses the same scale selection logic as slide drag haptics (DRY)
+    /// - Parameter cursorNormalizedPosition: The cursor's normalized position (0.0-1.0)
+    func handleCursorDragChanged(_ cursorNormalizedPosition: CGFloat) {
+        // Trigger tick haptics when crossing tick marks (cursor position changes)
+        // Priority: C scale (if available), then first scale on the appropriate slide
+        // Reuses the same scale selection logic as slide drag haptics for DRY
+        let hapticScale: GeneratedScale? = {
+            switch viewMode {
+            case .front:
+                // Front only: check front slide
+                return currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" })
+                    ?? currentSlideRule.frontSlide.scales.first
+            case .back:
+                // Back only: check back slide
+                return currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" })
+                    ?? currentSlideRule.backSlide?.scales.first
+            case .both:
+                // Both sides visible (iPad): prioritize C scale from either slide, preferring front
+                if let cScale = currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" }) {
+                    return cScale
+                }
+                if let cScale = currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" }) {
+                    return cScale
+                }
+                // No C scale on either side, fall back to first scale on front slide (or back if no front)
+                return currentSlideRule.frontSlide.scales.first
+                    ?? currentSlideRule.backSlide?.scales.first
+            }
+        }()
+        
+        if let scale = hapticScale {
+            // Calculate hairline position (cursor position + half cursor width)
+            let scaleWidth = calculatedDimensions.width
+            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let hairlinePosition = cursorNormalizedPosition + halfCursorWidthNormalized
+            
+            tickHapticCoordinator.checkTickCrossing(
+                cursorNormalizedPosition: hairlinePosition,
+                slideOffset: viewModel.sliderOffset,
+                scaleWidth: scaleWidth,
+                cScale: scale
+            )
+        }
+    }
+    
+    /// Handles cursor drag end for tick haptics
+    /// Resets the tick haptic coordinator for the next drag
+    func handleCursorDragEnded() {
+        tickHapticCoordinator.reset()
     }
 }

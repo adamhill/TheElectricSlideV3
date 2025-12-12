@@ -61,6 +61,13 @@ struct CursorOverlay: View {
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
     
+    /// Callback for tick haptics during cursor drag (passes normalized cursor position)
+    /// Called during drag so parent can trigger tick crossing haptics
+    var onCursorDragChanged: ((CGFloat) -> Void)? = nil
+    
+    /// Callback when cursor drag ends (for resetting tick haptic coordinator)
+    var onCursorDragEnded: (() -> Void)? = nil
+    
     // MARK: - Precision Mode State
     
     /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
@@ -319,6 +326,9 @@ struct CursorOverlay: View {
         let normalizedPosition = clampedNewPosition / effectiveWidth
         let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
         cursorState.updateReadings(at: clampedPosition)
+        
+        // Trigger tick haptics via callback (pass normalized position to parent)
+        onCursorDragChanged?(clampedPosition)
     }
     
     /// Handle cursor drag end - commit the final position
@@ -343,6 +353,9 @@ struct CursorOverlay: View {
         // Note: Position stored is for the LEFT EDGE of cursor
         // Reading calculations must add half cursor width to get hairline position
         cursorState.setPosition(clampedPosition, for: side)
+        
+        // Reset tick haptic coordinator via callback
+        onCursorDragEnded?()
     }
     
     /// Handle precision drag end using the LAST APPLIED translation instead of gesture's final value
@@ -363,6 +376,9 @@ struct CursorOverlay: View {
         
         // Update immediately without animation to prevent vibration
         cursorState.setPosition(clampedPosition, for: side)
+        
+        // Reset tick haptic coordinator via callback
+        onCursorDragEnded?()
     }
 }
 

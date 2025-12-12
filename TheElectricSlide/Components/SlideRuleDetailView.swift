@@ -47,6 +47,12 @@ struct SlideRuleDetailView: View {
     let handleFlip: () -> Void  // Vertical swipe to flip sides
     let totalScaleHeight: (RuleSide) -> CGFloat
     
+    /// Callback for tick haptics during cursor drag (passes normalized cursor position)
+    let handleCursorDragChanged: ((CGFloat) -> Void)?
+    
+    /// Callback when cursor drag ends (for resetting tick haptic coordinator)
+    let handleCursorDragEnded: (() -> Void)?
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header controls (ViewMode picker for iPad/Mac)
@@ -85,7 +91,9 @@ struct SlideRuleDetailView: View {
                 handleFlip: handleFlip,  // Vertical swipe to flip sides
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
-                deviceCategory: deviceCategory
+                deviceCategory: deviceCategory,
+                handleCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
+                handleCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
             )
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift

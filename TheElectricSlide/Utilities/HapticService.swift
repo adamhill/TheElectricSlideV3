@@ -30,6 +30,11 @@ enum HapticEvent: Equatable {
     // Compound events
     case longBuzz
     
+    // Gesture boundary events
+    case boundaryHit(edge: BoundaryEdge)
+    case zoomSnap
+    case momentumStop
+    
     enum TickLevel: Equatable {
         case major      // relativeLength >= 0.9
         case secondary  // relativeLength >= 0.65
@@ -108,6 +113,18 @@ final class DefaultHapticService: HapticService {
             
         case .buttonTap(let style):
             generator(for: style).impactOccurred()
+            
+        case .boundaryHit:
+            // Rigid feedback when hitting gesture boundaries
+            rigidGenerator.impactOccurred(intensity: 0.8)
+            
+        case .zoomSnap:
+            // Soft feedback when zoom snaps to default
+            softGenerator.impactOccurred()
+            
+        case .momentumStop:
+            // Light feedback when momentum animation completes
+            lightGenerator.impactOccurred(intensity: 0.5)
         }
         #endif
     }

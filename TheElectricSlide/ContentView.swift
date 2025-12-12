@@ -129,6 +129,8 @@ struct ContentView: View {
             )
         } detail: {
             // DETAIL: Slide rule visualization
+            // Phase 7 Cleanup: All gesture handling via @Environment(\.gestureHandler)
+            // No more callback prop drilling through view hierarchy
             if selectedRuleDefinition != nil {
                 SlideRuleDetailView(
                     viewMode: $viewMode,
@@ -143,17 +145,7 @@ struct ContentView: View {
                     cursorState: cursorState,
                     currentZoomScale: $viewModel.currentZoomScale,
                     panOffset: $viewModel.panOffset,
-                    handleDragChanged: handleDragChanged,
-                    handleDragEnded: handleDragEnded,
-                    handleZoomChanged: handleZoomChanged,
-                    handleZoomEnded: handleZoomEnded,
-                    handlePanChanged: handlePanChanged,
-                    handlePanEnded: handlePanEnded,
-                    handleResetZoom: handleResetZoom,
-                    handleFlip: handleFlip,
-                    totalScaleHeight: totalScaleHeight,
-                    handleCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
-                    handleCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
+                    totalScaleHeight: totalScaleHeight
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
                     let size = proxy.size

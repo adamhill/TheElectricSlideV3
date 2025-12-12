@@ -4,8 +4,8 @@
 //
 //  Overlay container with gesture handling for glass cursor
 //
-//  Phase 4 Bold Refactor: Added @Environment(\.gestureHandler) support
-//  Tick haptic callbacks now prefer gestureHandler, fall back to callbacks.
+//  Phase 7 Cleanup: Removed callback prop drilling - all gestures now use
+//  @Environment(\.gestureHandler). No more legacy callback properties.
 //
 
 import SwiftUI
@@ -59,25 +59,12 @@ struct CursorOverlay: View {
     /// Whether to show gradient backgrounds
     var showGradients: Bool = true
     
-    /// Triple-tap callback to reset zoom to 1.0× (legacy callback, prefer gestureHandler)
-    var onResetZoom: (() -> Void)? = nil
-    
     /// Current zoom scale for display on cursor handle
     var currentZoomScale: CGFloat = 1.0
     
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
     
-    // MARK: - Legacy Callbacks (for backward compatibility, prefer gestureHandler)
-    
-    /// Callback for tick haptics during cursor drag (passes normalized cursor position)
-    /// Called during drag so parent can trigger tick crossing haptics.
-    /// Phase 4: Prefer gestureHandler.handleCursorDragChanged() when available.
-    var onCursorDragChanged: ((CGFloat) -> Void)? = nil
-    
-    /// Callback when cursor drag ends (for resetting tick haptic coordinator)
-    /// Phase 4: Prefer gestureHandler.handleCursorDragEnded() when available.
-    var onCursorDragEnded: (() -> Void)? = nil
     // MARK: - Precision Mode State
     
     /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
@@ -118,12 +105,7 @@ struct CursorOverlay: View {
                     .frame(width: effectiveWidth, height: height, alignment: .topLeading)
                 .onTapGesture(count: 3) {
                     // Triple-tap to reset zoom to 1.0×
-                    // Phase 4: Prefer gestureHandler, fall back to callback
-                    if let handler = gestureHandler {
-                        handler.handleResetZoom()
-                    } else {
-                        onResetZoom?()
-                    }
+                    gestureHandler?.handleResetZoom()
                 }
                 // Normal drag gesture for standard cursor movement
                 // Suppressed when precision sequence is active for cursor
@@ -322,13 +304,8 @@ struct CursorOverlay: View {
         let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
         cursorState.updateReadings(at: clampedPosition)
         
-        // Trigger tick haptics
-        // Phase 4: Prefer gestureHandler, fall back to callback
-        if let handler = gestureHandler {
-            handler.handleCursorDragChanged(clampedPosition)
-        } else {
-            onCursorDragChanged?(clampedPosition)
-        }
+        // Trigger tick haptics via gestureHandler
+        gestureHandler?.handleCursorDragChanged(clampedPosition)
     }
     
     /// Handle cursor drag end - commit the final position
@@ -354,13 +331,8 @@ struct CursorOverlay: View {
         // Reading calculations must add half cursor width to get hairline position
         cursorState.setPosition(clampedPosition, for: side)
         
-        // Reset tick haptic coordinator
-        // Phase 4: Prefer gestureHandler, fall back to callback
-        if let handler = gestureHandler {
-            handler.handleCursorDragEnded()
-        } else {
-            onCursorDragEnded?()
-        }
+        // Reset tick haptic coordinator via gestureHandler
+        gestureHandler?.handleCursorDragEnded()
     }
     
     /// Handle precision drag end using the LAST APPLIED translation instead of gesture's final value
@@ -382,13 +354,8 @@ struct CursorOverlay: View {
         // Update immediately without animation to prevent vibration
         cursorState.setPosition(clampedPosition, for: side)
         
-        // Reset tick haptic coordinator
-        // Phase 4: Prefer gestureHandler, fall back to callback
-        if let handler = gestureHandler {
-            handler.handleCursorDragEnded()
-        } else {
-            onCursorDragEnded?()
-        }
+        // Reset tick haptic coordinator via gestureHandler
+        gestureHandler?.handleCursorDragEnded()
     }
 }
 

@@ -4,6 +4,9 @@
 //
 //  Extracted from ContentView.swift
 //
+//  Phase 7 Cleanup: Removed gesture callbacks - all gestures now handled via
+//  @Environment(\.gestureHandler) in child views (SideView, CursorOverlay, StatorView).
+//
 
 import SwiftUI
 import SwiftData
@@ -38,21 +41,9 @@ struct DynamicSlideRuleContent: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let handleDragChanged: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
-    let handleDragEnded: (DragGesture.Value, Bool) -> Void  // Bool = isPrecision
-    let handlePanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
-    let handlePanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
-    let handleResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
-    let handleFlip: (() -> Void)?  // Vertical swipe to flip sides
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
-    
-    /// Callback for tick haptics during cursor drag (passes normalized cursor position)
-    let handleCursorDragChanged: ((CGFloat) -> Void)?
-    
-    /// Callback when cursor drag ends (for resetting tick haptic coordinator)
-    let handleCursorDragEnded: (() -> Void)?
     
     // MARK: - Stable Dimensions (debounced to avoid intermediate animation values)
     // The system animates geometry changes through intermediate widths (e.g., 876→856→836→816→796)
@@ -132,14 +123,8 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
-                        ruleId: ruleId,  // Pass rule ID for identity tracking
-                        currentZoomScale: currentZoomScale,  // For pan gesture control
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded,
-                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
-                        onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom,  // Triple-tap to reset zoom
-                        onFlip: handleFlip  // Vertical swipe to flip sides
+                        ruleId: ruleId,
+                        currentZoomScale: currentZoomScale
                     )
                     .equatable()
                     .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -156,11 +141,8 @@ struct DynamicSlideRuleContent: View {
                             rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
-                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
-                            cursorDisplayMode: $cursorDisplayMode,
-                            onCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
-                            onCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }
@@ -200,14 +182,8 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
-                        ruleId: ruleId,  // Pass rule ID for identity tracking
-                        currentZoomScale: currentZoomScale,  // For pan gesture control
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded,
-                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
-                        onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom,  // Triple-tap to reset zoom
-                        onFlip: handleFlip  // Vertical swipe to flip sides
+                        ruleId: ruleId,
+                        currentZoomScale: currentZoomScale
                     )
                     .equatable()
                     .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -224,11 +200,8 @@ struct DynamicSlideRuleContent: View {
                             rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
-                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
-                            cursorDisplayMode: $cursorDisplayMode,
-                            onCursorDragChanged: handleCursorDragChanged,  // Tick haptics during cursor drag
-                            onCursorDragEnded: handleCursorDragEnded  // Reset tick haptic coordinator
+                            cursorDisplayMode: $cursorDisplayMode
                         )
                     }
                 }

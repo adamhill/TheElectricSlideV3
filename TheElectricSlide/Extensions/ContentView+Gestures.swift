@@ -6,6 +6,10 @@
 //
 
 import SwiftUI
+import SlideRuleCoreV3
+import os.log
+
+private let gestureLogger = Logger(subsystem: "com.theelectricslide", category: "Gestures")
 
 // MARK: - Gesture Handlers
 
@@ -14,19 +18,56 @@ extension ContentView {
     // MARK: - Drag Gesture Handlers (Slide Movement)
     
     /// Handles drag gesture changes for slider movement
-    /// Marks cursor state as dragging and delegates to viewModel
-    func handleDragChanged(_ gesture: DragGesture.Value) {
+    /// Marks cursor state as dragging, delegates to viewModel, and triggers tick haptics
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - isPrecision: Whether precision mode is active (reduced sensitivity)
+    func handleDragChanged(_ gesture: DragGesture.Value, isPrecision: Bool) {
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
-        viewModel.handleSliderDragChanged(translation: gesture.translation.width)
+        
+        // Apply precision factor if in precision mode
+        let translationWidth = isPrecision
+            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
+            : gesture.translation.width
+        
+        viewModel.handleSliderDragChanged(translation: translationWidth)
+        
+        // Trigger tick haptics when crossing tick marks on the slide
+        // Use centralized scale selection from TickHapticCoordinator
+        let hapticScale = TickHapticCoordinator.selectHapticScale(
+            viewMode: viewMode,
+            currentSlideRule: currentSlideRule
+        )
+        
+        if let scale = hapticScale {
+            // Calculate hairline position (cursor position + half cursor width)
+            let scaleWidth = calculatedDimensions.width
+            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
+            
+            tickHapticCoordinator.checkTickCrossing(
+                cursorNormalizedPosition: hairlinePosition,
+                slideOffset: viewModel.sliderOffset,
+                scaleWidth: scaleWidth,
+                cScale: scale
+            )
+        }
     }
     
     /// Handles drag gesture end for slider movement
-    /// Commits slider position and marks drag as ended
-    func handleDragEnded(_ gesture: DragGesture.Value) {
+    /// Commits slider position, marks drag as ended, and resets tick haptic coordinator
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - isPrecision: Whether precision mode is active (for consistent factor application)
+    func handleDragEnded(_ gesture: DragGesture.Value, isPrecision: Bool) {
+        // Note: For precision mode, the translation has already been tracked and applied
+        // during onChanged, so we don't need to reapply the factor here
         viewModel.handleSliderDragEnded()
         // Mark slide drag as ended
         cursorState.setSlideDragging(false)
+        // Reset tick haptic coordinator for next drag
+        tickHapticCoordinator.reset()
     }
     
     // MARK: - Zoom Gesture Handlers (Pinch-to-Zoom)
@@ -85,5 +126,60 @@ extension ContentView {
         withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
             viewModel.resetZoom()
         }
+    }
+    
+    // MARK: - Flip Handler (Vertical Swipe)
+    
+    /// Handles vertical swipe to flip between front and back sides
+    /// Uses the same animation as FlipButton for consistency
+    func handleFlip() {
+        // Only flip if there's a back side to flip to
+        guard currentSlideRule.backTopStator != nil else { return }
+        
+        #if DEBUG
+        let fromSide = viewMode.rawValue
+        let toSide = (viewMode == .front) ? ViewMode.back.rawValue : ViewMode.front.rawValue
+        print("[Flip] Swiping: \(fromSide) → \(toSide)")
+        #endif
+        
+        // Animate the view mode transition with the same spring animation as FlipButton
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            // Toggle between front and back modes (don't toggle to .both)
+            viewMode = (viewMode == .front) ? .back : .front
+        }
+    }
+    
+    // MARK: - Cursor Drag Haptic Handlers
+    
+    /// Handles cursor drag changes for tick haptics
+    /// Uses centralized scale selection from TickHapticCoordinator (DRY)
+    /// - Parameter cursorNormalizedPosition: The cursor's normalized position (0.0-1.0)
+    func handleCursorDragChanged(_ cursorNormalizedPosition: CGFloat) {
+        // Trigger tick haptics when crossing tick marks (cursor position changes)
+        // Use centralized scale selection from TickHapticCoordinator
+        let hapticScale = TickHapticCoordinator.selectHapticScale(
+            viewMode: viewMode,
+            currentSlideRule: currentSlideRule
+        )
+        
+        if let scale = hapticScale {
+            // Calculate hairline position (cursor position + half cursor width)
+            let scaleWidth = calculatedDimensions.width
+            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let hairlinePosition = cursorNormalizedPosition + halfCursorWidthNormalized
+            
+            tickHapticCoordinator.checkTickCrossing(
+                cursorNormalizedPosition: hairlinePosition,
+                slideOffset: viewModel.sliderOffset,
+                scaleWidth: scaleWidth,
+                cScale: scale
+            )
+        }
+    }
+    
+    /// Handles cursor drag end for tick haptics
+    /// Resets the tick haptic coordinator for the next drag
+    func handleCursorDragEnded() {
+        tickHapticCoordinator.reset()
     }
 }

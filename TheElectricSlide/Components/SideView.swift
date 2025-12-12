@@ -5,6 +5,9 @@
 //  Renders a complete side of the slide rule: top stator, slide, bottom stator
 //  Extracted from ContentView.swift for better organization
 //
+//  Phase 7 Cleanup: Removed callback prop drilling - all gestures now use
+//  @Environment(\.gestureHandler). No more legacy callback initializers.
+//
 
 import SwiftUI
 import SlideRuleCoreV3
@@ -12,6 +15,10 @@ import SlideRuleCoreV3
 // MARK: - SideView Component (renders complete side: top stator, slide, bottom stator)
 
 struct SideView: View, Equatable {
+    @Environment(\.hapticService) private var haptics
+    @Environment(\.precisionCoordinator) private var precisionCoordinator
+    @Environment(\.gestureHandler) private var gestureHandler
+    
     let side: RuleSide
     let topStator: Stator
     let slide: Slide
@@ -26,14 +33,22 @@ struct SideView: View, Equatable {
     let cursorState: CursorState?
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let onDragChanged: (DragGesture.Value) -> Void
-    let onDragEnded: (DragGesture.Value) -> Void
-    let onPanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
-    let onPanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
-    let onResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
+    
+    // MARK: - Vertical Swipe State
+    
+    /// Threshold for vertical swipe detection (points)
+    private static let verticalSwipeThreshold: CGFloat = 50
+    
+    /// Tracks if a vertical swipe has been triggered during current gesture
+    @State private var hasTriggeredFlip: Bool = false
+    
+    // MARK: - Slide Precision Mode State
+    
+    /// Whether precision mode is active (for GestureState tracking - auto-resets)
+    @GestureState private var isSlidePrecisionDragging: Bool = false
     
     // ✅ Equatable conformance - only compare properties affecting rendering
-    // Note: Closures and cursorState are not compared in Equatable
+    // Note: cursorState is not compared in Equatable
     // ruleId is compared to force re-render when rule changes
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
@@ -69,10 +84,7 @@ struct SideView: View, Equatable {
                 formulaFont: formulaFont,
                 cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
-                onPanEnded: onPanEnded,  // Pan gesture end
-                onResetZoom: onResetZoom  // Triple-tap to reset zoom
+                currentZoomScale: currentZoomScale  // For pan gesture control
             )
             .equatable()
             .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
@@ -94,12 +106,82 @@ struct SideView: View, Equatable {
             .offset(x: sliderOffset)
             .onTapGesture(count: 3) {
                 // Triple-tap to reset zoom to 1.0×
-                onResetZoom?()
+                gestureHandler?.handleResetZoom()
             }
+            // Normal drag gesture for standard slide movement
+            // Suppressed when precision sequence is active for slide
             .gesture(
                 DragGesture()
-                    .onChanged(onDragChanged)
-                    .onEnded(onDragEnded)
+                    .onChanged { gesture in
+                        // Block if precision sequence is active for slide
+                        guard precisionCoordinator.activeTarget != .slide else {
+                            #if DEBUG
+                            print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active")
+                            #endif
+                            return
+                        }
+                        gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
+                    }
+                    .onEnded { gesture in
+                        // Block if precision sequence is active for slide
+                        guard precisionCoordinator.activeTarget != .slide else {
+                            #if DEBUG
+                            print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active")
+                            #endif
+                            return
+                        }
+                        gestureHandler?.handleSlideDragEnded(gesture, isPrecision: false)
+                    }
+            )
+            // Long-press sequenced with drag for precision slide movement
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
+                    .onEnded { _ in
+                        // Enter precision sequence with haptic feedback
+                        precisionCoordinator.activate(for: .slide)
+                        haptics.fire(.longBuzz)
+                        #if DEBUG
+                        print("🎯 [Slide.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
+                        #endif
+                    }
+                    .sequenced(before: DragGesture())
+                    .updating($isSlidePrecisionDragging) { value, state, _ in
+                        if case .second(true, _) = value {
+                            state = true
+                        }
+                    }
+                    .onChanged { value in
+                        switch value {
+                        case .first(true):
+                            // Long press in progress
+                            break
+                        case .second(true, let drag):
+                            if let drag = drag {
+                                // Track translation for use in onEnded
+                                precisionCoordinator.recordTranslation(drag.translation)
+                                #if DEBUG
+                                print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
+                                #endif
+                                gestureHandler?.handleSlideDragChanged(drag, isPrecision: true)
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    .onEnded { value in
+                        #if DEBUG
+                        print("🎯 [Slide.Precision.onEnded] Using coordinator's lastAppliedTranslation")
+                        #endif
+                        
+                        // Create a synthetic gesture value using last applied translation
+                        // to prevent finger-lift jitter
+                        if case .second(true, let drag) = value, let drag = drag {
+                            gestureHandler?.handleSlideDragEnded(drag, isPrecision: true)
+                        }
+                        
+                        // End precision session with cooldown
+                        precisionCoordinator.deactivate()
+                    }
             )
             .animation(.interactiveSpring(), value: sliderOffset)
             .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
@@ -117,13 +199,34 @@ struct SideView: View, Equatable {
                 formulaFont: formulaFont,
                 cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                onPanChanged: onPanChanged,  // Pan gesture for zoomed content
-                onPanEnded: onPanEnded,  // Pan gesture end
-                onResetZoom: onResetZoom  // Triple-tap to reset zoom
+                currentZoomScale: currentZoomScale  // For pan gesture control
             )
             .equatable()
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
+        // MARK: - Vertical Swipe Gesture for Side Flip
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30, coordinateSpace: .local)
+                .onChanged { gesture in
+                    // Only trigger flip once per gesture and only if vertical motion dominates
+                    guard !hasTriggeredFlip, gestureHandler != nil else { return }
+                    
+                    let verticalDistance = abs(gesture.translation.height)
+                    let horizontalDistance = abs(gesture.translation.width)
+                    
+                    // Require vertical motion to be significantly greater than horizontal
+                    // and exceed threshold
+                    if verticalDistance > Self.verticalSwipeThreshold &&
+                       verticalDistance > horizontalDistance * 1.5 {
+                        hasTriggeredFlip = true
+                        haptics.fire(.flip)
+                        gestureHandler?.handleFlip()
+                    }
+                }
+                .onEnded { _ in
+                    // Reset flip trigger for next gesture
+                    hasTriggeredFlip = false
+                }
+        )
     }
 }

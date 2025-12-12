@@ -4,6 +4,9 @@
 //
 //  Extracted from ContentView.swift
 //
+//  Phase 7 Cleanup: Removed gesture callbacks - all gestures now handled via
+//  @Environment(\.gestureHandler) in child views (SideView, CursorOverlay, StatorView).
+//
 
 import SwiftUI
 import SwiftData
@@ -38,11 +41,6 @@ struct DynamicSlideRuleContent: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    let handleDragChanged: (DragGesture.Value) -> Void
-    let handleDragEnded: (DragGesture.Value) -> Void
-    let handlePanChanged: ((DragGesture.Value) -> Void)?  // Pan gesture for zoomed content
-    let handlePanEnded: ((DragGesture.Value) -> Void)?  // Pan gesture end
-    let handleResetZoom: (() -> Void)?  // Triple-tap to reset zoom to 1.0×
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
@@ -103,9 +101,14 @@ struct DynamicSlideRuleContent: View {
                     .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
                 }
                 
-                // Cursor readings with tap-to-cycle - compact stacked layout
-                cursorReadingsDisplayArea()
-                    .padding(.horizontal, 8)
+                // Cursor readings with tap-to-cycle - uses reusable CursorReadingsContainer
+                CursorReadingsContainer(
+                    viewMode: viewMode,
+                    cursorReadingCycleMode: $cursorReadingCycleMode,
+                    currentReadings: cursorState.currentReadings,
+                    hasBackSide: slideRule.backTopStator != nil
+                )
+                .padding(.horizontal, 8)
             }
             
             // Front side - show if mode is .front or .both
@@ -125,13 +128,8 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
-                        ruleId: ruleId,  // Pass rule ID for identity tracking
-                        currentZoomScale: currentZoomScale,  // For pan gesture control
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded,
-                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
-                        onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
+                        ruleId: ruleId,
+                        currentZoomScale: currentZoomScale
                     )
                     .equatable()
                     .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -148,7 +146,6 @@ struct DynamicSlideRuleContent: View {
                             rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
-                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
                             cursorDisplayMode: $cursorDisplayMode
                         )
@@ -190,13 +187,8 @@ struct DynamicSlideRuleContent: View {
                         formulaFont: formulaFont,
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
-                        ruleId: ruleId,  // Pass rule ID for identity tracking
-                        currentZoomScale: currentZoomScale,  // For pan gesture control
-                        onDragChanged: handleDragChanged,
-                        onDragEnded: handleDragEnded,
-                        onPanChanged: handlePanChanged,  // Pan gesture for zoomed content
-                        onPanEnded: handlePanEnded,  // Pan gesture end
-                        onResetZoom: handleResetZoom  // Triple-tap to reset zoom
+                        ruleId: ruleId,
+                        currentZoomScale: currentZoomScale
                     )
                     .equatable()
                     .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -213,7 +205,6 @@ struct DynamicSlideRuleContent: View {
                             rightMarginWidth: renderDimensions.rightMarginWidth,
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
-                            onResetZoom: handleResetZoom,  // Triple-tap on cursor to reset zoom
                             currentZoomScale: currentZoomScale,
                             cursorDisplayMode: $cursorDisplayMode
                         )
@@ -264,101 +255,5 @@ struct DynamicSlideRuleContent: View {
         .onChange(of: sliderOffset) {
             cursorState.updateReadings()
         }
-    }
-    
-    // MARK: - Cursor Readings Display Area with Tap-to-Cycle
-    
-    /// Creates the cursor readings display with tap-to-cycle functionality
-    /// Cycles through 4 states: currentSide → oppositeSide → both → none → repeat
-    @ViewBuilder
-    private func cursorReadingsDisplayArea() -> some View {
-        let frontReadings = cursorState.currentReadings?.frontReadings ?? []
-        let backReadings = cursorState.currentReadings?.backReadings ?? []
-        let hasBackSide = slideRule.backTopStator != nil
-        
-        // Determine which readings to show based on cycle mode and current view mode
-        // Cycle mode controls display for all view modes, allowing selective reading visibility
-        let (shouldShowFront, shouldShowBack): (Bool, Bool) = {
-            switch viewMode {
-            case .both:
-                // In "both" view mode, respect cycle mode for selective display
-                switch cursorReadingCycleMode {
-                case .currentSide:
-                    return (true, false)  // Show front only
-                case .oppositeSide:
-                    return (false, hasBackSide)  // Show back only (if exists)
-                case .both:
-                    return (true, hasBackSide)  // Show both
-                case .none:
-                    return (false, false)  // Show nothing
-                }
-            case .front:
-                // Currently viewing front side
-                switch cursorReadingCycleMode {
-                case .currentSide:
-                    return (true, false)  // Show front only
-                case .oppositeSide:
-                    return (false, hasBackSide)  // Show back only (if exists)
-                case .both:
-                    return (true, hasBackSide)  // Show both
-                case .none:
-                    return (false, false)  // Show nothing
-                }
-            case .back:
-                // Currently viewing back side
-                switch cursorReadingCycleMode {
-                case .currentSide:
-                    return (false, true)  // Show back only
-                case .oppositeSide:
-                    return (true, false)  // Show front only
-                case .both:
-                    return (true, true)  // Show both
-                case .none:
-                    return (false, false)  // Show nothing
-                }
-            }
-        }()
-        
-        // Stacked layout with tap gesture - negative spacing for tight rows
-        VStack(spacing: -4) {
-            if shouldShowFront {
-                CursorReadingsDisplayView(
-                    readings: frontReadings,
-                    side: .front
-                )
-                .equatable()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 0)
-            }
-            
-            if shouldShowBack {
-                CursorReadingsDisplayView(
-                    readings: backReadings,
-                    side: .back
-                )
-                .equatable()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 0)
-            }
-            
-            // Show placeholder when in "none" mode to maintain tap target
-            if cursorReadingCycleMode == .none {
-                Color.clear
-                    .frame(height: 12)  // Minimal height for tap target
-            }
-        }
-        .frame(minHeight: 50)  // CRITICAL: Maintain consistent minimum height across all cycle modes
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // Tap to cycle through all display states, regardless of view mode
-            withAnimation(.easeInOut(duration: 0.2)) {
-                cursorReadingCycleMode = cursorReadingCycleMode.next()
-            }
-        }
-        .accessibilityLabel("Cycle cursor reading mode")
-        .accessibilityHint("Tap to cycle reading display modes")
-        .accessibilityIdentifier("cursorReadingCycleToggle")
-        // Subtle opacity feedback
-        .opacity(0.95)
     }
 }

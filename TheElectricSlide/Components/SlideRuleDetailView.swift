@@ -3,6 +3,9 @@
 //
 //  Extracted from ContentView.swift
 //
+//  Phase 7 Cleanup: Removed gesture callbacks - zoom gestures now use
+//  @Environment(\.gestureHandler). Child views handle their own gestures via environment.
+//
 
 import SwiftUI
 import SwiftData
@@ -23,6 +26,8 @@ private func systemBackgroundColor() -> Color {
 // MARK: - Detail View (Slide Rule Visualization)
 
 struct SlideRuleDetailView: View {
+    @Environment(\.gestureHandler) private var gestureHandler
+    
     @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
@@ -37,13 +42,6 @@ struct SlideRuleDetailView: View {
     @Binding var currentZoomScale: CGFloat  // Current zoom level for pinch-to-zoom
     @Binding var panOffset: CGSize  // Pan offset for moving zoomed content
     
-    let handleDragChanged: (DragGesture.Value) -> Void
-    let handleDragEnded: (DragGesture.Value) -> Void
-    let handleZoomChanged: (CGFloat) -> Void  // Pinch zoom changed
-    let handleZoomEnded: (CGFloat) -> Void  // Pinch zoom ended
-    let handlePanChanged: (DragGesture.Value) -> Void  // Pan gesture for zoomed content
-    let handlePanEnded: (DragGesture.Value) -> Void  // Pan gesture end
-    let handleResetZoom: () -> Void  // Triple-tap to reset zoom
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
@@ -75,12 +73,7 @@ struct SlideRuleDetailView: View {
                 cursorState: cursorState,
                 cursorDisplayMode: $cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                handleDragChanged: handleDragChanged,
-                handleDragEnded: handleDragEnded,
-                handlePanChanged: handlePanChanged,  // Pan gesture for zoomed content
-                handlePanEnded: handlePanEnded,  // Pan gesture end
-                handleResetZoom: handleResetZoom,  // Triple-tap to reset zoom
+                currentZoomScale: currentZoomScale,
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
@@ -92,17 +85,31 @@ struct SlideRuleDetailView: View {
             .simultaneousGesture(
                 MagnificationGesture()
                     .onChanged { scale in
-                        handleZoomChanged(scale)
+                        // Phase 7: Use gestureHandler for zoom
+                        if let handler = gestureHandler {
+                            handler.handleZoomChanged(scale)
+                        }
                     }
                     .onEnded { scale in
-                        handleZoomEnded(scale)
+                        // Phase 7: Use gestureHandler for zoom
+                        if let handler = gestureHandler {
+                            handler.handleZoomEnded(scale)
+                        }
                     }
             )
             // macOS: Scroll wheel / trackpad two-finger scroll for zoom
             .onScrollWheelZoom(
                 speed: 1,
-                onZoomChanged: handleZoomChanged,
-                onZoomEnded: handleZoomEnded
+                onZoomChanged: { scale in
+                    if let handler = gestureHandler {
+                        handler.handleZoomChanged(scale)
+                    }
+                },
+                onZoomEnded: { scale in
+                    if let handler = gestureHandler {
+                        handler.handleZoomEnded(scale)
+                    }
+                }
             )
             .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
             .overlay(alignment: .bottomLeading) {
@@ -140,4 +147,3 @@ struct SlideRuleDetailView: View {
         .padding(.top, 8)
     }
 }
-

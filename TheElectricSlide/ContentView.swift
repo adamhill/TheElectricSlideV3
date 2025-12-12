@@ -43,8 +43,22 @@ struct ContentView: View {
     // Note: internal access for extension in ContentView+Gestures.swift
     @State var viewModel = SlideRuleViewModel()
     
+    // MARK: - Tick Haptic Coordinator
+    // Provides haptic feedback when cursor crosses C scale tick marks during slide movement
+    @State var tickHapticCoordinator = TickHapticCoordinator()
+    
+    // MARK: - Precision Drag Coordinator
+    // Unified precision mode state management for slide and cursor (Phase 3 refactoring)
+    @State var precisionCoordinator = PrecisionDragCoordinator()
+    
+    // MARK: - Gesture Handler
+    // Phase 4 Bold Refactor: Centralized gesture handling via environment
+    // Eliminates callback prop drilling through SlideRuleDetailView → DynamicSlideRuleContent → SideView/CursorOverlay
+    @State private var gestureHandler: GestureHandler?
+    
     // MARK: - View State (kept as @State per performance doc - avoid circular dependencies)
-    @State private var viewMode: ViewMode = .both  // View mode selector
+    // Note: viewMode is internal for access from ContentView+Gestures extension
+    @State var viewMode: ViewMode = .both  // View mode selector
     @State private var cursorDisplayMode: CursorDisplayMode = .both  // Cursor display mode
     @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
@@ -115,6 +129,8 @@ struct ContentView: View {
             )
         } detail: {
             // DETAIL: Slide rule visualization
+            // Phase 7 Cleanup: All gesture handling via @Environment(\.gestureHandler)
+            // No more callback prop drilling through view hierarchy
             if selectedRuleDefinition != nil {
                 SlideRuleDetailView(
                     viewMode: $viewMode,
@@ -129,13 +145,6 @@ struct ContentView: View {
                     cursorState: cursorState,
                     currentZoomScale: $viewModel.currentZoomScale,
                     panOffset: $viewModel.panOffset,
-                    handleDragChanged: handleDragChanged,
-                    handleDragEnded: handleDragEnded,
-                    handleZoomChanged: handleZoomChanged,
-                    handleZoomEnded: handleZoomEnded,
-                    handlePanChanged: handlePanChanged,
-                    handlePanEnded: handlePanEnded,
-                    handleResetZoom: handleResetZoom,
                     totalScaleHeight: totalScaleHeight
                 )
                 .onGeometryChange(for: Dimensions.self) { proxy in
@@ -164,7 +173,27 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.prominentDetail)
+        // Phase 3 & 4: Inject environment values for gesture handling
+        .environment(\.precisionCoordinator, precisionCoordinator)
+        .environment(\.slideRuleViewModel, viewModel)
+        .environment(\.tickHapticCoordinator, tickHapticCoordinator)
+        .environment(\.gestureHandler, gestureHandler)
         .onAppear {
+            // Phase 4: Create GestureHandler with closures for dynamic data
+            let handler = GestureHandler(
+                viewModel: viewModel,
+                cursorState: cursorState,
+                tickHapticCoordinator: tickHapticCoordinator,
+                getViewMode: { [self] in self.viewMode },
+                getSlideRule: { [self] in self.currentSlideRule },
+                getDimensions: { [self] in self.calculatedDimensions }
+            )
+            // Set up flip callback (handleFlip modifies viewMode binding)
+            handler.onFlipRequested = { [self] in
+                self.handleFlip()
+            }
+            gestureHandler = handler
+            
             cursorState.setSlideRuleProvider(self)
             cursorState.enableReadings = true
             // Set stator touched to show readings by default

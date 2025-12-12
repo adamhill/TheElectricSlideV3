@@ -8,10 +8,6 @@
 
 import SwiftUI
 
-#if os(iOS)
-import UIKit
-#endif
-
 /// A compact, circular button component that toggles between front and back views of the slide rule.
 ///
 /// This component is designed specifically for compact devices (iPhone, Apple Watch) where
@@ -40,6 +36,8 @@ import UIKit
 /// - Fixed 40x40pt size for consistent appearance
 /// - Icon-only design keeps UI clean and compact
 struct FlipButton: View {
+    @Environment(\.hapticService) private var haptics
+    
     /// Binding to the current view mode. The button will toggle between `.front` and `.back`.
     @Binding var viewMode: ViewMode
     
@@ -99,11 +97,8 @@ struct FlipButton: View {
         print("[FlipButton] Flipping: \(fromSide) → \(toSide)")
         #endif
         
-        // Provide haptic feedback on iOS for tactile confirmation
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-        #endif
+        // Provide haptic feedback for tactile confirmation
+        haptics.fire(.flip)
         
         // Animate the view mode transition with a spring animation
         // Response: 0.3 seconds (feels snappy and responsive)

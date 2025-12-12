@@ -12,6 +12,8 @@ import SlideRuleCoreV3
 // MARK: - SideView Component (renders complete side: top stator, slide, bottom stator)
 
 struct SideView: View, Equatable {
+    @Environment(\.hapticService) private var haptics
+    
     let side: RuleSide
     let topStator: Stator
     let slide: Slide
@@ -145,7 +147,7 @@ struct SideView: View, Equatable {
                     .onEnded { _ in
                         // Enter precision sequence with haptic feedback
                         slidePrecisionState.beginSession()
-                        HapticManager.longBuzz()
+                        haptics.fire(.longBuzz)
                         #if DEBUG
                         print("🎯 [Slide.Precision] MODE ACTIVATED")
                         #endif
@@ -230,7 +232,7 @@ struct SideView: View, Equatable {
                     if verticalDistance > Self.verticalSwipeThreshold &&
                        verticalDistance > horizontalDistance * 1.5 {
                         hasTriggeredFlip = true
-                        HapticManager.flipFeedback()
+                        haptics.fire(.flip)
                         onFlip?()
                     }
                 }

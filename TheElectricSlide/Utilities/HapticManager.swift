@@ -5,6 +5,9 @@
 //  Centralized haptic feedback management for slide rule interactions
 //  Issue #61: Navigation gestures and tick haptics
 //
+//  DEPRECATED: Use HapticService via @Environment(\.hapticService) instead.
+//  This enum is maintained for backward compatibility during migration.
+//
 
 import SwiftUI
 
@@ -14,7 +17,13 @@ import UIKit
 
 /// Centralized manager for haptic feedback throughout the app
 /// Provides tiered haptic intensities and throttling to prevent hardware saturation
+@available(*, deprecated, message: "Use HapticService via @Environment(\\.hapticService) instead")
 enum HapticManager {
+    
+    // MARK: - Migration Support
+    
+    /// Shared service instance for migration period - prefer @Environment injection
+    static let sharedService: HapticService = DefaultHapticService()
     
     // MARK: - Throttle State
     
@@ -57,6 +66,7 @@ enum HapticManager {
     
     /// Long haptic buzz for entering precision mode (long press)
     /// Used as placeholder for slow-move dial feature
+    @available(*, deprecated, message: "Use HapticService.fire(.longBuzz) via @Environment(\\.hapticService) instead")
     static func longBuzz() {
         #if os(iOS)
         rigidGenerator.impactOccurred(intensity: 1.0)
@@ -69,6 +79,7 @@ enum HapticManager {
     }
     
     /// Level 1 - Strong pop for major tick marks (relativeLength >= 0.9)
+    @available(*, deprecated, message: "Use HapticService.fire(.tickCrossed(level: .major)) via @Environment(\\.hapticService) instead")
     static func strongPop() {
         #if os(iOS)
         heavyGenerator.impactOccurred()
@@ -77,6 +88,7 @@ enum HapticManager {
     }
     
     /// Level 2 - Normal pop for medium tick marks (relativeLength >= 0.65)
+    @available(*, deprecated, message: "Use HapticService.fire(.tickCrossed(level: .secondary)) via @Environment(\\.hapticService) instead")
     static func normalPop() {
         #if os(iOS)
         mediumGenerator.impactOccurred()
@@ -85,6 +97,7 @@ enum HapticManager {
     }
     
     /// Level 3 - Short/light pop for minor tick marks
+    @available(*, deprecated, message: "Use HapticService.fire(.tickCrossed(level: .tertiary)) via @Environment(\\.hapticService) instead")
     static func shortPop() {
         #if os(iOS)
         lightGenerator.impactOccurred()
@@ -93,6 +106,7 @@ enum HapticManager {
     }
     
     /// Light feedback for side flip gesture
+    @available(*, deprecated, message: "Use HapticService.fire(.flip) via @Environment(\\.hapticService) instead")
     static func flipFeedback() {
         #if os(iOS)
         lightGenerator.impactOccurred()
@@ -105,6 +119,7 @@ enum HapticManager {
     /// Trigger haptic for tick mark crossing with 50ms throttle
     /// - Parameter tickLevel: The tick's relativeLength (1.0 = major, 0.75 = medium, 0.5 = minor)
     /// - Returns: True if haptic was triggered, false if throttled
+    @available(*, deprecated, message: "Use HapticService.fire(.tickCrossed(level:)) via @Environment(\\.hapticService) instead")
     @discardableResult
     static func tickHaptic(forLevel tickLevel: Double) -> Bool {
         let now = Date()
@@ -134,6 +149,7 @@ enum HapticManager {
     
     /// Prepare all generators for immediate response
     /// Call this when entering an interaction-heavy mode
+    @available(*, deprecated, message: "Use HapticService.prepare() via @Environment(\\.hapticService) instead")
     static func prepareAll() {
         #if os(iOS)
         heavyGenerator.prepare()

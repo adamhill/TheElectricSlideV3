@@ -22,6 +22,12 @@ final class TickHapticCoordinator {
     /// Whether tick haptics are enabled
     var isEnabled: Bool = true
     
+    // MARK: - Dependencies
+    
+    /// The haptic service for triggering haptic feedback
+    /// Injectable for testing; defaults to DefaultHapticService
+    @ObservationIgnored private let hapticService: HapticService
+    
     // MARK: - Debug Configuration
     
     /// Enable verbose logging for debugging tick haptics
@@ -42,6 +48,14 @@ final class TickHapticCoordinator {
     
     /// Minimum tick level to trigger haptics (avoids too many haptics from tiny ticks)
     private static let minimumTickLevel: Double = 0.4
+    
+    // MARK: - Initialization
+    
+    /// Creates a new TickHapticCoordinator with an optional haptic service
+    /// - Parameter hapticService: The haptic service to use. Defaults to DefaultHapticService.
+    init(hapticService: HapticService = DefaultHapticService()) {
+        self.hapticService = hapticService
+    }
     
     // MARK: - Public API
     
@@ -116,12 +130,56 @@ final class TickHapticCoordinator {
         // We crossed to a new tick - trigger haptic
         lastTriggeredTickPosition = tickPosition
         tickHapticLogger.info("🎯 HAPTIC TRIGGERED: tick pos=\(tickPosition, format: .fixed(precision: 4)), relLen=\(nearestTick.style.relativeLength, format: .fixed(precision: 2))")
-        HapticManager.tickHaptic(forLevel: nearestTick.style.relativeLength)
+        
+        // Use the new HapticService with TickLevel conversion
+        let tickLevel = HapticEvent.TickLevel(relativeLength: nearestTick.style.relativeLength)
+        hapticService.fire(.tickCrossed(level: tickLevel))
     }
     
     /// Reset the coordinator (call when starting a new drag)
     func reset() {
         lastTriggeredTickPosition = nil
+    }
+    
+    // MARK: - Centralized Scale Selection
+    
+    /// Centralized scale selection for haptic feedback based on view mode
+    /// This eliminates duplication across ContentView+Gestures handlers
+    ///
+    /// Priority: C scale (if available), then first scale on the appropriate slide
+    /// For .both mode (iPad), check front slide first for C scale, then back slide
+    ///
+    /// - Parameters:
+    ///   - viewMode: The current view mode (.front, .back, or .both)
+    ///   - currentSlideRule: The current slide rule with front/back slides
+    /// - Returns: The selected scale for haptic feedback, or nil if no suitable scale found
+    static func selectHapticScale(
+        viewMode: ViewMode,
+        currentSlideRule: SlideRule
+    ) -> GeneratedScale? {
+        switch viewMode {
+        case .front:
+            // Front only: check front slide
+            return currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" })
+                ?? currentSlideRule.frontSlide.scales.first
+            
+        case .back:
+            // Back only: check back slide
+            return currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" })
+                ?? currentSlideRule.backSlide?.scales.first
+            
+        case .both:
+            // Both sides visible (iPad): prioritize C scale from either slide, preferring front
+            if let cScale = currentSlideRule.frontSlide.scales.first(where: { $0.definition.name == "C" }) {
+                return cScale
+            }
+            if let cScale = currentSlideRule.backSlide?.scales.first(where: { $0.definition.name == "C" }) {
+                return cScale
+            }
+            // No C scale on either side, fall back to first scale on front slide (or back if no front)
+            return currentSlideRule.frontSlide.scales.first
+                ?? currentSlideRule.backSlide?.scales.first
+        }
     }
     
     // MARK: - Private Helpers

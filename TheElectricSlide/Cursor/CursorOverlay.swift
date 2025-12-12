@@ -22,6 +22,8 @@ struct CursorPositionModifier: ViewModifier {
 struct CursorOverlay: View {
     // MARK: - Properties
     
+    @Environment(\.hapticService) private var haptics
+    
     /// Shared cursor state
     let cursorState: CursorState
     
@@ -185,7 +187,7 @@ struct CursorOverlay: View {
                             precisionSessionID = UUID()
                             isPrecisionSequenceActive = true
                             positionAtPrecisionStart = cursorState.position(for: side)
-                            HapticManager.longBuzz()
+                            haptics.fire(.longBuzz)
                             #if DEBUG
                             print("🎯 [Precision] MODE ACTIVATED - session=\(precisionSessionID?.uuidString.prefix(8) ?? "nil")")
                             #endif

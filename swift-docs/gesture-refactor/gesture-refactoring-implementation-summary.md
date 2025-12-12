@@ -30,11 +30,12 @@ Successfully transformed the gesture system from scattered, view-embedded logic 
 | File | Changes |
 |------|---------|
 | `TheElectricSlide/Utilities/HapticService.swift` | Added `boundaryHit(edge:)`, `zoomSnap`, `momentumStop` haptic events |
-| `TheElectricSlide/Components/SideView.swift` | Now uses `@Environment(\.gestureHandler)` instead of callbacks |
-| `TheElectricSlide/Components/StatorView.swift` | Uses `GestureHandler` for pan gestures |
-| `TheElectricSlide/Components/SlideRuleDetailView.swift` | Uses `GestureHandler` for zoom gestures |
-| `TheElectricSlide/Cursor/CursorOverlay.swift` | Uses `GestureHandler` for cursor drag haptics |
-| `TheElectricSlide/ContentView.swift` | Creates and injects `GestureHandler` via environment |
+| `TheElectricSlide/Components/SideView.swift` | Now uses `@Environment(\.gestureHandler)` instead of callbacks; removed dual initializer |
+| `TheElectricSlide/Components/StatorView.swift` | Uses `GestureHandler` for pan gestures; removed dual initializer |
+| `TheElectricSlide/Components/SlideRuleDetailView.swift` | Uses `GestureHandler` for zoom gestures; removed all callback parameters |
+| `TheElectricSlide/Components/DynamicSlideRuleContent.swift` | Removed 8 gesture callback properties; child views use environment only |
+| `TheElectricSlide/Cursor/CursorOverlay.swift` | Uses `GestureHandler` for cursor drag haptics; removed callback properties |
+| `TheElectricSlide/ContentView.swift` | Creates and injects `GestureHandler` via environment; no callbacks passed to child views |
 
 ---
 

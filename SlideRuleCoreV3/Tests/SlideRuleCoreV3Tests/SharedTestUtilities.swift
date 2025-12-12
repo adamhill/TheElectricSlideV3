@@ -360,3 +360,327 @@ enum CommonScales {
         StandardScales.lScale(length: length)
     }
 }
+
+// MARK: - Scale Test Data Infrastructure
+
+/// Test data structure for systematic scale testing
+struct ScaleTestData: Sendable {
+    let name: String
+    let scaleFactory: @Sendable (Double) -> ScaleDefinition
+    let tolerance: Double
+    let testPositions: [Double]
+    let testValues: [Double]
+    
+    /// All standard scales for systematic testing
+    static let allScales: [ScaleTestData] = standardScales + powerScales + foldedScales + logLogScales + trigScales + eeScales + hyperbolicScales
+    
+    /// Basic logarithmic scales (C, D, CI, DI)
+    static let standardScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "C",
+            scaleFactory: { StandardScales.cScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.logarithmic
+        ),
+        ScaleTestData(
+            name: "D",
+            scaleFactory: { StandardScales.dScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.logarithmic
+        ),
+        ScaleTestData(
+            name: "CI",
+            scaleFactory: { StandardScales.ciScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.inverted
+        ),
+        ScaleTestData(
+            name: "DI",
+            scaleFactory: { StandardScales.diScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.inverted
+        )
+    ]
+    
+    /// Power scales (A, B, K)
+    static let powerScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "A",
+            scaleFactory: { StandardScales.aScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.squared
+        ),
+        ScaleTestData(
+            name: "B",
+            scaleFactory: { StandardScales.bScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.squared
+        ),
+        ScaleTestData(
+            name: "K",
+            scaleFactory: { StandardScales.kScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [1.0, 2.0, 5.0, 10.0, 100.0, 1000.0]
+        )
+    ]
+    
+    /// Folded scales (CF, DF, CIF, DIF)
+    static let foldedScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "CF",
+            scaleFactory: { StandardScales.cfScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.folded
+        ),
+        ScaleTestData(
+            name: "DF",
+            scaleFactory: { StandardScales.dfScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.folded
+        ),
+        ScaleTestData(
+            name: "CIF",
+            scaleFactory: { StandardScales.cifScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.folded
+        ),
+        ScaleTestData(
+            name: "DIF",
+            scaleFactory: { StandardScales.difScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: TestValues.folded
+        )
+    ]
+    
+    /// Log-Log scales (LL0, LL1, LL2, LL3, etc.)
+    static let logLogScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "LL0",
+            scaleFactory: { StandardScales.ll0Scale(length: $0) },
+            tolerance: TestTolerance.strict,
+            testPositions: TestValues.positions,
+            testValues: [1.001, 1.005, 1.01, 1.02, 1.05, 1.10]
+        ),
+        ScaleTestData(
+            name: "LL1",
+            scaleFactory: { StandardScales.ll1Scale(length: $0) },
+            tolerance: TestTolerance.strict,
+            testPositions: TestValues.positions,
+            testValues: [1.10, 1.2, 1.35, 2.0, 2.5, 2.718]
+        ),
+        ScaleTestData(
+            name: "LL2",
+            scaleFactory: { StandardScales.ll2Scale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [2.8, 5.0, 10.0, 15.0, 20.0]
+        ),
+        ScaleTestData(
+            name: "LL3",
+            scaleFactory: { StandardScales.ll3Scale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [22.0, 100.0, 500.0, 1000.0, 20000.0]
+        )
+    ]
+    
+    /// Trigonometric scales (S, T, ST)
+    static let trigScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "S",
+            scaleFactory: { StandardScales.sScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [5.7, 10.0, 30.0, 45.0, 60.0, 90.0]
+        ),
+        ScaleTestData(
+            name: "T",
+            scaleFactory: { StandardScales.tScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [5.7, 10.0, 20.0, 30.0, 40.0, 45.0]
+        ),
+        ScaleTestData(
+            name: "ST",
+            scaleFactory: { StandardScales.stScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [0.57, 1.0, 2.0, 3.0, 4.0, 5.7]
+        )
+    ]
+    
+    /// Electrical Engineering scales (basic set)
+    static let eeScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "ω",
+            scaleFactory: { StandardScales.angularFrequencyOmegaScale(length: $0) },
+            tolerance: TestTolerance.eeScale,
+            testPositions: TestValues.positions,
+            testValues: [1.0, 5.0, 10.0, 50.0, 100.0]
+        ),
+        ScaleTestData(
+            name: "τ",
+            scaleFactory: { StandardScales.timeConstantTauScale(length: $0) },
+            tolerance: TestTolerance.eeScale,
+            testPositions: TestValues.positions,
+            testValues: [1.0, 5.0, 10.0, 50.0, 100.0]
+        )
+    ]
+    
+    /// Hyperbolic scales (Ch, Th, Sh, H1, H2, P)
+    static let hyperbolicScales: [ScaleTestData] = [
+        ScaleTestData(
+            name: "Ch",
+            scaleFactory: { StandardScales.chScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [0.0, 0.5, 1.0, 2.0, 3.0]
+        ),
+        ScaleTestData(
+            name: "Th",
+            scaleFactory: { StandardScales.thScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [0.1, 0.5, 1.0, 2.0, 3.0]
+        ),
+        ScaleTestData(
+            name: "Sh",
+            scaleFactory: { StandardScales.shScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [0.1, 0.5, 1.0, 2.0, 3.0]
+        ),
+        ScaleTestData(
+            name: "H1",
+            scaleFactory: { StandardScales.h1Scale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [1.005, 1.1, 1.2, 1.3, 1.415]
+        ),
+        ScaleTestData(
+            name: "H2",
+            scaleFactory: { StandardScales.h2Scale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [1.42, 2.0, 5.0, 8.0, 10.0]
+        ),
+        ScaleTestData(
+            name: "P",
+            scaleFactory: { StandardScales.pScale(length: $0) },
+            tolerance: TestTolerance.standard,
+            testPositions: TestValues.positions,
+            testValues: [0.0, 0.5, 0.9, 0.99, 0.995]
+        )
+    ]
+}
+
+// MARK: - Parity Testing Infrastructure
+
+/// Helper infrastructure for testing scale parity relationships
+enum ParityTestHelper {
+    
+    /// Data structure representing a pair of scales that should have identical positioning
+    struct ScalePair: Sendable {
+        let name1: String
+        let scale1Factory: @Sendable (Double) -> ScaleDefinition
+        let name2: String
+        let scale2Factory: @Sendable (Double) -> ScaleDefinition
+        let testValues: [Double]
+        let tolerance: Double
+        
+        /// Create scales with default length
+        func createScales(length: Double = 250.0) -> (ScaleDefinition, ScaleDefinition) {
+            (scale1Factory(length), scale2Factory(length))
+        }
+    }
+    
+    /// Predefined parity pairs for common scale relationships
+    static let parityPairs: [ScalePair] = [
+        // Standard scale pairs
+        ScalePair(
+            name1: "C", scale1Factory: { StandardScales.cScale(length: $0) },
+            name2: "D", scale2Factory: { StandardScales.dScale(length: $0) },
+            testValues: TestValues.logarithmic,
+            tolerance: 1e-9
+        ),
+        ScalePair(
+            name1: "CI", scale1Factory: { StandardScales.ciScale(length: $0) },
+            name2: "DI", scale2Factory: { StandardScales.diScale(length: $0) },
+            testValues: TestValues.inverted,
+            tolerance: 1e-9
+        ),
+        // Power scale pairs
+        ScalePair(
+            name1: "A", scale1Factory: { StandardScales.aScale(length: $0) },
+            name2: "B", scale2Factory: { StandardScales.bScale(length: $0) },
+            testValues: TestValues.squared,
+            tolerance: 1e-9
+        ),
+        ScalePair(
+            name1: "AI", scale1Factory: { StandardScales.aiScale(length: $0) },
+            name2: "BI", scale2Factory: { StandardScales.biScale(length: $0) },
+            testValues: TestValues.squared,
+            tolerance: 1e-9
+        ),
+        // Folded scale pairs
+        ScalePair(
+            name1: "CF", scale1Factory: { StandardScales.cfScale(length: $0) },
+            name2: "DF", scale2Factory: { StandardScales.dfScale(length: $0) },
+            testValues: TestValues.folded,
+            tolerance: 1e-9
+        ),
+        ScalePair(
+            name1: "CIF", scale1Factory: { StandardScales.cifScale(length: $0) },
+            name2: "DIF", scale2Factory: { StandardScales.difScale(length: $0) },
+            testValues: TestValues.folded,
+            tolerance: 1e-9
+        )
+    ]
+    
+    /// Test complete parity between two scales
+    /// - Parameter pair: The scale pair to test
+    /// - Parameter length: Scale length to use (default: 250.0)
+    static func testCompleteParity(
+        _ pair: ScalePair,
+        length: Double = 250.0,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        let (scale1, scale2) = pair.createScales(length: length)
+        
+        // Test position parity
+        ScaleComparator.expectIdenticalPositions(
+            scale1, scale2,
+            at: pair.testValues,
+            tolerance: pair.tolerance,
+            sourceLocation: sourceLocation
+        )
+        
+        // Test tick count parity
+        ScaleComparator.expectSimilarTickCounts(
+            scale1, scale2,
+            allowedDifference: 0,  // Parity scales should have identical tick counts
+            sourceLocation: sourceLocation
+        )
+    }
+    
+    /// Test all predefined parity pairs
+    static func testAllParityPairs(
+        length: Double = 250.0,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        for pair in parityPairs {
+            testCompleteParity(pair, length: length, sourceLocation: sourceLocation)
+        }
+    }
+}

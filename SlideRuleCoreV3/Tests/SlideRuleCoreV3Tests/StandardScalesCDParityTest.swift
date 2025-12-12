@@ -9,47 +9,23 @@ struct StandardScalesCDTests {
     
     @Suite("C/D parity — same mapping, different tick direction")
     struct CDParity {
-        // Exercises: ScaleCalculator.normalizedPosition(for:on:) parity for C vs D
         
-        @Test("D vs C — identical normalized positions across representative values",
-              arguments: zip(
-                [1.0, 2.0, 3.14159, 4.0, 5.0, 7.5, 10.0],
-                [1.0, 2.0, 3.14159, 4.0, 5.0, 7.5, 10.0]
-              ))
-        func dEqualsC(valueC: Double, valueD: Double) {
-            let c = StandardScales.cScale(length: 250.0)
-            let d = StandardScales.dScale(length: 250.0)
-            
-            let posC = ScaleCalculator.normalizedPosition(for: valueC, on: c)
-            let posD = ScaleCalculator.normalizedPosition(for: valueD, on: d)
-            
-            #expect(abs(posC - posD) < 1e-9,
-                    "C and D should map identical values to identical normalized positions")
+        @Test("D vs C — identical normalized positions across representative values")
+        func dEqualsC() {
+            let pair = ParityTestHelper.ScalePair(
+                name1: "C", scale1Factory: { StandardScales.cScale(length: $0) },
+                name2: "D", scale2Factory: { StandardScales.dScale(length: $0) },
+                testValues: TestValues.logarithmic,
+                tolerance: 1e-9
+            )
+            ParityTestHelper.testCompleteParity(pair)
         }
         
         @Test("Round-trip — position→value→position remains consistent on D scale",
               arguments: [1.0, 2.0, 3.14159, 5.0, 7.5, 10.0])
         func roundTripOnD(value: Double) {
             let d = StandardScales.dScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: d)
-            let recovered = ScaleCalculator.value(at: pos, on: d)
-            let posRecovered = ScaleCalculator.normalizedPosition(for: recovered, on: d)
-            
-            #expect(abs(recovered - value) < 1e-8, "Recovered value should match original")
-            #expect(abs(posRecovered - pos) < 1e-12, "Position should be stable after round-trip")
-        }
-        
-        @Test("Tick counts — C and D generate the same tick distribution")
-        func cAndDTickCountsMatch() {
-            let c = StandardScales.cScale(length: 250.0)
-            let d = StandardScales.dScale(length: 250.0)
-            let genC = GeneratedScale(definition: c)
-            let genD = GeneratedScale(definition: d)
-            
-            #expect(genC.tickMarks.count == genD.tickMarks.count,
-                    "C and D should have identical tick counts")
-            #expect(!genC.tickMarks.isEmpty && !genD.tickMarks.isEmpty,
-                    "Generated ticks should be non-empty for C/D")
+            RoundTripTester.testRoundTrip(value: value, on: d, tolerance: 1e-8)
         }
     }
     
@@ -57,7 +33,6 @@ struct StandardScalesCDTests {
     
     @Suite("CI scale — reciprocal logarithmic behavior", .tags(.ciScale))
     struct CIScaleTests {
-        // Exercises: ScaleCalculator operations on CI (reciprocal) scale
         
         @Test("CI scale — non-empty tick generation")
         func ciGeneratesTicks() {
@@ -72,12 +47,7 @@ struct StandardScalesCDTests {
               arguments: [1.0, 2.0, 4.0, 5.0, 7.5, 10.0])
         func roundTripOnCI(value: Double) {
             let ci = StandardScales.ciScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: ci)
-            let recovered = ScaleCalculator.value(at: pos, on: ci)
-            let posRecovered = ScaleCalculator.normalizedPosition(for: recovered, on: ci)
-            
-            #expect(abs(recovered - value) < 1e-8, "Recovered value should match original")
-            #expect(abs(posRecovered - pos) < 1e-12, "Position should be stable after round-trip")
+            RoundTripTester.testRoundTrip(value: value, on: ci, tolerance: 1e-8)
         }
         
         @Test("CI reciprocal relationship — values decrease as position increases")
@@ -102,54 +72,23 @@ struct StandardScalesCDTests {
     
     @Suite("CI/DI parity — reciprocal twins with mirrored tick direction", .tags(.diScale))
     struct CIDIParity {
-        // Exercises: ScaleCalculator.normalizedPosition(for:on:) parity for CI vs DI
         
-        @Test("DI vs CI — reciprocal twins maintain non-empty ticks and parity",
-              arguments: zip(
-                [1.0, 2.0, 4.0, 5.0, 7.5, 10.0],
-                [1.0, 2.0, 4.0, 5.0, 7.5, 10.0]
-              ))
-        func diEqualsCI(value1: Double, value2: Double) {
-            let ci = StandardScales.ciScale(length: 250.0)
-            let di = StandardScales.diScale(length: 250.0)
-            
-            let genCI = GeneratedScale(definition: ci)
-            let genDI = GeneratedScale(definition: di)
-            
-            #expect(!genCI.tickMarks.isEmpty && !genDI.tickMarks.isEmpty,
-                    "CI and DI should generate non-empty ticks")
-            #expect(genCI.tickMarks.count == genDI.tickMarks.count,
-                    "CI and DI should produce equal tick counts")
-            
-            let posCI = ScaleCalculator.normalizedPosition(for: value1, on: ci)
-            let posDI = ScaleCalculator.normalizedPosition(for: value2, on: di)
-            #expect(abs(posCI - posDI) < 1e-9,
-                    "CI and DI should map identical values to identical positions")
+        @Test("DI vs CI — reciprocal twins maintain non-empty ticks and parity")
+        func diEqualsCI() {
+            let pair = ParityTestHelper.ScalePair(
+                name1: "CI", scale1Factory: { StandardScales.ciScale(length: $0) },
+                name2: "DI", scale2Factory: { StandardScales.diScale(length: $0) },
+                testValues: TestValues.inverted,
+                tolerance: 1e-9
+            )
+            ParityTestHelper.testCompleteParity(pair)
         }
         
         @Test("Round-trip — position→value→position remains consistent on DI scale",
               arguments: [1.0, 2.0, 4.0, 5.0, 7.5, 10.0])
         func roundTripOnDI(value: Double) {
             let di = StandardScales.diScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: di)
-            let recovered = ScaleCalculator.value(at: pos, on: di)
-            let posRecovered = ScaleCalculator.normalizedPosition(for: recovered, on: di)
-            
-            #expect(abs(recovered - value) < 1e-8, "Recovered value should match original")
-            #expect(abs(posRecovered - pos) < 1e-12, "Position should be stable after round-trip")
-        }
-        
-        @Test("Tick counts — CI and DI generate the same tick distribution")
-        func ciAndDITickCountsMatch() {
-            let ci = StandardScales.ciScale(length: 250.0)
-            let di = StandardScales.diScale(length: 250.0)
-            let genCI = GeneratedScale(definition: ci)
-            let genDI = GeneratedScale(definition: di)
-            
-            #expect(genCI.tickMarks.count == genDI.tickMarks.count,
-                    "CI and DI should have identical tick counts")
-            #expect(!genCI.tickMarks.isEmpty && !genDI.tickMarks.isEmpty,
-                    "Generated ticks should be non-empty for CI/DI")
+            RoundTripTester.testRoundTrip(value: value, on: di, tolerance: 1e-8)
         }
     }
 }

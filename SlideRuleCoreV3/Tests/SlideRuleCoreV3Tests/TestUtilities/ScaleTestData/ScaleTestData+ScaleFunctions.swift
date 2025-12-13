@@ -54,6 +54,20 @@ extension ScaleTestData {
         linearDegree180Function
     ]
     
+    /// Functions tested in ElectricalEngineeringScaleFunctionsTests
+    static let electricalEngineeringFunctions: [FunctionTestCase] = [
+        inductiveReactanceFunction,
+        capacitiveReactanceFunction,
+        frequencyFunction,
+        inductanceFunction,
+        reflectionCoefficientFunction,
+        powerRatioFunction,
+        impedanceFunction,
+        capacitanceImpedanceFunction,
+        capacitanceFrequencyFunction,
+        frequencyWavelengthFunction
+    ]
+    
     // MARK: - Logarithmic Functions
     
     /// Standard logarithmic function (C/D scales)
@@ -469,5 +483,198 @@ extension ScaleTestData {
             (value: 180.0, expectation: .finite)
         ],
         tolerance: TestTolerance.strict
+    )
+    
+    // MARK: - Electrical Engineering Scale Functions
+    
+    /// Inductive Reactance function (XL scale)
+    /// Formula: log₁₀(0.5 × π × x) / 12
+    /// 12-cycle multi-decade scale
+    static let inductiveReactanceFunction = FunctionTestCase(
+        name: "Inductive Reactance (XL scale)",
+        function: InductiveReactanceFunction(cycles: 12),
+        testValues: [1e-6, 1e-3, 1.0, 1e3, 1e6],
+        knownPairs: [
+            (input: 1.0, expected: log10(0.5 * .pi * 1.0) / 12.0),
+            (input: 100.0, expected: log10(0.5 * .pi * 100.0) / 12.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .negativeInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 1e6, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Capacitive Reactance function (Xc scale - inverted)
+    /// Formula: 1 - log₁₀(5 × π / x) / 12 + 11/12
+    /// 12-cycle multi-decade inverted scale
+    static let capacitiveReactanceFunction = FunctionTestCase(
+        name: "Capacitive Reactance (Xc scale)",
+        function: CapacitiveReactanceFunction(cycles: 12),
+        testValues: [1e-6, 1e-3, 1.0, 1e3, 1e6],
+        knownPairs: [
+            (input: 100.0, expected: log10(5.0 * .pi / 100.0) / 12.0 + 11.0/12.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .positiveInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 1e6, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Frequency function (F scale)
+    /// Formula: log₁₀(x) / 12
+    /// 12-cycle multi-decade scale (Hz to GHz)
+    static let frequencyFunction = FunctionTestCase(
+        name: "Frequency (F scale)",
+        function: FrequencyFunction(cycles: 12),
+        testValues: [0.001, 1.0, 1e3, 1e6, 1e9],
+        knownPairs: [
+            (input: 1.0, expected: 0.0),
+            (input: 10.0, expected: 1.0/12.0),
+            (input: 100.0, expected: 2.0/12.0),
+            (input: 1000.0, expected: 3.0/12.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .negativeInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 1e9, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Inductance function (L scale)
+    /// Formula: log₁₀(x) / 12
+    /// 12-cycle multi-decade scale (µH to H)
+    static let inductanceFunction = FunctionTestCase(
+        name: "Inductance (L scale)",
+        function: InductanceFunction(cycles: 12),
+        testValues: [1e-9, 1e-6, 1e-3, 1.0, 100.0],
+        knownPairs: [
+            (input: 1.0, expected: 0.0),
+            (input: 10.0, expected: 1.0/12.0),
+            (input: 1000.0, expected: 0.25)  // 3 decades = 3/12
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .negativeInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 100.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Reflection Coefficient function (R scale)
+    /// Formula: (0.5 / x) × 0.472
+    /// VSWR range 0.5-50
+    static let reflectionCoefficientFunction = FunctionTestCase(
+        name: "Reflection Coefficient (R scale)",
+        function: ReflectionCoefficientFunction(),
+        testValues: [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0],
+        knownPairs: [
+            (input: 2.0, expected: (0.5 / 2.0) * 0.472),
+            (input: 10.0, expected: (0.5 / 10.0) * 0.472)
+        ],
+        boundaryTests: [
+            (value: 0.5, expectation: .finite),
+            (value: 50.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Power Ratio function (P scale)
+    /// Formula: (x²/196) × 0.477 + 0.523
+    /// dB range 0-14
+    static let powerRatioFunction = FunctionTestCase(
+        name: "Power Ratio (P scale)",
+        function: PowerRatioFunction(),
+        testValues: [0.0, 1.0, 3.0, 6.0, 10.0, 14.0],
+        knownPairs: [
+            (input: 0.0, expected: 0.523),
+            (input: 14.0, expected: 1.0),
+            (input: 7.0, expected: (49.0/196.0) * 0.477 + 0.523)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .finite),
+            (value: 14.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Impedance function (Z scale)
+    /// Formula: log₁₀(x) / 6
+    /// 6-cycle scale (mΩ to MΩ)
+    static let impedanceFunction = FunctionTestCase(
+        name: "Impedance (Z scale)",
+        function: ImpedanceFunction(cycles: 6),
+        testValues: [1e-3, 1.0, 10.0, 100.0, 1e3, 1e5],
+        knownPairs: [
+            (input: 1.0, expected: 0.0),
+            (input: 10.0, expected: 1.0/6.0),
+            (input: 100.0, expected: 2.0/6.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .negativeInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 1e6, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Capacitance Impedance function (Cz scale)
+    /// Formula: log₁₀(x) / 12
+    /// 12-cycle scale (pF to F)
+    static let capacitanceImpedanceFunction = FunctionTestCase(
+        name: "Capacitance Impedance (Cz scale)",
+        function: CapacitanceImpedanceFunction(cycles: 12),
+        testValues: [1e-12, 1e-9, 1e-6, 1e-3, 1.0],
+        knownPairs: [
+            (input: 1.0, expected: 0.0),
+            (input: 1e-3, expected: -3.0/12.0),
+            (input: 1e-6, expected: -6.0/12.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .negativeInfinity),
+            (value: 1e-12, expectation: .finite),
+            (value: 1.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Capacitance Frequency function (Cf scale - inverted)
+    /// Formula: 1 - log₁₀(3.94784212 × x) / 12
+    /// 11-cycle inverted scale with special constant
+    static let capacitanceFrequencyFunction = FunctionTestCase(
+        name: "Capacitance Frequency (Cf scale)",
+        function: CapacitanceFrequencyFunction(cycles: 11),
+        testValues: [1e-5, 1e-3, 1.0, 1e3, 1e5],
+        knownPairs: [
+            (input: 100.0, expected: 1.0 - log10(3.94784212 * 100.0) / 12.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .positiveInfinity),
+            (value: 1.0, expectation: .finite),
+            (value: 1e5, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
+    )
+    
+    /// Frequency Wavelength function (Fo scale - inverted)
+    /// Formula: 1 - log₁₀(x) / 6
+    /// 6-cycle inverted scale (MHz to GHz)
+    static let frequencyWavelengthFunction = FunctionTestCase(
+        name: "Frequency Wavelength (Fo scale)",
+        function: FrequencyWavelengthFunction(cycles: 6),
+        testValues: [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9],
+        knownPairs: [
+            (input: 1e8, expected: 1.0 - log10(1e8) / 6.0)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .positiveInfinity),
+            (value: 1e6, expectation: .finite),
+            (value: 1e9, expectation: .finite)
+        ],
+        tolerance: TestTolerance.eeScale
     )
 }

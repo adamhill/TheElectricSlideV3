@@ -137,4 +137,36 @@ struct TickDirectionModifierTests {
         let c = rule.frontTopStator.scales[0].definition
         #expect(c.tickDirection == .down, "C^- should have direction .down")
     }
+    
+    @Test("Conflicting modifiers: plus and minus throws error")
+    func testConflictingPlusMinusModifiers() throws {
+        // C+- should throw an error
+        #expect(throws: RuleDefinitionParser.ParseError.conflictingModifiers("C+-")) {
+            _ = try RuleDefinitionParser.parse("(C+-)", dimensions: dimensions)
+        }
+    }
+    
+    @Test("Conflicting modifiers: minus and plus throws error")
+    func testConflictingMinusPlusModifiers() throws {
+        // C-+ should throw an error
+        #expect(throws: RuleDefinitionParser.ParseError.conflictingModifiers("C-+")) {
+            _ = try RuleDefinitionParser.parse("(C-+)", dimensions: dimensions)
+        }
+    }
+    
+    @Test("Conflicting modifiers with no-break: plus, no-break, and minus throws error")
+    func testConflictingModifiersWithNoBreak() throws {
+        // C+^- should throw an error (conflicting + and -)
+        #expect(throws: RuleDefinitionParser.ParseError.conflictingModifiers("C+^-")) {
+            _ = try RuleDefinitionParser.parse("(C+^-)", dimensions: dimensions)
+        }
+    }
+    
+    @Test("Conflicting modifiers in complex rule throws error")
+    func testConflictingModifiersInComplexRule() throws {
+        // Rule with conflicting modifiers should fail
+        #expect(throws: RuleDefinitionParser.ParseError.conflictingModifiers("D+-")) {
+            _ = try RuleDefinitionParser.parse("(C [ D+- ] A)", dimensions: dimensions)
+        }
+    }
 }

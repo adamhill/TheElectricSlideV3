@@ -31,10 +31,27 @@ extension ScaleTestData {
         hyperbolicSineFunction,
         hyperbolicCosineFunction,
         hyperbolicTangentFunction,
+        pythagoreanHFunction,
+        pythagoreanPFunction,
+        percentageAngularFunction,
+        linearDegree360Function,
+        linearDegree180Function,
         inductanceReciprocalFunction,
         capacitanceReciprocalFunction,
         angularFrequencyOmegaFunction,
         timeConstantFunction
+    ]
+    
+    /// Functions tested in HyperbolicScaleFunctionsTests
+    static let hyperbolicAndRelatedFunctions: [FunctionTestCase] = [
+        hyperbolicSineFunction,
+        hyperbolicCosineFunction,
+        hyperbolicTangentFunction,
+        pythagoreanHFunction,
+        pythagoreanPFunction,
+        percentageAngularFunction,
+        linearDegree360Function,
+        linearDegree180Function
     ]
     
     // MARK: - Logarithmic Functions
@@ -348,5 +365,109 @@ extension ScaleTestData {
             (value: 10.0, expectation: .finite)
         ],
         tolerance: TestTolerance.eeScale
+    )
+    
+    // MARK: - Pythagorean Functions
+    
+    /// Pythagorean H function (H scale)
+    /// Formula: log₁₀(√(x²-1))
+    /// Domain: x > 1
+    static let pythagoreanHFunction = FunctionTestCase(
+        name: "Pythagorean H (√(x²-1))",
+        function: PythagoreanHFunction(multiplier: 1.0),
+        testValues: [1.5, 2.0, 3.0, 5.0, 10.0],
+        knownPairs: [
+            (input: 2.0, expected: log10(sqrt(3.0))),       // √(4-1) = √3
+            (input: 5.0, expected: log10(sqrt(24.0))),      // √(25-1) = √24
+            (input: 10.0, expected: log10(sqrt(99.0)))      // √(100-1) = √99
+        ],
+        boundaryTests: [
+            (value: 1.0, expectation: .negativeInfinity),   // √0 = 0, log(0) = -∞
+            (value: 0.5, expectation: .nan),                // √negative = NaN
+            (value: 2.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.standard
+    )
+    
+    /// Pythagorean P function (P scale)
+    /// Formula: log₁₀(10×√(1-x²))
+    /// Domain: 0 ≤ x < 1
+    static let pythagoreanPFunction = FunctionTestCase(
+        name: "Pythagorean P (√(1-x²))",
+        function: PythagoreanPFunction(multiplier: 10.0),
+        testValues: [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99],
+        knownPairs: [
+            (input: 0.0, expected: 1.0),                    // √1 × 10 = 10, log(10) = 1
+            (input: 0.6, expected: log10(0.8 * 10.0)),      // 3-4-5 triangle: √(1-0.36) = 0.8
+            (input: 0.5, expected: log10(sqrt(0.75) * 10.0))
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .finite),
+            (value: 1.0, expectation: .negativeInfinity),   // √0 = 0, log(0) = -∞
+            (value: 1.5, expectation: .nan)                 // √negative = NaN
+        ],
+        tolerance: TestTolerance.standard
+    )
+    
+    // MARK: - Angular/Percentage Functions
+    
+    /// Percentage Angular function (PA scale)
+    /// Formula: log₁₀(7.6) - ((x-10)×(log₁₀(7.6)-log₁₀(1.72))/81)
+    /// Range: 9% to 91%
+    static let percentageAngularFunction = FunctionTestCase(
+        name: "Percentage Angular (PA scale)",
+        function: PercentageAngularFunction(),
+        testValues: [10.0, 20.0, 30.0, 50.0, 70.0, 90.0],
+        knownPairs: [
+            (input: 10.0, expected: log10(7.6)),            // At x=10, result is log(7.6)
+            (input: 91.0, expected: log10(1.72))            // At x=91, result is log(1.72)
+        ],
+        boundaryTests: [
+            (value: 9.0, expectation: .finite),
+            (value: 91.0, expectation: .finite),
+            (value: 50.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.relaxed
+    )
+    
+    // MARK: - Linear Degree Functions
+    
+    /// Linear degree function (L360 scale)
+    /// Formula: x / 360
+    static let linearDegree360Function = FunctionTestCase(
+        name: "Linear Degree 360 (L360 scale)",
+        function: LinearDegreeFunction(maxDegrees: 360.0),
+        testValues: [0.0, 45.0, 90.0, 180.0, 270.0, 360.0],
+        knownPairs: [
+            (input: 0.0, expected: 0.0),
+            (input: 180.0, expected: 0.5),
+            (input: 360.0, expected: 1.0),
+            (input: 90.0, expected: 0.25)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .finite),
+            (value: 360.0, expectation: .finite),
+            (value: -90.0, expectation: .finite)           // Negative degrees are valid
+        ],
+        tolerance: TestTolerance.strict
+    )
+    
+    /// Linear degree function (L180 scale)
+    /// Formula: x / 180
+    static let linearDegree180Function = FunctionTestCase(
+        name: "Linear Degree 180 (L180 scale)",
+        function: LinearDegreeFunction(maxDegrees: 180.0),
+        testValues: [0.0, 30.0, 60.0, 90.0, 120.0, 180.0],
+        knownPairs: [
+            (input: 0.0, expected: 0.0),
+            (input: 90.0, expected: 0.5),
+            (input: 180.0, expected: 1.0),
+            (input: 45.0, expected: 0.25)
+        ],
+        boundaryTests: [
+            (value: 0.0, expectation: .finite),
+            (value: 180.0, expectation: .finite)
+        ],
+        tolerance: TestTolerance.strict
     )
 }

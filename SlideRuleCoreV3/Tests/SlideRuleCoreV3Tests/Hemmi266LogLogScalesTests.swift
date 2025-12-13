@@ -11,7 +11,7 @@ import Foundation
 /// - LL02B: Combined LL02/LL03 referenced to A/B scales (0.00005-0.904)
 /// - LL2B: Extended positive log-log scale referenced to A/B scales (1.106-20000)
 
-@Suite("Hemmi 266 Log-Log Scales", .tags(.fast, .regression), .disabled("Temporarily disabled - extremely slow tests (76+ seconds)"))
+@Suite("Hemmi 266 Log-Log Scales", .tags(.hemmi266, .historicalAccuracy, .regression), .disabled("Temporarily disabled - extremely slow tests (76+ seconds)"))
 struct Hemmi266LogLogScalesTests {
     
     // MARK: - H266LL01 Scale Tests

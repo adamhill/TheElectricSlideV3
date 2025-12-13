@@ -4,8 +4,18 @@ import Testing
 
 // MARK: - ω and τ Scale Alignment Tests
 // Based on REAL Pickett N16-ES measurements: τ = 1/ω at every position
+//
+// HISTORICAL CONTEXT:
+// The Pickett N-16 ES (1960s) was designed for electronics engineers.
+// The ω (angular frequency) and τ (time constant) scales were positioned
+// to align reciprocally: at any slide position, ω × τ = 1.
+//
+// WHY THIS MATTERS:
+// These alignments are documented in the original Pickett N-16 ES manual.
+// If they don't match, our implementation is not historically accurate,
+// and RF engineers cannot use it for the calculations it was designed for.
 
-@Suite("ω and τ Scale Alignment - Real Pickett N16-ES", .tags(.pickettN16ES))
+@Suite("ω and τ Scale Alignment - Real Pickett N16-ES", .tags(.pickettN16ES, .alignment, .historicalAccuracy))
 struct OmegaTauAlignmentTests {
     
     /// Get the actual ω scale definition

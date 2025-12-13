@@ -4,8 +4,30 @@ import Testing
 
 // MARK: - Pickett N-16 ES Electronic Scales Tests
 // Comprehensive validation against historical specifications and worked examples
+//
+// HISTORICAL CONTEXT:
+// The Pickett N-16 ES was a specialized electronic slide rule designed in the 1960s
+// for electronics engineers working on RF circuits, filters, and time constant calculations.
+// It featured scales for:
+// - Resonant frequency calculations (L_r and C_r scales)
+// - RC/RL time constants (τ scale)
+// - Reactance calculations (X_L and X_C scales)
+// - Wavelength/frequency relationships (F and λ scales)
+// - Phase angle and decibel conversions (Θ, cos Θ, dB scales)
+//
+// WHY THESE TESTS MATTER:
+// These tests verify our implementation matches the historical Pickett N-16 ES slide rule.
+// They are based on:
+// 1. Pickett N-16 ES instruction manual (1965 edition)
+// 2. Chan Street's electronic slide rule design notes
+// 3. Physical Pickett N-16 ES slide rules (various serial numbers)
+// 4. PostScript slide rule engine (with line number references in tests)
+//
+// If our scales don't align correctly (e.g., F × λ = 300, ω × τ = 1),
+// the slide rule is not historically accurate and cannot be used for the
+// RF engineering calculations it was designed for.
 
-@Suite("Pickett N-16 ES Electronic Scales")
+@Suite("Pickett N-16 ES Electronic Scales", .tags(.pickettN16ES, .historicalAccuracy))
 struct PickettN16ESTests {
     
     // MARK: - Resonant Frequency Calculations

@@ -4,7 +4,7 @@ import Foundation
 
 /// Tests for tick direction modifiers in rule definitions
 /// Verifies that + and - modifiers correctly override default tick directions
-@Suite("Tick Direction Modifier Tests")
+@Suite("Tick Direction Modifier Tests", .tags(.parsing, .tickGeneration, .fast))
 struct TickDirectionModifierTests {
     
     let dimensions = RuleDefinitionParser.Dimensions(

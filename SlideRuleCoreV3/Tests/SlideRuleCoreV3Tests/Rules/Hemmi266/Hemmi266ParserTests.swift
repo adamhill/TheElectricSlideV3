@@ -20,7 +20,7 @@ import Foundation
 /// - `[ ]` = slide scale boundaries
 /// - `:` = flip to back side
 /// - `|` = draw separator line
-@Suite("Hemmi 266 Parser Definition Tests", .tags(.fast, .regression))
+@Suite("Hemmi 266 Parser Definition Tests", .tags(.hemmi266, .parsing, .fast, .regression))
 struct Hemmi266ParserTests {
     
     // MARK: - Test Configuration

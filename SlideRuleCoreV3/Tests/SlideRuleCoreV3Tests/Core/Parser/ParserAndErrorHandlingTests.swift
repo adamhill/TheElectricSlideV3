@@ -4,7 +4,7 @@ import Foundation
 
 /// Comprehensive error handling and parser validation tests
 /// Tests all error paths, invalid inputs, and boundary conditions
-@Suite("Parser and Error Handling Tests")
+@Suite("Parser and Error Handling Tests", .tags(.parsing, .regression))
 struct ParserAndErrorHandlingTests {
     
     @Suite("SlideRule Assembly Definitions")

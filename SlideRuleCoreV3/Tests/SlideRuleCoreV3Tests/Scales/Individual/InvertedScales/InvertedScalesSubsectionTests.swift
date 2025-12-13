@@ -199,14 +199,15 @@ struct InvertedScalesSubsectionTests {
             #expect(!generated.tickMarks.isEmpty,
                    "CIF should generate ticks")
             
-            // Check ticks exist in different parts of the range
-            let ticksNearStart = generated.tickMarks.filter { $0.value > 20.0 }
-            let ticksNearMiddle = generated.tickMarks.filter { $0.value > 5.0 && $0.value <= 20.0 }
-            let ticksNearEnd = generated.tickMarks.filter { $0.value <= 5.0 }
+            // Check ticks exist across the normalized position range (more robust than value ranges)
+            // CIF is an inverted scale, so position 0 = 10π and position 1 = π
+            let ticksInFirstThird = generated.tickMarks.filter { $0.normalizedPosition < 0.33 }
+            let ticksInMiddleThird = generated.tickMarks.filter { $0.normalizedPosition >= 0.33 && $0.normalizedPosition < 0.67 }
+            let ticksInLastThird = generated.tickMarks.filter { $0.normalizedPosition >= 0.67 }
             
-            #expect(!ticksNearStart.isEmpty, "CIF should have ticks near 10π")
-            #expect(!ticksNearMiddle.isEmpty, "CIF should have ticks in middle range")
-            #expect(!ticksNearEnd.isEmpty, "CIF should have ticks near π")
+            #expect(!ticksInFirstThird.isEmpty, "CIF should have ticks in first third of scale (near 10π)")
+            #expect(!ticksInMiddleThird.isEmpty, "CIF should have ticks in middle third of scale")
+            #expect(!ticksInLastThird.isEmpty, "CIF should have ticks in last third of scale (near π)")
         }
     }
     

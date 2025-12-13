@@ -11,6 +11,7 @@ import Testing
 extension Tag {
     // MARK: - Workflow Tags
     @Tag public static var fast: Self
+    @Tag public static var slow: Self
     @Tag public static var regression: Self
     @Tag public static var flaky: Self
     

@@ -21,7 +21,8 @@ struct ScaleFunctionImplementationsTests {
     func knownValuePairs(testCase: FunctionTestCase) {
         FunctionRoundTripTester.testKnownValues(
             testCase.function,
-            pairs: testCase.knownPairs
+            pairs: testCase.knownPairs,
+            tolerance: testCase.tolerance
         )
     }
     

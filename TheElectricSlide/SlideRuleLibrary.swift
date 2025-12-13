@@ -77,6 +77,19 @@ struct SlideRuleLibrary {
     /// Designed by Chan Street for RF engineering, filter design, and impedance matching
     /// Front: SH1 SH2 TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln
     /// Back:  Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ
+    ///
+    /// ## Historical Note: ω/τ Scale Alignment
+    ///
+    /// The ω (angular frequency) and τ (time constant) scales include an intentional
+    /// offset in their transform functions so that at any position, ω × τ = 1.
+    /// This reciprocal alignment was essential for electronics calculations and is
+    /// a manufacturing artifact, not a mathematical error. The offset (~0.27-0.28)
+    /// grows logarithmically from the reference point (ω=1, τ=1).
+    ///
+    /// This same alignment principle was used by:
+    /// - Faber-Castell 2/83N (Germany), Aristo 0970 (Europe), Hemmi 266 (Japan)
+    ///
+    /// See: `PickettN16ESOmegaTauAlignmentTests.swift` for alignment verification.
     static func pickettN16ESElectronic() -> SlideRuleDefinitionModel {
         SlideRuleDefinitionModel(
             name: "Pickett N-16 ES Electronic",

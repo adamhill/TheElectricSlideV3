@@ -37,13 +37,6 @@ import Testing
 import Foundation
 @testable import SlideRuleCoreV3
 
-// MARK: - Test Tags Extension
-
-extension Tag {
-    @Tag static var labelLevels: Self
-    @Tag static var tickGeneration: Self
-}
-
 // MARK: - Label Levels Behavior Tests
 
 /// Tests for labelLevels behavior in ScaleSubsection and tick generation

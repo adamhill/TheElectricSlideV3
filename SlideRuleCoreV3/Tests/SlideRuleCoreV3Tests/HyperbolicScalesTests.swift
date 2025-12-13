@@ -40,12 +40,7 @@ struct HyperbolicScalesTests {
               arguments: [0.0, 0.5, 1.0, 2.0, 3.0])
         func chScalePositionCalculations(value: Double) {
             let ch = StandardScales.chScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: ch)
-            #expect(pos >= 0.0 && pos <= 1.0, "Position should be normalized")
-            
-            let recovered = ScaleCalculator.value(at: pos, on: ch)
-            let relativeError = abs(recovered - value) / max(value, 0.001)
-            #expect(relativeError < 0.01, "Round-trip should maintain accuracy")
+            RoundTripTester.testRoundTrip(value: value, on: ch, tolerance: TestTolerance.standard)
         }
         
         @Test("Ch scale works with different lengths",
@@ -95,12 +90,7 @@ struct HyperbolicScalesTests {
               arguments: [0.1, 0.5, 1.0, 2.0, 3.0])
         func thScalePositionCalculations(value: Double) {
             let th = StandardScales.thScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: th)
-            #expect(pos >= 0.0 && pos <= 1.0)
-            
-            let recovered = ScaleCalculator.value(at: pos, on: th)
-            let relativeError = abs(recovered - value) / value
-            #expect(relativeError < 0.01)
+            RoundTripTester.testRoundTrip(value: value, on: th, tolerance: TestTolerance.standard)
         }
     }
     
@@ -136,12 +126,7 @@ struct HyperbolicScalesTests {
               arguments: [0.1, 0.5, 1.0, 2.0, 3.0])
         func shScalePositionCalculations(value: Double) {
             let sh = StandardScales.shScale(length: 250.0)
-            let pos = ScaleCalculator.normalizedPosition(for: value, on: sh)
-            #expect(pos >= 0.0 && pos <= 1.0)
-            
-            let recovered = ScaleCalculator.value(at: pos, on: sh)
-            let relativeError = abs(recovered - value) / value
-            #expect(relativeError < 0.01)
+            RoundTripTester.testRoundTrip(value: value, on: sh, tolerance: TestTolerance.standard)
         }
     }
     
@@ -438,29 +423,16 @@ struct HyperbolicScalesTests {
         }
     }
     
-    // MARK: - Scale Instantiation Tests
+    // MARK: - Consolidated Scale Tests Using ScaleTestData
     
-    @Suite("Hyperbolic Scales - Instantiation")
-    struct HyperbolicScalesInstantiationTests {
+    @Suite("Hyperbolic Scales - Systematic Testing")
+    struct SystematicHyperbolicTests {
         
-        @Test("All hyperbolic scales can be instantiated without errors")
+        @Test("All hyperbolic scales instantiate correctly")
         func allScalesInstantiate() {
-            let scales = [
-                StandardScales.chScale(),
-                StandardScales.thScale(),
-                StandardScales.shScale(),
-                StandardScales.sh1Scale(),
-                StandardScales.sh2Scale(),
-                StandardScales.h1Scale(),
-                StandardScales.h2Scale(),
-                StandardScales.pScale(),
-                StandardScales.l360Scale(),
-                StandardScales.l180Scale(),
-                StandardScales.paScale()
-            ]
-            
-            for scale in scales {
-                #expect(scale.scaleLengthInPoints > 0)
+            for scaleData in ScaleTestData.hyperbolicScales {
+                let scale = scaleData.scaleFactory(250.0)
+                #expect(scale.scaleLengthInPoints == 250.0)
                 #expect(scale.name.count > 0)
                 #expect(!scale.subsections.isEmpty)
             }
@@ -469,40 +441,39 @@ struct HyperbolicScalesTests {
         @Test("All hyperbolic scales work with custom lengths",
               arguments: [100.0, 250.0, 500.0])
         func allScalesCustomLengths(length: Double) {
-            let scales = [
-                StandardScales.chScale(length: length),
-                StandardScales.thScale(length: length),
-                StandardScales.shScale(length: length),
-                StandardScales.h1Scale(length: length),
-                StandardScales.h2Scale(length: length),
-                StandardScales.pScale(length: length)
-            ]
-            
-            for scale in scales {
+            for scaleData in ScaleTestData.hyperbolicScales {
+                let scale = scaleData.scaleFactory(length)
                 #expect(scale.scaleLengthInPoints == length)
             }
         }
         
         @Test("All hyperbolic scales generate ticks successfully")
         func allScalesGenerateTicks() {
-            let scales = [
-                StandardScales.chScale(),
-                StandardScales.thScale(),
-                StandardScales.shScale(),
-                StandardScales.sh1Scale(),
-                StandardScales.sh2Scale(),
-                StandardScales.h1Scale(),
-                StandardScales.h2Scale(),
-                StandardScales.pScale(),
-                StandardScales.l360Scale(),
-                StandardScales.l180Scale(),
-                StandardScales.paScale()
-            ]
-            
-            for scale in scales {
+            for scaleData in ScaleTestData.hyperbolicScales {
+                let scale = scaleData.scaleFactory(250.0)
                 let generated = GeneratedScale(definition: scale)
                 #expect(!generated.tickMarks.isEmpty,
                        "\(scale.name) should generate non-empty ticks")
+            }
+        }
+        
+        @Test("All hyperbolic scales handle boundary values correctly")
+        func allScalesBoundaryValues() {
+            for scaleData in ScaleTestData.hyperbolicScales {
+                let scale = scaleData.scaleFactory(250.0)
+                BoundaryTester.expectCorrectBoundaries(scale, tolerance: scaleData.tolerance)
+            }
+        }
+        
+        @Test("All hyperbolic scales round-trip test values correctly")
+        func allScalesRoundTrip() {
+            for scaleData in ScaleTestData.hyperbolicScales {
+                let scale = scaleData.scaleFactory(250.0)
+                RoundTripTester.testRoundTrips(
+                    values: scaleData.testValues,
+                    on: scale,
+                    tolerance: scaleData.tolerance
+                )
             }
         }
     }

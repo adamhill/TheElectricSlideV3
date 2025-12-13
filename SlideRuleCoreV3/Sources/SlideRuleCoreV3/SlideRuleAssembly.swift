@@ -454,24 +454,30 @@ public struct RuleDefinitionParser {
     }
     
     /// Parse a scale token which may have modifiers
-    /// Examples: "C", "D-", "ST+", "LL1^"
+    /// Examples: "C", "D-", "ST+", "LL1^", "C^-" (combined)
     /// - Returns: (scale name, optional tick direction override, noLineBreak flag)
     private static func parseScaleToken(_ token: String) -> (String, TickDirection?, Bool) {
         var scaleName = token
         var tickDir: TickDirection?
         var noLineBreak = false
         
-        // Check for tick direction override at the end
-        if token.hasSuffix("-") {
-            tickDir = .down
-            scaleName = String(token.dropLast())
-        } else if token.hasSuffix("+") {
-            tickDir = .up
-            scaleName = String(token.dropLast())
-        } else if token.hasSuffix("^") {
-            // No line break indicator - scale continues on same line
-            noLineBreak = true
-            scaleName = String(token.dropLast())
+        // Process modifiers from the end, handling combined modifiers like "C^-" or "C-^"
+        // Keep stripping modifiers until we have only the scale name
+        while !scaleName.isEmpty {
+            if scaleName.hasSuffix("-") {
+                tickDir = .down
+                scaleName = String(scaleName.dropLast())
+            } else if scaleName.hasSuffix("+") {
+                tickDir = .up
+                scaleName = String(scaleName.dropLast())
+            } else if scaleName.hasSuffix("^") {
+                // No line break indicator - scale continues on same line
+                noLineBreak = true
+                scaleName = String(scaleName.dropLast())
+            } else {
+                // No more modifiers, we have the scale name
+                break
+            }
         }
         
         return (scaleName, tickDir, noLineBreak)

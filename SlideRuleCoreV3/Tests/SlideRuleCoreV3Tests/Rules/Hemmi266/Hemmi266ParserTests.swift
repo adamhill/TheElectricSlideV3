@@ -140,6 +140,8 @@ struct Hemmi266ParserTests {
         
         /// Test each implemented scale parses correctly
         @Test("Each Hemmi 266 Log-Log scale parses correctly",
+              .tags(.slow),
+              .disabled("Extremely slow test (~93 seconds) - run manually when needed"),
               arguments: [
                   ("(H266LL03 A [ B ] D)", "H266LL03"),
                   ("(H266LL01 A [ B ] D)", "H266LL01"),

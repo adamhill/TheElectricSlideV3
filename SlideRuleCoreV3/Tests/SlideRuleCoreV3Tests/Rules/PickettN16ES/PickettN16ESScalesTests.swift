@@ -405,18 +405,19 @@ struct PickettN16ESTests {
         #expect(scale.subsections.count == 12)  // 12 subsections for 5/10/20 pattern across 4 decades
     }
     
-    @Test("λ scale creation - Wavelength in meters (2 decades)")
+    @Test("Fo scale creation - Frequency/wavelength scale")
     func testFoScaleCreation() async throws {
         let scale = N16ESScaleBuilder.createFoScale()
         
-        // FIXED: Scale now uses WAVELENGTH values in meters (not frequency in Hz)
-        // This matches the real Pickett N16-ES λ (lambda) scale
-        #expect(scale.name == "λ")
-        #expect(scale.function.name == "wavelength-meters")
-        // λ scale uses wavelength values directly in meters
-        // Range: 3000m to 30m (2 decades, inverted - high values on left)
-        #expect(scale.beginValue == 3000.0)   // 3000m at position 0 (left)
-        #expect(scale.endValue == 30.0)       // 30m at position 1 (right)
+        // Fo scale is frequency/wavelength scale from StandardScales.eefoScale()
+        // Uses FrequencyWavelengthFunction with 6 cycles
+        #expect(scale.name == "Fo")
+        #expect(scale.function.name == "frequency-wavelength")
+        // Range: 100 to 1 (inverted - high values on left)
+        // Note: This is not the same as a λ (wavelength in meters) scale
+        // but uses the frequency-wavelength relationship c = fλ
+        #expect(scale.beginValue == 100.0)   // 100 at position 0 (left)
+        #expect(scale.endValue == 1.0)       // 1 at position 1 (right)
     }
     
     @Test("Phase angle scale creation")
@@ -1030,10 +1031,4 @@ struct FLambdaAlignmentTests {
         #expect(posAt3000 < posAt30,
                "Higher λ values should have lower positions (λ scale is inverted)")
     }
-}
-
-// MARK: - Test Tags
-
-extension Tag {
-    @Tag static var pickettN16ES: Self
 }

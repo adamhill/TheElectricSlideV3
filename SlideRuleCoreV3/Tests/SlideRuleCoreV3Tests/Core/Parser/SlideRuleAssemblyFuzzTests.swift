@@ -5,7 +5,7 @@ import Foundation
 /// Comprehensive fuzz testing for SlideRule assembly definitions
 /// Tests hundreds of valid scale combinations including exotic scales
 /// Following Swift Testing Playbook with storytelling test names
-@Suite("SlideRule Assembly Fuzz Testing", .disabled("Temporarily disabled - slow fuzz tests (11+ seconds)"))
+@Suite("SlideRule Assembly Fuzz Testing", .tags(.slow), .disabled("Temporarily disabled - slow fuzz tests (11+ seconds)"))
 struct SlideRuleAssemblyFuzzTests {
     
     // MARK: - Test Dimensions
@@ -400,7 +400,7 @@ struct SlideRuleAssemblyFuzzTests {
     
     // MARK: - Back-Sided Rule Combinations
     
-    @Suite("Back-Sided Rule Fuzz Tests", .disabled("Temporarily disabled - slow fuzz tests (11+ seconds)"))
+    @Suite("Back-Sided Rule Fuzz Tests", .tags(.slow), .disabled("Temporarily disabled - slow fuzz tests (11+ seconds)"))
     struct BackSidedCombinations {
         
         @Test("Back-sided rules parse successfully with independent front and back configurations",

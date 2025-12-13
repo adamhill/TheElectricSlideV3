@@ -1377,6 +1377,14 @@ extension StandardScales {
                 // Historical: Uniform intervals simplify implementation while preserving readable precision
                 ScaleSubsection(startValue: 2.0, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0])
             ])
+            .withConstants([
+                // e = 2.71828... falls within LL2 range (1.105-2.72)
+                // Historical: Euler's number marked on all log-log scales where it appears
+                ScaleConstant(
+                    value: 2.71828,
+                    label: "e"
+                )
+            ])
             .withLabelFormatter(StandardLabelFormatter.twoDecimals)
             .build()
     }

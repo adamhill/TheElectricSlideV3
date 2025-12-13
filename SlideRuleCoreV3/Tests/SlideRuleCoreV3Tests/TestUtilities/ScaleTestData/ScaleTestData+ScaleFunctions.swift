@@ -4,6 +4,96 @@ import Foundation
 
 // MARK: - Scale Function Test Data Infrastructure
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║               HISTORICAL MULTIPLIER CONVENTIONS FOR SLIDE RULE SCALES        ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║  Physical slide rules map trigonometric and hyperbolic function outputs to   ║
+// ║  the standard C/D scale range (0 to 1 on the rule). This requires            ║
+// ║  multipliers to scale function outputs appropriately.                        ║
+// ║                                                                              ║
+// ║  AUTHORITATIVE SOURCES:                                                      ║
+// ║  1. "Mathematical Foundations of the Slide Rule" - Prof. Pasquale (UCSD 2011)║
+// ║  2. International Slide Rule Museum scale formula documentation              ║
+// ║  3. Oughtred Society "Slide Rules with Hyperbolic Functions"                 ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  TRIGONOMETRIC SCALES (×10 and ×100 Multipliers)                             ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║  1. S SCALE (Sine) - ×10 multiplier                                          ║
+// ║     Formula: log₁₀(10 × sin(x°))                                             ║
+// ║     Reason: sin(x) ranges from 0.1 to 1.0 for angles 5.74° to 90°            ║
+// ║             Multiplying by 10 maps these to 1-10, giving log values 0-1      ║
+// ║     Example: sin(30°) = 0.5 → 10×0.5 = 5 → log₁₀(5) = 0.69897                ║
+// ║                                                                              ║
+// ║  2. T SCALE (Tangent) - ×10 multiplier                                       ║
+// ║     Formula: log₁₀(10 × tan(x°))                                             ║
+// ║     Reason: tan(x) ranges from 0.1 to 1.0 for angles 5.71° to 45°            ║
+// ║             Multiplying by 10 maps these to 1-10, giving log values 0-1      ║
+// ║     Example: tan(45°) = 1.0 → 10×1.0 = 10 → log₁₀(10) = 1.0                  ║
+// ║                                                                              ║
+// ║  3. ST SCALE (Small Angles) - ×100 multiplier                                ║
+// ║     Formula: log₁₀(100 × x × π/180)                                          ║
+// ║     Reason: For angles < 5.7°, sin(x) ≈ tan(x) ≈ x·π/180 (small angle approx)║
+// ║             These values are ~0.01-0.1, so ×100 maps to readable range 1-10  ║
+// ║     Example: 1° → 100×(1×π/180) = 100×0.01745 = 1.745 → log₁₀ = 0.242        ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  HYPERBOLIC SCALES (×10 Multiplier)                                          ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║  4. Sh SCALE (Hyperbolic Sine) - ×10 multiplier                              ║
+// ║     Formula: log₁₀(10 × sinh(x))                                             ║
+// ║     Reason: Sh scales map sinh values (0.1-1.0 range) to D scale             ║
+// ║             The ×10 multiplier normalizes to standard C/D alignment          ║
+// ║     Example: sinh(0.88137) ≈ 1.0 → 10×1.0 = 10 → log₁₀(10) = 1.0             ║
+// ║                                                                              ║
+// ║  5. Th SCALE (Hyperbolic Tangent) - ×10 multiplier                           ║
+// ║     Formula: log₁₀(10 × tanh(x))                                             ║
+// ║     Reason: Th scale maps tanh values (0.1-1.0 range) to D scale             ║
+// ║             tanh asymptotes to 1.0, so ×10 gives log range 0-1               ║
+// ║     Example: tanh(0.54931) ≈ 0.5 → 10×0.5 = 5 → log₁₀(5) = 0.69897           ║
+// ║                                                                              ║
+// ║  6. Ch SCALE (Hyperbolic Cosine) - NO multiplier                             ║
+// ║     Formula: log₁₀(cosh(x))                                                  ║
+// ║     Reason: cosh(0) = 1.0 already starts at log₁₀(1) = 0                     ║
+// ║             No multiplier needed as cosh naturally covers 1-10+ range        ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  PYTHAGOREAN SCALES                                                          ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║  7. P SCALE (√(1-x²)) - ×10 multiplier                                       ║
+// ║     Formula: log₁₀(10 × √(1-x²))                                             ║
+// ║     Reason: √(1-x²) ranges from 0 to 1, ×10 maps to 0-10 for log 0-1         ║
+// ║     Example: x=0 → √1 = 1 → 10×1 = 10 → log₁₀(10) = 1.0                      ║
+// ║                                                                              ║
+// ║  8. H SCALE (√(x²-1)) - NO multiplier (default)                              ║
+// ║     Formula: log₁₀(√(x²-1))                                                  ║
+// ║     Reason: For x > 1, √(x²-1) naturally spans useful range                  ║
+// ║             Some rules may use multiplier depending on implementation        ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  LOGARITHMIC SCALES (Reference - No Multiplier)                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║                                                                              ║
+// ║  9. C/D SCALES - No multiplier                                               ║
+// ║     Formula: log₁₀(x)                                                        ║
+// ║     Reason: These ARE the reference scales; all others map TO them           ║
+// ║                                                                              ║
+// ║  10. LL SCALES (Log-Log) - No multiplier                                     ║
+// ║      Formula: log₁₀(ln(x))                                                   ║
+// ║      Reason: Double-log naturally produces useful range for exponentials     ║
+// ║                                                                              ║
+// ╠══════════════════════════════════════════════════════════════════════════════╣
+// ║  KEY INSIGHT: The ×10 multiplier shifts output by exactly +1 on log scale    ║
+// ║               The ×100 multiplier shifts output by exactly +2 on log scale   ║
+// ║                                                                              ║
+// ║  This is why: log₁₀(10×x) = log₁₀(x) + 1                                     ║
+// ║               log₁₀(100×x) = log₁₀(x) + 2                                    ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
 /// Test data structure for systematic scale function testing
 struct FunctionTestCase: Sendable {
     let name: String
@@ -183,15 +273,19 @@ extension ScaleTestData {
     
     /// Sine function (S scale)
     /// Formula: log₁₀(sin(x°) × 10)
+    /// Historical reference: UCSD "Mathematical Foundations of the Slide Rule" (2011)
+    /// The S scale function is z(w) = log₁₀(10 × sin(w°)) per Professor Pasquale's derivation.
+    /// This maps sin values (0.1 to 1.0) to the C/D scale range (0 to 1).
     static let sineFunction = FunctionTestCase(
         name: "Sine (S scale)",
         function: SineFunction(multiplier: 10.0),
         testValues: [5.74, 10.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0],
         knownPairs: [
-            (input: 30.0, expected: -0.30103),  // sin(30°) = 0.5
-            (input: 45.0, expected: -0.15051),  // sin(45°) ≈ 0.707
-            (input: 60.0, expected: -0.06279),  // sin(60°) ≈ 0.866
-            (input: 90.0, expected: 0.0)  // sin(90°) = 1.0
+            // With ×10 multiplier: log₁₀(10 × sin(x°))
+            (input: 30.0, expected: 0.69897),   // log₁₀(10 × 0.5) = log₁₀(5)
+            (input: 45.0, expected: 0.84949),   // log₁₀(10 × 0.7071) = log₁₀(7.071)
+            (input: 60.0, expected: 0.93752),   // log₁₀(10 × 0.866) = log₁₀(8.66)
+            (input: 90.0, expected: 1.0)        // log₁₀(10 × 1.0) = log₁₀(10)
         ],
         boundaryTests: [
             (value: 0.0, expectation: .negativeInfinity),
@@ -203,14 +297,18 @@ extension ScaleTestData {
     
     /// Tangent function (T scale)
     /// Formula: log₁₀(tan(x°) × 10)
+    /// Historical reference: International Slide Rule Museum scale formulas
+    /// T scale: R × log₁₀[10 × tan(#)] for angles 5.7° to 45°
+    /// This maps tan values (0.1 to 1.0) to the C/D scale range (0 to 1).
     static let tangentFunction = FunctionTestCase(
         name: "Tangent (T scale)",
         function: TangentFunction(multiplier: 10.0),
         testValues: [5.71, 10.0, 20.0, 30.0, 40.0, 45.0],
         knownPairs: [
-            (input: 45.0, expected: 0.0),  // tan(45°) = 1.0
-            (input: 30.0, expected: -0.23856),  // tan(30°) ≈ 0.577
-            (input: 60.0, expected: 0.23856)  // tan(60°) ≈ 1.732
+            // With ×10 multiplier: log₁₀(10 × tan(x°))
+            (input: 45.0, expected: 1.0),       // log₁₀(10 × 1.0) = log₁₀(10)
+            (input: 30.0, expected: 0.76144),   // log₁₀(10 × 0.5774) = log₁₀(5.774)
+            (input: 60.0, expected: 1.23856)    // log₁₀(10 × 1.732) = log₁₀(17.32)
         ],
         boundaryTests: [
             (value: 0.0, expectation: .negativeInfinity),
@@ -222,14 +320,19 @@ extension ScaleTestData {
     
     /// Small tangent function (ST scale)
     /// Formula: log₁₀(x × π/180 × 100)
+    /// Historical reference: International Slide Rule Museum
+    /// S,T scale: [log₁₀(100 × sin(#))] × R for angles < 5.7°
+    /// For small angles: sin(x°) ≈ tan(x°) ≈ x × π/180 (radians)
+    /// The ×100 multiplier maps small angle values to readable C/D range.
     static let smallTanFunction = FunctionTestCase(
         name: "Small Tangent (ST scale)",
         function: SmallTanFunction(),
         testValues: [0.57, 1.0, 2.0, 3.0, 4.0, 5.0],
         knownPairs: [
-            (input: 1.0, expected: -1.75587),  // log₁₀(π/180 × 100)
-            (input: 5.0, expected: -0.85672),
-            (input: 10.0, expected: -0.75587)
+            // With ×100 multiplier: log₁₀(100 × x × π/180)
+            (input: 1.0, expected: 0.24188),    // log₁₀(100 × 0.01745) = log₁₀(1.745)
+            (input: 5.0, expected: 0.94086),    // log₁₀(100 × 0.08727) = log₁₀(8.727)
+            (input: 10.0, expected: 1.24188)    // log₁₀(100 × 0.1745) = log₁₀(17.45)
         ],
         boundaryTests: [
             (value: 0.0, expectation: .negativeInfinity),
@@ -243,14 +346,19 @@ extension ScaleTestData {
     
     /// Hyperbolic sine function (Sh scales)
     /// Formula: log₁₀(sinh(x) × 10)
+    /// Historical reference: Oughtred Society "Slide Rules with Hyperbolic Functions"
+    /// Sh scales map sinh values to D scale (0.1 to 1.0 range), requiring ×10 multiplier.
+    /// Range: Sh1 from 0.1 to 0.882; Sh2 from 0.882 to 3.0
+    /// At x where sinh(x) = 1, the scale reads 1.0 on D scale (×10 = 10, log₁₀(10) = 1)
     static let hyperbolicSineFunction = FunctionTestCase(
         name: "Hyperbolic Sine (Sh scale)",
         function: HyperbolicSineFunction(multiplier: 10.0, offset: 0.0),
         testValues: [0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
         knownPairs: [
-            (input: 0.88137, expected: 0.0),  // sinh(0.88137) ≈ 1.0
-            (input: 1.44364, expected: 0.30103),  // sinh(1.44364) ≈ 2.0
-            (input: 1.81845, expected: 0.47712)  // sinh(1.81845) ≈ 3.0
+            // With ×10 multiplier: log₁₀(10 × sinh(x))
+            (input: 0.88137, expected: 1.0),    // sinh(0.88137) ≈ 1.0 → log₁₀(10) = 1
+            (input: 1.44364, expected: 1.30103),// sinh(1.44364) ≈ 2.0 → log₁₀(20)
+            (input: 1.81845, expected: 1.47712) // sinh(1.81845) ≈ 3.0 → log₁₀(30)
         ],
         boundaryTests: [
             (value: 0.0, expectation: .negativeInfinity),
@@ -281,14 +389,18 @@ extension ScaleTestData {
     
     /// Hyperbolic tangent function (Th scale)
     /// Formula: log₁₀(tanh(x) × 10)
+    /// Historical reference: Oughtred Society "Slide Rules with Hyperbolic Functions"
+    /// Th scale maps tanh values to D scale (0.1 to 1.0 range), requiring ×10 multiplier.
+    /// Range: Th from 0.1 to 3.0 (tanh approaches 1.0 asymptotically)
     static let hyperbolicTangentFunction = FunctionTestCase(
         name: "Hyperbolic Tangent (Th scale)",
         function: HyperbolicTangentFunction(multiplier: 10.0),
         testValues: [0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
         knownPairs: [
-            (input: 0.54931, expected: -0.30103),  // tanh(0.54931) ≈ 0.5
-            (input: 1.09861, expected: -0.09691),  // tanh(1.09861) ≈ 0.8
-            (input: 2.29756, expected: -0.00868)  // tanh(2.29756) ≈ 0.98
+            // With ×10 multiplier: log₁₀(10 × tanh(x))
+            (input: 0.54931, expected: 0.69897), // tanh(0.54931) ≈ 0.5 → log₁₀(5)
+            (input: 1.09861, expected: 0.90309), // tanh(1.09861) ≈ 0.8 → log₁₀(8)
+            (input: 2.29756, expected: 0.99132)  // tanh(2.29756) ≈ 0.98 → log₁₀(9.8)
         ],
         boundaryTests: [
             (value: 0.0, expectation: .negativeInfinity),
@@ -322,6 +434,7 @@ extension ScaleTestData {
     
     /// Capacitance reciprocal function (Cr scale - inverted)
     /// Formula: 1 - (log₁₀(x) + 2) / 4
+    /// The inverted scale produces +∞ at 0 (log₁₀(0) = -∞, negated = +∞)
     static let capacitanceReciprocalFunction = FunctionTestCase(
         name: "Capacitance Reciprocal (Cr scale)",
         function: CapacitanceReciprocalFunction(cycles: 4),
@@ -334,7 +447,7 @@ extension ScaleTestData {
             (input: 0.01, expected: 1.0)  // Right end (inverted)
         ],
         boundaryTests: [
-            (value: 0.0, expectation: .negativeInfinity),
+            (value: 0.0, expectation: .positiveInfinity),  // Inverted log scale: +∞ at 0
             (value: 1.0, expectation: .finite),
             (value: 100.0, expectation: .finite)
         ],

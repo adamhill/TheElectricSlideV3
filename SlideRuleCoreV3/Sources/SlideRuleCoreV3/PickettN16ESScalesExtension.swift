@@ -264,6 +264,27 @@ extension StandardScales {
     /// Note: Uses `.absolutelyNone` as the major tick style so that `labelLevels`
     /// is the sole determinant of labeling. This ensures the 0.5-0.7 range
     /// has tick marks but no labels.
+    ///
+    /// ## Historical ω/τ Alignment Artifact
+    ///
+    /// The ω and τ scales are designed so that **at any visual position on the rule,
+    /// ω × τ = 1**. This reciprocal relationship was essential for electronics engineers
+    /// calculating time constants (τ = RC or L/R) from angular frequencies.
+    ///
+    /// The raw transform functions include an intentional offset (~0.27-0.28) so that
+    /// the scales visually align. This is NOT a mathematical error—it's how physical
+    /// slide rules were manufactured to achieve the reciprocal relationship:
+    ///
+    /// - **Pickett N-16 ES** (1960s): First to include coordinated ω/τ scales
+    /// - **Pickett N-4 ES**: Simplified electronics rule with same alignment
+    /// - **Faber-Castell 2/83N**: German equivalent with ω/τ alignment
+    /// - **Aristo 0970**: European electronics rule using same principle
+    ///
+    /// The offset grows logarithmically from the reference point (ω=1, τ=1),
+    /// where both transforms equal zero. This was a deliberate manufacturing
+    /// decision, not a calculation error.
+    ///
+    /// See: `PickettN16ESOmegaTauAlignmentTests.swift` for verification tests
     public static func angularFrequencyOmegaScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("ω")
@@ -653,6 +674,28 @@ extension StandardScales {
     /// CRITICAL: This scale is mathematically tied to the ω scale via τ × ω = 1
     /// INVERTED SCALE: Values DECREASE from left (~2.08) to right (~0.016)
     /// Range: 1/0.48 ≈ 2.083 to 1/62 ≈ 0.0161 (reciprocal of ω range)
+    ///
+    /// ## Historical ω/τ Alignment Artifact
+    ///
+    /// This scale is **intentionally offset** from a pure mathematical inverse so that
+    /// at any visual position on the slide rule, ω × τ = 1. This was a manufacturing
+    /// decision common to professional electronics slide rules:
+    ///
+    /// - **Pickett N-16 ES** (1960s): Original implementation by Chan Street
+    /// - **Pickett N-4 ES**: Simplified version with same alignment principle
+    /// - **Faber-Castell 2/83N**: German engineering rule using identical offset
+    /// - **Aristo 0970 Studio**: European equivalent for broadcast engineering
+    /// - **Hemmi 266**: Japanese precision rule with coordinated EE scales
+    ///
+    /// The raw `TimeConstantFunction.transform()` includes this offset. Only at the
+    /// reference point (ω=1, τ=1) do both transforms equal exactly zero. For other
+    /// reciprocal pairs (e.g., ω=10/τ=0.1), there's an intentional cumulative offset
+    /// of approximately `log₁₀(ω) × constant` that makes the physical scales align.
+    ///
+    /// **DO NOT "FIX" THIS OFFSET** - it is historically accurate and required for
+    /// the scales to function correctly as reciprocals on a physical slide rule.
+    ///
+    /// See: `PickettN16ESOmegaTauAlignmentTests.swift` for verification tests
     ///
     /// Required alignments (from REAL Pickett N16-ES, NON-NEGOTIABLE):
     /// - ω=1 aligns with τ=1

@@ -24,11 +24,13 @@ struct CursorPrecisionTests {
         #expect(precision == 3)
     }
     
-    @Test("Automatic precision from intervals [1, 0.5, 0.1, 0.05] gives 2 decimals")
+    @Test("Automatic precision from intervals [1, 0.5, 0.1, 0.05] gives 3 decimals")
     func automaticPrecisionMediumIntervals() {
+        // Smallest interval is 0.05, which requires 3 decimal places to display
+        // values like "5.025" accurately (2 places would only show "5.02")
         let intervals = [1.0, 0.5, 0.1, 0.05]
         let precision = CursorPrecision.calculateFromIntervals(intervals)
-        #expect(precision == 2)
+        #expect(precision == 3)
     }
     
     @Test("Automatic precision from intervals [100, 50, 10, 5] gives 1 decimal")
@@ -117,9 +119,11 @@ struct CursorPrecisionTests {
         #expect(decimals1 == 3)
         
         // Test position in third subsection (value ~5.0)
+        // Subsection has intervals [1, 0.5, 0.1, 0.05] - smallest is 0.05
+        // which requires 3 decimal places to display accurately
         let pos2 = 0.699  // Normalized position ≈ 5.0
         let decimals2 = scale.cursorDecimalPlaces(at: pos2, zoomLevel: 1.0)
-        #expect(decimals2 == 2)
+        #expect(decimals2 == 3)
     }
     
     @Test("Format value for cursor display with explicit precision verification")

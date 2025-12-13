@@ -476,18 +476,10 @@ public struct RuleDefinitionParser {
         // Keep stripping modifiers until we have only the scale name
         while !scaleName.isEmpty {
             if scaleName.hasSuffix("-") {
-                if hasPlusModifier {
-                    // Conflicting modifiers detected: both + and - present
-                    throw ParseError.conflictingModifiers(token)
-                }
                 hasMinusModifier = true
                 tickDir = .down
                 scaleName = String(scaleName.dropLast())
             } else if scaleName.hasSuffix("+") {
-                if hasMinusModifier {
-                    // Conflicting modifiers detected: both - and + present
-                    throw ParseError.conflictingModifiers(token)
-                }
                 hasPlusModifier = true
                 tickDir = .up
                 scaleName = String(scaleName.dropLast())
@@ -499,6 +491,11 @@ public struct RuleDefinitionParser {
                 // No more modifiers, we have the scale name
                 break
             }
+        }
+        
+        // Check for conflicting tick direction modifiers after all processing
+        if hasPlusModifier && hasMinusModifier {
+            throw ParseError.conflictingModifiers(token)
         }
         
         return (scaleName, tickDir, noLineBreak)

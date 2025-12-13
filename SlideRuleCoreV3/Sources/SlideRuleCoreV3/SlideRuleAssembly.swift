@@ -1,9 +1,13 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 // MARK: - Parser Logger
 
+#if canImport(os)
 private let parserLogger = Logger(subsystem: "com.sliderulecorev3", category: "RuleDefinitionParser")
+#endif
 
 // MARK: - Slide Rule Components
 
@@ -101,6 +105,7 @@ public struct RuleDefinitionParser {
         case missingBrackets
         case invalidDimensions
         case invalidCircularSpec(String)
+        case conflictingModifiers(String)
         
         public var description: String {
             switch self {
@@ -109,6 +114,7 @@ public struct RuleDefinitionParser {
             case .missingBrackets: return "Missing or mismatched brackets"
             case .invalidDimensions: return "Invalid dimensions specified"
             case .invalidCircularSpec(let spec): return "Invalid circular spec: \(spec)"
+            case .conflictingModifiers(let token): return "Conflicting tick direction modifiers in token: \(token)"
             }
         }
     }
@@ -356,12 +362,14 @@ public struct RuleDefinitionParser {
             case "blank":
                 // "blank" token was used for spacer scales in the original PostScript engine.
                 // This feature is no longer supported. Log a warning and skip.
+                #if canImport(os)
                 parserLogger.warning("'blank' token is no longer supported and will be ignored. Remove 'blank' from your definition string.")
+                #endif
                 continue
                 
             default:
                 // Parse scale name with optional modifiers
-                let (scaleName, tickDir, noLineBreak) = parseScaleToken(token)
+                let (scaleName, tickDir, noLineBreak) = try parseScaleToken(token)
                 
                 guard let definition = StandardScales.scale(named: scaleName, length: scaleLength) else {
                     throw ParseError.unknownScale(scaleName)
@@ -456,18 +464,31 @@ public struct RuleDefinitionParser {
     /// Parse a scale token which may have modifiers
     /// Examples: "C", "D-", "ST+", "LL1^", "C^-" (combined)
     /// - Returns: (scale name, optional tick direction override, noLineBreak flag)
-    private static func parseScaleToken(_ token: String) -> (String, TickDirection?, Bool) {
+    /// - Throws: ParseError.conflictingModifiers if both + and - modifiers are present
+    private static func parseScaleToken(_ token: String) throws -> (String, TickDirection?, Bool) {
         var scaleName = token
         var tickDir: TickDirection?
         var noLineBreak = false
+        var hasPlusModifier = false
+        var hasMinusModifier = false
         
         // Process modifiers from the end, handling combined modifiers like "C^-" or "C-^"
         // Keep stripping modifiers until we have only the scale name
         while !scaleName.isEmpty {
             if scaleName.hasSuffix("-") {
+                if hasPlusModifier {
+                    // Conflicting modifiers detected: both + and - present
+                    throw ParseError.conflictingModifiers(token)
+                }
+                hasMinusModifier = true
                 tickDir = .down
                 scaleName = String(scaleName.dropLast())
             } else if scaleName.hasSuffix("+") {
+                if hasMinusModifier {
+                    // Conflicting modifiers detected: both - and + present
+                    throw ParseError.conflictingModifiers(token)
+                }
+                hasPlusModifier = true
                 tickDir = .up
                 scaleName = String(scaleName.dropLast())
             } else if scaleName.hasSuffix("^") {

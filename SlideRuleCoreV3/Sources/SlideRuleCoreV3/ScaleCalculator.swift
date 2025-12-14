@@ -417,6 +417,9 @@ public struct ScaleCalculator: Sendable {
             // Convert interval to integer space
             let intervalInt = toIntegerSpace(interval, xfactor: xfactor)
             
+            // Skip intervals that round to zero in integer space
+            guard intervalInt > 0 else { continue }
+            
             // Test if position is divisible by this interval
             if position % intervalInt == 0 {
                 return level

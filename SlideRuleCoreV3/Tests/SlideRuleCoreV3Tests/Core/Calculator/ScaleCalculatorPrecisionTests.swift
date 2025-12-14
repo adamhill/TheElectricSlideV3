@@ -41,7 +41,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [0.1, 0.01, 0.001]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 10000, "Fine interval 0.001 should recommend xfactor 10000")
         }
         
@@ -52,7 +52,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [0.1, 0.01]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 1000, "Medium interval 0.01 should recommend xfactor 1000")
         }
         
@@ -63,7 +63,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [1.0, 0.1]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 100, "Coarse interval 0.1 should recommend xfactor 100")
         }
         
@@ -74,7 +74,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [10.0, 1.0]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 100, "Large interval 1.0 should recommend xfactor 100")
         }
         
@@ -85,7 +85,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [0.0, 0.0, 0.0]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 100, "All zero intervals should return default 100")
         }
         
@@ -96,7 +96,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: []
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor == 100, "Empty intervals should return default 100")
         }
         
@@ -121,7 +121,7 @@ struct ScaleCalculatorPrecisionTests {
                 subsections: [subsection1, subsection2]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: scaleDef)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: scaleDef)
             #expect(xfactor == 10000, "Mixed intervals should use finest: 0.005 -> xfactor 10000")
         }
         
@@ -146,7 +146,7 @@ struct ScaleCalculatorPrecisionTests {
                 subsections: [subsection1, subsection2]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: scaleDef)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: scaleDef)
             #expect(xfactor == 1000, "Should use finest interval 0.01 from all subsections")
         }
         
@@ -157,7 +157,7 @@ struct ScaleCalculatorPrecisionTests {
                 tickIntervals: [0.1, 0.0001]
             )
             
-            let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+            let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
             #expect(xfactor >= 100000, "Very fine interval 0.0001 should recommend xfactor >= 100000")
         }
     }

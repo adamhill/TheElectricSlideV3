@@ -64,7 +64,7 @@ struct LScaleTickGenerationTests {
         let lScale = StandardScales.lScale(length: 800.0)
         let ticks = ScaleCalculator.generateTickMarks(for: lScale)
         
-        let minSeparation = ModuloTickConfig.default.minSeparation
+        let minSeparation: Double = 0.001  // Minimum normalized distance between ticks
         var seenPositions = Set<Int>()
         
         for tick in ticks {

@@ -61,28 +61,39 @@ struct StatorView: View, Equatable {
         )
         .equatable()
         .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
+        // Triple-tap must be simultaneousGesture to not be blocked by high-priority pan
         .simultaneousGesture(
             TapGesture(count: 3)
-                .onEnded {
-                    // Triple-tap to reset zoom to 1.0×
+                .onEnded { _ in
                     gestureHandler?.handleResetZoom()
                 }
         )
-        .onTapGesture {
-            // Mark stator as touched (sticky readings)
-            cursorState?.setStatorTouched()
-        }
+        // Pan gesture for zoomed content - responds immediately (minimumDistance: 0)
+        // .global coordinate space prevents jitter
         .highPriorityGesture(
-            // Pan gesture only enabled when zoomed in (>1.0x) and gestureHandler available
             (currentZoomScale > 1.0 && gestureHandler != nil) ?
-                DragGesture(minimumDistance: 0)
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // Immediate response; .global prevents jitter
                     .onChanged { gesture in
+                         #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onChanged: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
                         gestureHandler?.handlePanChanged(gesture)
                     }
                     .onEnded { gesture in
+                        #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onEnded: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
                         gestureHandler?.handlePanEnded(gesture)
                     }
                 : nil
+        )
+        // Single-tap as simultaneousGesture - works alongside pan gesture
+        .simultaneousGesture(
+            TapGesture(count: 1)
+                .onEnded { _ in
+                    // Mark stator as touched (sticky readings)
+                    cursorState?.setStatorTouched()
+                }
         )
     }
 }

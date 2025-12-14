@@ -147,6 +147,23 @@ struct ContentView: View {
                     panOffset: $viewModel.panOffset,
                     totalScaleHeight: totalScaleHeight
                 )
+                // Animate slide rule transitions with crossfade effect
+                // When selectedRuleId changes, SwiftUI treats this as a new view
+                // The .transition(.opacity) creates fade out/in for old/new views
+                .id(selectedRuleId)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.3), value: selectedRuleId)
+                // Extend content beneath sidebar for Liquid Glass overlay effect (macOS 26 / iOS 26)
+                // Per Apple HIG: "Extend content beneath sidebars and inspectors" to reinforce
+                // the floating/overlay appearance. Combined with .prominentDetail style, this makes
+                // the sidebar slide over the content rather than displacing it.
+                .ignoresSafeArea(.container, edges: .leading)
+                // macOS-only: Use background extension effect for seamless sidebar overlay appearance
+                // Creates mirrored, blurred copies of the detail view under the sidebar region.
+                // Note: On iOS, this caused unwanted "reflection" artifacts on the edges, so it's disabled there.
+                #if os(macOS)
+                .backgroundExtensionEffect()
+                #endif
                 .onGeometryChange(for: Dimensions.self) { proxy in
                     let size = proxy.size
                     return Dimensions.calculate(
@@ -224,6 +241,8 @@ struct ContentView: View {
             print("   New rule: \(selectedRuleDefinition?.name ?? "nil")")
             parseAndUpdateSlideRule()
             viewModel.resetSlider()
+            // Reset zoom and pan to show complete new slide rule in default view state
+            viewModel.resetZoom()
             // Force cursor readings update for new slide rule scales
             cursorState.updateReadings()
             saveCurrentRule()

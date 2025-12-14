@@ -28,6 +28,7 @@ struct CursorOverlay: View {
     @Environment(\.hapticService) private var haptics
     @Environment(\.precisionCoordinator) private var precisionCoordinator
     @Environment(\.gestureHandler) private var gestureHandler
+    @Environment(\.slideRuleViewModel) private var viewModel
     
     /// Shared cursor state
     let cursorState: CursorState
@@ -64,7 +65,6 @@ struct CursorOverlay: View {
     
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
-    
     // MARK: - Precision Mode State
     
     /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
@@ -72,6 +72,21 @@ struct CursorOverlay: View {
     
     // NOTE: Other precision state (isPrecisionSequenceActive, sessionID, lastAppliedTranslation)
     // now managed by PrecisionDragCoordinator via @Environment(\.precisionCoordinator)
+    
+    // MARK: - Computed Properties for Gesture Control
+    
+    /// Whether cursor drag gestures should be enabled.
+    /// Disables drags during active magnification/pinch-zoom to prevent unintentional
+    /// cursor movements when fingers spread across the cursor component.
+    ///
+    /// ## Apple Best Practice: gesture(_:isEnabled:)
+    /// Per Apple Documentation ("simultaneousGesture(_:isEnabled:)"):
+    /// "You can also use the `isEnabled` parameter to conditionally disable the gesture."
+    /// This is the recommended approach for dynamically enabling/disabling gestures.
+    private var isCursorDragEnabled: Bool {
+        // Disable when magnification gesture is active (pinch-zoom in progress)
+        !(viewModel?.isMagnifying ?? false)
+    }
     
     // MARK: - Body
     
@@ -107,8 +122,15 @@ struct CursorOverlay: View {
                     // Triple-tap to reset zoom to 1.0×
                     gestureHandler?.handleResetZoom()
                 }
-                // Normal drag gesture for standard cursor movement
-                // Suppressed when precision sequence is active for cursor
+                // MARK: Normal Cursor Drag Gesture
+                // Standard horizontal drag for cursor movement.
+                // Disabled during:
+                // 1. Active magnification (pinch-zoom) - prevents unintentional cursor when fingers spread
+                // 2. Active precision sequence - defers to the long-press + drag gesture
+                //
+                // ## Apple Best Practice: gesture(_:isEnabled:)
+                // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
+                // to conditionally disable based on isCursorDragEnabled computed property.
                 .gesture(
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { gesture in
@@ -160,10 +182,12 @@ struct CursorOverlay: View {
                             withTransaction(Transaction(animation: nil)) {
                                 cursorState.activeDragOffset = 0
                             }
-                        }
+                        },
+                    isEnabled: isCursorDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
                 )
-                // Long-press sequenced with drag for precision mode (reduced sensitivity)
-                // Uses @GestureState for automatic reset and PrecisionDragCoordinator for state
+                // MARK: Precision Cursor Drag Gesture (Long-press + Drag)
+                // Allows fine-grained cursor positioning with reduced sensitivity.
+                // Also disabled during magnification to prevent conflicts.
                 .simultaneousGesture(
                     LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                         .onEnded { _ in
@@ -243,7 +267,8 @@ struct CursorOverlay: View {
                             #if DEBUG
                             print("🎯 [Cursor.Precision] DEACTIVATED via PrecisionDragCoordinator")
                             #endif
-                        }
+                        },
+                    isEnabled: isCursorDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
                 )
             }
             .frame(width: width)  // Constrain to scale width

@@ -33,24 +33,28 @@ internal enum ModuloTickGenerationUtilities {
     }
     
     /// Determine xfactor needed for a specific interval
+    /// Uses log10 to determine magnitude, avoiding precision limitations of string formatting
+    /// 
+    /// This ensures correct behavior regardless of zoom level (1x to 4x magnification).
+    /// Zoom affects visual spacing but not mathematical intervals - the xfactor handles
+    /// exact integer arithmetic for any scale length.
     private static func recommendedPrecisionMultiplier(forInterval interval: Double) -> Int {
-        // Count decimal places needed
-        let string = String(format: "%.10f", interval)
-        let parts = string.components(separatedBy: ".")
-        guard parts.count > 1 else { return 100 }  // Return 100 for integers
+        // Guard against invalid intervals
+        guard interval > 0 else { return 100 }
         
-        let fractionalPart = parts[1]
+        // For intervals >= 1.0, use default precision (100)
+        guard interval < 1.0 else { return 100 }
         
-        // Find the position of the last non-zero digit
-        // This tells us how many decimal places we need to preserve
-        if let lastNonZeroIndex = fractionalPart.lastIndex(where: { $0 != "0" }) {
-            let decimalPlaces = fractionalPart.distance(from: fractionalPart.startIndex, to: lastNonZeroIndex) + 1
-            // xfactor = 10^(decimalPlaces + 1) for safety margin
-            return Int(pow(10.0, Double(decimalPlaces + 1)))
-        }
+        // Use log10 to determine the number of decimal places needed
+        // For interval = 0.001: log10(0.001) = -3, so we need 3 decimal places
+        // Add 1 for safety margin: 10^(3+1) = 10000
+        let magnitude = -log10(interval)
+        let decimalPlaces = Int(ceil(magnitude)) + 1
         
-        // All zeros means this is an integer interval (like 1.0)
-        return 100  // Default for integer intervals
+        // Compute xfactor = 10^decimalPlaces
+        // Cap at a reasonable maximum to avoid overflow (10^15 is well within Int64 range)
+        let cappedDecimalPlaces = min(decimalPlaces, 15)
+        return Int(pow(10.0, Double(cappedDecimalPlaces)))
     }
 }
 

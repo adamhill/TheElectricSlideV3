@@ -398,6 +398,9 @@ swift test --filter .fast
 
 # Verbose test output
 swift test --verbose
+
+# Note: Test execution times differ significantly by platform
+# macOS: 10-20 seconds | Linux runners: >60 seconds (due to virtualization/limited resources)
 ```
 
 ### Performance Profiling

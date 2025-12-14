@@ -60,7 +60,7 @@ struct ModuloTickGenerationTests {
     
     @Suite("Duplicate Prevention Tests")
     struct DuplicatePreventionTests {
-        private let defaultConfig = ModuloTickConfig.default
+        private let minSeparation: Double = 0.001  // Minimum normalized distance between ticks
         
         @Test("No duplicate positions in generated ticks")
         func noDuplicatesInOutput() {
@@ -69,7 +69,6 @@ struct ModuloTickGenerationTests {
             
             // Check for duplicate positions
             var seenPositions = Set<Int>()
-            let minSeparation = defaultConfig.minSeparation
             
             for tick in ticks {
                 // Convert to integer for duplicate check
@@ -113,12 +112,13 @@ struct ModuloTickGenerationTests {
             
             let ticks = ScaleCalculator.generateTickMarks(for: definition)
             
-            // Verify no duplicates
+            // Verify no duplicates (using standard minimum separation)
+            let minSeparation: Double = 0.001
             var previousPosition: Double?
             for tick in ticks {
                 if let prev = previousPosition {
                     let separation = tick.normalizedPosition - prev
-                    #expect(separation > defaultConfig.minSeparation * 0.9,
+                    #expect(separation > minSeparation * 0.9,
                            "Ticks too close at position \(tick.normalizedPosition)")
                 }
                 previousPosition = tick.normalizedPosition
@@ -492,7 +492,7 @@ struct ModuloTickGenerationTests {
                     labelLevels: []
                 )
                 
-                let recommended = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+                let recommended = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
                 
                 #expect(recommended >= expectedMin,
                        "Precision for interval \(interval) should be >= \(expectedMin), got \(recommended)")

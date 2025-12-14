@@ -260,7 +260,6 @@ final class GestureHandler: GestureHandlerProtocol {
     private static let estimatedScaleCount: CGFloat = 10.0
     
     /// Handles pan gesture changes during drag to pan zoomed content.
-    /// Handles pan gesture changes during drag to pan zoomed content.
     /// Uses bounded pan calculation to prevent content from going off-screen.
     func handlePanChanged(_ gesture: DragGesture.Value) {
         #if DEBUG

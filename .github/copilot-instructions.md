@@ -29,13 +29,16 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - `mcp_apple-docs_*` tools - Comprehensive Apple API documentation, WWDC videos, sample code
   - `mcp_dash-api_search_documentation` - Search installed Dash docsets (Swift, SwiftUI, UIKit, etc.)
 
-### Remote Agents (Cloud/Sandbox Environments)
-**Limited Access** - Focus on calculation engine:
-- ✅ Can modify and test `SlideRuleCoreV3` package code
+### Remote Agents (Cloud/Sandbox Environments - Linux Runners)
+**Swift Package Development** - Full capability for calculation engine:
+- ✅ **Swift 6.2+ available** - Can build, test, and run Swift code on Linux
+- ✅ Can modify and test `SlideRuleCoreV3` package code using `swift build` and `swift test`
 - ✅ Can read and analyze `TheElectricSlide` app code
-- ❌ Cannot run the SwiftUI app (no simulator/UI access)
+- ✅ Can run all `SlideRuleCoreV3Tests/` unit tests in Linux environment
+- ✅ Can validate calculation logic, scale functions, and parser behavior
+- ❌ Cannot run the SwiftUI app (no simulator/UI access - iOS/macOS only)
 - ❌ Cannot use Xcodebuild MCP (no local Xcode installation)
-- 💡 **Strategy**: Focus work on `SlideRuleCoreV3Tests/` where changes can be validated
+- 💡 **Strategy**: Focus work on `SlideRuleCoreV3` package where changes can be fully validated via `swift test`
 
 ## Architecture: Three-Layer Design
 
@@ -47,11 +50,14 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 **Purpose:** Pure calculation engine for scale creation, manipulation, tick mark calculations, and value-from-position lookups - **NO drawing/rendering code by design**
 
 **⚠️ AGENT CAPABILITY:** This package is where remote agents should focus their work. You can:
+- ✅ **Build with `swift build`** - Compiles on Linux runners (Swift 6.2+)
+- ✅ **Test with `swift test`** - Full test suite runs on Linux
 - ✅ Add new tests to `SlideRuleCoreV3Tests/`
 - ✅ Modify scale logic and calculations
 - ✅ Add new scale types and functions
 - ✅ Fix bugs in the calculation engine
-- ❌ Cannot run the SwiftUI app (remote agents only - no sandbox support)
+- ✅ Validate all changes via automated tests in CI/CD
+- ❌ Cannot run the SwiftUI app (remote agents only - requires Xcode/simulators)
 
 
 **Core Files (read these first):**
@@ -94,9 +100,54 @@ let rule = try RuleDefinitionParser.parse(
 4. **No Drawing** - Calculations return data; rendering is separate responsibility
 
 ### Layer 2: TheElectricSlide App (SwiftUI Rendering)
-**Location:** `TheElectricSlide/ContentView.swift`  
+**Location:** `TheElectricSlide/`  
 **Platform:** macOS 15+, iOS 18+ (uses `onGeometryChange` from WWDC 2024)  
-**⚠️ AGENT LIMITATION:** Agents cannot run or test this app directly (no sandbox support). Focus on SlideRuleCoreV3 package instead.
+**⚠️ AGENT LIMITATION:** Remote agents cannot run or test this app directly (requires Xcode/simulators). Focus on SlideRuleCoreV3 package instead.
+
+**Architecture Overview:**
+The app follows a clean MVVM-inspired architecture with separate concerns:
+
+**Entry Point & Data:**
+- `TheElectricSlideApp.swift` - App entry, SwiftData container setup (`CurrentSlideRule`, `SlideRuleDefinitionModel`)
+- `ContentView.swift` - Root view orchestrating all components, gesture handling, state management
+- `SlideRuleViewModel.swift` - Hot/cold property pattern for performance-optimized state
+
+**Core Components** (`Components/`):
+- `SlideRuleDetailView.swift` - Main slide rule display container
+- `DynamicSlideRuleContent.swift` - Responsive layout handler for different view modes (front/back/both)
+- `SideView.swift` - Single side container (front or back), manages stator-slide-stator layout
+- `StatorView.swift` / `SlideView.swift` - Individual stator/slide rendering with multiple scales
+- `ScaleView.swift` - Single scale rendering via Canvas, tick marks, labels
+- `ScaleLabelRenderer.swift` / `ScaleTickRenderer.swift` - Separate rendering concerns
+- `ScaleContainerView.swift` - Scale wrapper with hit testing
+- `FlipButton.swift` - iPhone-specific flip control
+- `SlideRuleSidebarView.swift` - Rule selection sidebar (macOS/iPad)
+- `CursorReadingsContainer.swift` - Cursor value display
+
+**Cursor System** (`Cursor/`):
+- `CursorState.swift` - Observable cursor state (@Observable class)
+- `CursorOverlay.swift` - Draggable glass cursor view with gradients
+- `CursorReadings.swift` - Value computation at cursor position
+- See "Glass Cursor System" section below for detailed patterns
+
+**Models** (`Models/`):
+- `LayoutConfiguration.swift` - Dimensions, LayoutTier (4 responsive breakpoints)
+- `ViewMode.swift` - Front/Back/Both display modes
+- `CursorDisplayMode.swift` - Cursor display options (gradients/values/both)
+- `RuleSide.swift` - Front/Back enumeration
+- `ScaleContainer.swift` - Scale metadata wrapper
+- `GestureTypes.swift` - Gesture-related type definitions
+
+**Extensions** (`Extensions/`):
+- `ContentView+Gestures.swift` - Drag, zoom, pan gesture handlers
+- `ContentView+Persistence.swift` - SwiftData load/save/parse logic
+
+**Utilities** (`Utilities/`):
+- `GestureHandler.swift` - Centralized gesture coordination (Phase 4 refactor)
+- `PrecisionDragCoordinator.swift` - Unified precision mode for slide/cursor
+- `TickHapticCoordinator.swift` - Haptic feedback on tick mark crossings
+- `DeviceDetection.swift` - Device category detection (iPhone/iPad/Mac)
+- `ScrollWheelZoomModifier.swift` - Mouse wheel zoom support (macOS)
 
 **Performance-Critical Patterns (see `swift-docs/swift-sliderule-rendering-improvements.md`):**
 
@@ -327,18 +378,26 @@ mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
 
 **Using Terminal Commands:**
 ```bash
+# ====== Local Agents (macOS with Xcode) ======
 # Xcode project (not workspace)
 open TheElectricSlide.xcodeproj
 
 # Command line build (app + tests)
 xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide
 
-# Swift package tests only (fast iteration - works for remote agents)
+# ====== Remote Agents (Linux Runners) & Local Agents ======
+# Swift package tests only (fast iteration - works everywhere)
 cd SlideRuleCoreV3
 swift test
 
+# Build package to verify compilation
+swift build
+
 # Run specific test suite with tags
 swift test --filter .fast
+
+# Verbose test output
+swift test --verbose
 ```
 
 ### Performance Profiling

@@ -1,35 +1,12 @@
 import Foundation
 
-// MARK: - Modulo-Based Tick Generation Configuration
+// MARK: - Modulo-Based Tick Generation Utilities
 
-/// Configuration for modulo-based tick generation algorithm
-public struct ModuloTickConfig: Sendable {
-    /// Precision multiplier (xfactor in PostScript)
-    /// Converts floating-point values to integers for exact modulo arithmetic
-    /// Example: xfactor=100 means 0.01 precision
-    public let precisionMultiplier: Int
-    
-    /// Minimum position separation to detect duplicates (normalized units)
-    public let minSeparation: Double
-    
-    /// Whether to skip last tick on circular scales (360° = 0°)
-    public let skipCircularOverlap: Bool
-    
-    public init(
-        precisionMultiplier: Int = 100,
-        minSeparation: Double = 0.001,
-        skipCircularOverlap: Bool = true
-    ) {
-        self.precisionMultiplier = precisionMultiplier
-        self.minSeparation = minSeparation
-        self.skipCircularOverlap = skipCircularOverlap
-    }
-    
-    /// Default configuration
-    public static let `default` = ModuloTickConfig()
-    
+/// Utilities for modulo-based tick generation algorithm
+/// Provides static helper methods for precision calculation
+internal enum ModuloTickGenerationUtilities {
     /// Determine appropriate xfactor based on finest interval in a subsection
-    public static func recommendedPrecisionMultiplier(
+    static func recommendedPrecisionMultiplier(
         for subsection: ScaleSubsection
     ) -> Int {
         guard let finestInterval = subsection.tickIntervals.filter({ $0 > 0 }).min() else {
@@ -40,7 +17,7 @@ public struct ModuloTickConfig: Sendable {
     }
     
     /// Determine appropriate xfactor based on finest interval in a scale definition
-    public static func recommendedPrecisionMultiplier(
+    static func recommendedPrecisionMultiplier(
         for definition: ScaleDefinition
     ) -> Int {
         // Find finest interval across all subsections
@@ -251,15 +228,14 @@ public struct ScaleCalculator: Sendable {
     public static func generateTickMarks(
         for definition: ScaleDefinition
     ) -> [TickMark] {
-        return generateTickMarksModulo(for: definition, config: .default)
+        return generateTickMarksModulo(for: definition)
     }
     
     // MARK: - Modulo-Based Implementation
     
     /// Generate all tick marks using modulo-based single-pass algorithm
     private static func generateTickMarksModulo(
-        for definition: ScaleDefinition,
-        config: ModuloTickConfig
+        for definition: ScaleDefinition
     ) -> [TickMark] {
         var allTicks: [TickMark] = []
         
@@ -268,8 +244,7 @@ public struct ScaleCalculator: Sendable {
             let ticks = generateSubsectionTicksModulo(
                 subsection: subsection,
                 subsectionIndex: subsectionIndex,
-                definition: definition,
-                config: config
+                definition: definition
             )
             allTicks.append(contentsOf: ticks)
         }
@@ -302,8 +277,7 @@ public struct ScaleCalculator: Sendable {
     private static func generateSubsectionTicksModulo(
         subsection: ScaleSubsection,
         subsectionIndex: Int,
-        definition: ScaleDefinition,
-        config: ModuloTickConfig
+        definition: ScaleDefinition
     ) -> [TickMark] {
         var ticks: [TickMark] = []
         
@@ -320,7 +294,7 @@ public struct ScaleCalculator: Sendable {
         
         // 3. Convert to integer space using xfactor
         // Use recommended precision based on finest interval to avoid rounding to 0
-        let xfactor = ModuloTickConfig.recommendedPrecisionMultiplier(for: subsection)
+        let xfactor = ModuloTickGenerationUtilities.recommendedPrecisionMultiplier(for: subsection)
         
         // Determine iteration direction based on overall domain, and clamp start to bounds
         let isDescending = definition.beginValue > definition.endValue
@@ -361,8 +335,8 @@ public struct ScaleCalculator: Sendable {
                 continue
             }
             
-            // 8. Handle circular scale edge case
-            if definition.isCircular && config.skipCircularOverlap {
+            // 8. Handle circular scale edge case (skip 360°/0° overlap)
+            if definition.isCircular {
                 if shouldSkipCircularTick(tickValue, definition, tolerance: 0.01 * finestInterval) {
                     continue
                 }

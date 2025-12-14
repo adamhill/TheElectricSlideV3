@@ -310,9 +310,10 @@ public struct ScaleCalculator: Sendable {
             return []
         }
         
-        // 4. Single pass through all positions using stride; use negative stride for descending
-        let step = (startInt <= endInt) ? incrementInt : -incrementInt
-        for tickInt in stride(from: startInt, through: endInt, by: step) {
+        // 4. Single pass through all positions; use negative step for descending
+        let step: Int64 = (startInt <= endInt) ? incrementInt : -incrementInt
+        var tickInt = startInt
+        while (step > 0 ? tickInt <= endInt : tickInt >= endInt) {
             // 5. Convert back to real value
             let tickValue = toRealSpace(tickInt, xfactor: xfactor)
             
@@ -324,7 +325,10 @@ public struct ScaleCalculator: Sendable {
                     return (tickValue >= bounds.lower && tickValue < bounds.upper)
                 }
             }()
-            guard inside else { continue }
+            guard inside else {
+                tickInt += step
+                continue
+            }
             
             // 7. Determine hierarchy level using modulo
             guard let level = determineTickLevel(
@@ -332,12 +336,14 @@ public struct ScaleCalculator: Sendable {
                 intervals: subsection.tickIntervals,
                 xfactor: xfactor
             ) else {
+                tickInt += step
                 continue
             }
             
             // 8. Handle circular scale edge case (skip 360°/0° overlap)
             if definition.isCircular {
                 if shouldSkipCircularTick(tickValue, definition, tolerance: 0.01 * finestInterval) {
+                    tickInt += step
                     continue
                 }
             }
@@ -351,6 +357,9 @@ public struct ScaleCalculator: Sendable {
             )
             
             ticks.append(tick)
+            
+            // 10. Advance to next position
+            tickInt += step
         }
         
         return ticks
@@ -392,7 +401,7 @@ public struct ScaleCalculator: Sendable {
     /// Determine which tick level a position belongs to using modulo arithmetic
     /// Tests intervals from largest (level 0) to smallest, matching PostScript order
     private static func determineTickLevel(
-        position: Int,
+        position: Int64,
         intervals: [Double],
         xfactor: Int
     ) -> Int? {
@@ -499,12 +508,13 @@ public struct ScaleCalculator: Sendable {
     // MARK: - Precision Utilities
     
     /// Convert value to integer space for exact modulo arithmetic
-    private static func toIntegerSpace(_ value: Double, xfactor: Int) -> Int {
-        Int((value * Double(xfactor)).rounded())
+    /// Uses Int64 to prevent overflow on 32-bit platforms (e.g., Apple Watch arm64_32)
+    private static func toIntegerSpace(_ value: Double, xfactor: Int) -> Int64 {
+        Int64((value * Double(xfactor)).rounded())
     }
     
     /// Convert integer back to real space
-    private static func toRealSpace(_ intValue: Int, xfactor: Int) -> Double {
+    private static func toRealSpace(_ intValue: Int64, xfactor: Int) -> Double {
         Double(intValue) / Double(xfactor)
     }
     

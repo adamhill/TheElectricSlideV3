@@ -229,8 +229,8 @@ struct ScaleCircularGeometryTests {
                 ])
                 .build()
 
-            // Force modulo to exercise boundary calculation
-            let ticks = ScaleCalculator.generateTickMarks(for: def, algorithm: .modulo(config: .default))
+            // Generate tick marks
+            let ticks = ScaleCalculator.generateTickMarks(for: def)
 
             // Boundary values 2.0 and 4.0 should appear exactly once (from the following subsection),
             // and the terminal end 10.0 (upper bound) should appear once (inclusive on last subsection).

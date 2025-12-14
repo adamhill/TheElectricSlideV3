@@ -500,11 +500,7 @@ struct ScaleCalculatorPrecisionTests {
                 subsections: [emptySubsection]
             )
             
-            let config = ModuloTickConfig(precisionMultiplier: 1000)
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: scaleDef,
-                algorithm: .modulo(config: config)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: scaleDef)
             
             #expect(ticks.count == 0, "Modulo algorithm should handle empty subsection")
         }

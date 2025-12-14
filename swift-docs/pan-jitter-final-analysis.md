@@ -81,8 +81,8 @@ At 2× zoom:
 ### ❌ Fix 1: Changed from `.offset()` to `.transformEffect(CGAffineTransform())`
 **Why it failed:** This fixed the **output** (how pan offset is applied), but didn't fix the **input** (how gesture translations are measured). The gesture still samples in unstable `.local` space.
 
-### ❌ Fix 2: Moved pan gesture from 4 StatorViews to single SideView
-**Why it failed:** Reduced competing gestures, but the single gesture still samples in the same `.local` coordinate space that's being transformed.
+### ❌ Fix 2: Moved pan gesture from 4 StatorViews to single SideView (Intermediate Attempt)
+**Why it failed:** Reduced competing gestures, but the single gesture still samples in the same `.local` coordinate space that's being transformed. Additionally, placing the gesture on SideView with `.simultaneousGesture()` made the slide uncontrollable—slide drag gestures were blocked or interfered with.
 
 ### ❌ Fix 3: Fixed GestureHandler offset calculation (was doubling)
 **Why it failed:** Math was correct, but input coordinates were alternating between two different coordinate spaces.
@@ -306,5 +306,84 @@ This issue was difficult to diagnose because:
 
 ---
 
-**Document Status:** ✅ Complete - Ready for implementation  
-**Next Step:** Switch to Code mode to implement the fix
+## Final Implementation (As Applied)
+
+> **Note:** The section above ("The Solution" and "Implementation Plan") proposed moving the gesture to SideView with `.global` coordinate space. However, the actual final implementation took a different approach after discovering that placing the pan gesture on SideView caused issues with slide control.
+
+### What We Actually Implemented
+
+The pan gesture is placed on **each StatorView** (not SideView) with `.coordinateSpace(.global)`.
+
+**File:** [`StatorView.swift:64-80`](../TheElectricSlide/Components/StatorView.swift:64)
+
+```swift
+.highPriorityGesture(
+    (currentZoomScale > 1.0 && gestureHandler != nil) ?
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)  // .global prevents jitter
+            .onChanged { gesture in
+                gestureHandler?.handlePanChanged(gesture)
+            }
+            .onEnded { gesture in
+                gestureHandler?.handlePanEnded(gesture)
+            }
+        : nil
+)
+```
+
+### Why We Moved It Back From SideView
+
+The intermediate attempt placed a single pan gesture on SideView to reduce the number of competing gesture recognizers (from 4 to 1). However, this caused a critical problem:
+
+**Problem:** Using `.simultaneousGesture()` on SideView made the slide **uncontrollable**. The pan gesture interfered with the slide's drag gesture, preventing users from moving the slide left/right.
+
+**Root cause:** `.simultaneousGesture()` allows multiple gestures to recognize simultaneously, but when both the pan gesture and slide drag gesture competed for the same horizontal drag events, the pan gesture would consume the events first, blocking slide movement.
+
+### The Confirmed Working Solution
+
+Each `StatorView` has its own pan gesture recognizer:
+
+1. **Top stator** of front side → pan gesture with `.global`
+2. **Bottom stator** of front side → pan gesture with `.global`
+3. **Top stator** of back side → pan gesture with `.global`
+4. **Bottom stator** of back side → pan gesture with `.global`
+
+**This means 4 pan gesture recognizers** (2 per side × 2 sides), but only the currently visible side's gestures are active.
+
+### Why This Doesn't Cause Jitter
+
+The original jitter was **not caused by having multiple gesture recognizers**. It was caused by the coordinate space issue:
+
+1. **Original problem:** `DragGesture()` with implicit `.local` coordinate space + `.scaleEffect()` on parent = alternating coordinate samples
+2. **The fix:** Explicit `.coordinateSpace(.global)` ensures all translation values are in screen coordinates, completely independent of any view transforms
+
+Even with 4 pan gesture recognizers, each one reports stable, consistent translations because:
+- `.global` coordinate space is **always** relative to the screen
+- View transforms (`.scaleEffect()`, `.offset()`) don't affect global coordinates
+- Each gesture samples touch events in the same stable reference frame
+
+### Implementation Details
+
+**SideView** ([`SideView.swift`](../TheElectricSlide/Components/SideView.swift)):
+- ❌ No longer has a pan gesture
+- ✅ Still has vertical swipe gesture for flip (uses `.local` since flip doesn't need pan precision)
+- ✅ Passes `currentZoomScale` to child StatorViews
+
+**StatorView** ([`StatorView.swift`](../TheElectricSlide/Components/StatorView.swift)):
+- ✅ Has `.highPriorityGesture()` for pan with `.coordinateSpace(.global)`
+- ✅ Pan only active when `currentZoomScale > 1.0`
+- ✅ Uses `@Environment(\.gestureHandler)` for centralized gesture handling
+
+### The Journey Summary
+
+| Step | Location | Coordinate Space | Result |
+|------|----------|-----------------|--------|
+| 1. Original | 4 StatorViews | `.local` (implicit) | ❌ Jitter |
+| 2. Moved to single location | 1 SideView | `.local` (implicit) | ❌ Jitter + slide blocked |
+| 3. **Final solution** | 4 StatorViews | **`.global` (explicit)** | ✅ Smooth panning |
+
+The key insight: **the number of gesture recognizers wasn't the problem; the coordinate space was**.
+
+---
+
+**Document Status:** ✅ Complete - Implementation verified
+**Actual Implementation:** Pan gesture on StatorView with `.coordinateSpace(.global)`

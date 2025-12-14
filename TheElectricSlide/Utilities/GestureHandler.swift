@@ -260,8 +260,15 @@ final class GestureHandler: GestureHandlerProtocol {
     private static let estimatedScaleCount: CGFloat = 10.0
     
     /// Handles pan gesture changes during drag to pan zoomed content.
+    /// Handles pan gesture changes during drag to pan zoomed content.
     /// Uses bounded pan calculation to prevent content from going off-screen.
     func handlePanChanged(_ gesture: DragGesture.Value) {
+        #if DEBUG
+        print("🔴 [PanJitter] GH-Changed: " +
+              "gesture.translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height))) " +
+              "currentPanOffset=(\(String(format: "%.2f", viewModel.panOffset.width)), \(String(format: "%.2f", viewModel.panOffset.height)))")
+        #endif
+        
         let dimensions = getDimensions()
         
         // Approximate content height from scaleHeight × estimated scale count
@@ -271,15 +278,18 @@ final class GestureHandler: GestureHandlerProtocol {
         // Viewport is approximately the same as content at 1× zoom
         let viewportSize = contentSize
         
-        // Calculate bounded pan using GestureCalculator
-        let currentPan = viewModel.panOffset
-        let newPan = CGSize(
-            width: currentPan.width + gesture.translation.width,
-            height: currentPan.height + gesture.translation.height
-        )
+        // BUG FIX: Let ViewModel calculate position FIRST (it uses base + translation correctly)
+        // Then use the resulting panOffset for boundary checking.
+        // Previously, we incorrectly calculated newPan = currentPan + translation,
+        // but gesture.translation is ABSOLUTE from drag start, and currentPan already
+        // equals base + translation. This was doubling the offset.
+        withTransaction(Transaction(animation: nil)) {
+            viewModel.handlePanChanged(translation: gesture.translation)
+        }
         
+        // Now use the correctly calculated panOffset for boundary checking
         let result = GestureCalculator.calculateBoundedPan(
-            offset: newPan,
+            offset: viewModel.panOffset,
             zoomScale: viewModel.currentZoomScale,
             contentSize: contentSize,
             viewportSize: viewportSize
@@ -297,15 +307,17 @@ final class GestureHandler: GestureHandlerProtocol {
         if result.boundedAxes.isEmpty {
             lastBoundaryEdge = nil
         }
-        
-        withTransaction(Transaction(animation: nil)) {
-            viewModel.handlePanChanged(translation: gesture.translation)
-        }
     }
     
     /// Handles pan gesture end and commits the new base offset.
     /// Applies bounded pan to ensure content stays visible.
     func handlePanEnded(_ gesture: DragGesture.Value) {
+        #if DEBUG
+        print("🟢 [PanJitter] GH-Ended: " +
+              "gesture.translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height))) " +
+              "finalPanOffset=(\(String(format: "%.2f", viewModel.panOffset.width)), \(String(format: "%.2f", viewModel.panOffset.height)))")
+        #endif
+        
         // Reset boundary tracking
         lastBoundaryEdge = nil
         
@@ -335,7 +347,6 @@ final class GestureHandler: GestureHandlerProtocol {
             }
         }
     }
-    
     // MARK: - Reset Zoom Handler
     
     /// Handles triple-tap to reset zoom to 1.0× and clear pan offset.

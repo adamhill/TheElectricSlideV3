@@ -159,15 +159,33 @@ final class SlideRuleViewModel {
     /// - Parameter translation: The drag translation from gesture
     /// Note: Uses withTransaction in caller to suppress animations
     func handlePanChanged(translation: CGSize) {
+        #if DEBUG
+        let oldOffset = panOffset
+        #endif
+        
         panOffset = CGSize(
             width: _basePanOffset.width + translation.width,
             height: _basePanOffset.height + translation.height
         )
+        
+        #if DEBUG
+        print("🔵 [PanJitter] VM-Update: " +
+              "oldOffset=(\(String(format: "%.2f", oldOffset.width)), \(String(format: "%.2f", oldOffset.height))) " +
+              "newOffset=(\(String(format: "%.2f", panOffset.width)), \(String(format: "%.2f", panOffset.height))) " +
+              "base=(\(String(format: "%.2f", _basePanOffset.width)), \(String(format: "%.2f", _basePanOffset.height))) " +
+              "translation=(\(String(format: "%.2f", translation.width)), \(String(format: "%.2f", translation.height)))")
+        #endif
     }
     
     /// Handle pan gesture end
     /// Commits the current offset as the new base
     func handlePanEnded() {
+        #if DEBUG
+        print("🟣 [PanJitter] VM-Ended: " +
+              "oldBase=(\(String(format: "%.2f", _basePanOffset.width)), \(String(format: "%.2f", _basePanOffset.height))) " +
+              "newBase=(\(String(format: "%.2f", panOffset.width)), \(String(format: "%.2f", panOffset.height)))")
+        #endif
+        
         _basePanOffset = panOffset
     }
     

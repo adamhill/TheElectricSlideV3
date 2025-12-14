@@ -14,15 +14,20 @@ import SlideRuleCoreV3
 
 // MARK: - Pan Position Modifier
 
-/// Custom modifier for pan positioning without animation
-/// Ensures offset changes are applied immediately without SwiftUI animation interpolation
+/// Custom modifier for pan positioning using GPU-level transform
+/// Uses CGAffineTransform instead of .offset() to avoid coordinate space disruption
+/// during gesture tracking. .offset() goes through SwiftUI's layout system which can
+/// cause gesture tracking to switch between pre/post-offset coordinate spaces.
 struct PanPositionModifier: ViewModifier {
     let offset: CGSize
     
     func body(content: Content) -> some View {
+        #if DEBUG
+        let _ = print("🟤 [PanJitter] Render-Offset: " +
+              "offset=(\(String(format: "%.2f", offset.width)), \(String(format: "%.2f", offset.height)))")
+        #endif
         content
-            .offset(offset)
-            .animation(nil, value: offset)  // Explicitly disable animation
+            .transformEffect(CGAffineTransform(translationX: offset.width, y: offset.height))
     }
 }
 

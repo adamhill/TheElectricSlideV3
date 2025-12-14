@@ -61,28 +61,29 @@ struct StatorView: View, Equatable {
         )
         .equatable()
         .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
-        .simultaneousGesture(
-            TapGesture(count: 3)
-                .onEnded {
-                    // Triple-tap to reset zoom to 1.0×
-                    gestureHandler?.handleResetZoom()
-                }
-        )
-        .onTapGesture {
-            // Mark stator as touched (sticky readings)
-            cursorState?.setStatorTouched()
-        }
         .highPriorityGesture(
-            // Pan gesture only enabled when zoomed in (>1.0x) and gestureHandler available
             (currentZoomScale > 1.0 && gestureHandler != nil) ?
-                DragGesture(minimumDistance: 0)
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // .global prevents jitter
                     .onChanged { gesture in
+                        #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onChanged: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
                         gestureHandler?.handlePanChanged(gesture)
                     }
                     .onEnded { gesture in
+                        #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onEnded: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
                         gestureHandler?.handlePanEnded(gesture)
                     }
                 : nil
         )
+        .onTapGesture(count: 3) {
+            gestureHandler?.handleResetZoom()
+        }
+        .onTapGesture {
+            // Mark stator as touched (sticky readings)
+            cursorState?.setStatorTouched()
+        }
     }
 }

@@ -31,7 +31,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 
 ### Remote Agents (Cloud/Sandbox Environments - Linux Runners)
 **Swift Package Development** - Full capability for calculation engine:
-- ✅ **Swift 6.2+ available** - Can build, test, and run Swift package code on Linux
+- ✅ **Swift 6.2+ available** - Can build and test Swift packages on Linux (compile code, execute tests)
 - ✅ Can modify and test `SlideRuleCoreV3` package code using `swift build` and `swift test`
 - ✅ Can read and analyze `TheElectricSlide` app code
 - ✅ Can run all `SlideRuleCoreV3Tests/` unit tests in Linux environment

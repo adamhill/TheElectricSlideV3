@@ -160,6 +160,7 @@ swift test --filter .fast
 # Build before testing (verify compilation)
 swift build && swift test
 
-# Note: Linux runners may have different performance characteristics than local macOS.
-# Test execution times may vary, but correctness should be consistent across platforms.
+# Note: Linux runners (CI/CD environments) may execute tests slower due to virtualization
+# and limited CPU resources compared to local macOS development machines. Test execution
+# times may vary significantly, but correctness should be consistent across platforms.
 ```

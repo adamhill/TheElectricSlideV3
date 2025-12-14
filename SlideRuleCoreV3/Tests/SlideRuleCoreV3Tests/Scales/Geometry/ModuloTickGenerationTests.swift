@@ -112,8 +112,7 @@ struct ModuloTickGenerationTests {
             
             let ticks = ScaleCalculator.generateTickMarks(for: definition)
             
-            // Verify no duplicates (using standard minimum separation)
-            let minSeparation: Double = 0.001
+            // Verify no duplicates
             var previousPosition: Double?
             for tick in ticks {
                 if let prev = previousPosition {

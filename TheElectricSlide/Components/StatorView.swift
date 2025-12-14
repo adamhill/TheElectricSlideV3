@@ -61,11 +61,20 @@ struct StatorView: View, Equatable {
         )
         .equatable()
         .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
+        // Triple-tap must be simultaneousGesture to not be blocked by high-priority pan
+        .simultaneousGesture(
+            TapGesture(count: 3)
+                .onEnded { _ in
+                    gestureHandler?.handleResetZoom()
+                }
+        )
+        // Pan gesture for zoomed content - minimumDistance: 5 prevents accidental activation
+        // during taps (fixes single-tap haptic and triple-tap flakiness issues)
         .highPriorityGesture(
             (currentZoomScale > 1.0 && gestureHandler != nil) ?
-                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // .global prevents jitter
+                DragGesture(minimumDistance: 5, coordinateSpace: .global)  // 5px threshold; .global prevents jitter
                     .onChanged { gesture in
-                        #if DEBUG
+                         #if DEBUG
                         print("🟠 [PanJitter] StatorView-onChanged: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
                         #endif
                         gestureHandler?.handlePanChanged(gesture)
@@ -78,12 +87,13 @@ struct StatorView: View, Equatable {
                     }
                 : nil
         )
-        .onTapGesture(count: 3) {
-            gestureHandler?.handleResetZoom()
-        }
-        .onTapGesture {
-            // Mark stator as touched (sticky readings)
-            cursorState?.setStatorTouched()
-        }
+        // Single-tap as simultaneousGesture - won't be blocked by pan with minimumDistance: 5
+        .simultaneousGesture(
+            TapGesture(count: 1)
+                .onEnded { _ in
+                    // Mark stator as touched (sticky readings)
+                    cursorState?.setStatorTouched()
+                }
+        )
     }
 }

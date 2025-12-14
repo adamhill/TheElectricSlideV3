@@ -295,8 +295,10 @@ final class GestureHandler: GestureHandlerProtocol {
             viewportSize: viewportSize
         )
         
-        // Fire boundary haptics for any new boundaries hit
-        for edge in result.boundedAxes {
+        // Fire boundary haptics only for VERTICAL boundaries (top/bottom)
+        // Horizontal edges (leading/trailing) are too easily triggered when panning
+        // content that extends off-screen, causing unwanted haptic spam
+        for edge in result.boundedAxes where edge == .top || edge == .bottom {
             if lastBoundaryEdge != edge {
                 lastBoundaryEdge = edge
                 hapticService.fire(.boundaryHit(edge: edge))
@@ -304,7 +306,9 @@ final class GestureHandler: GestureHandlerProtocol {
             }
         }
         
-        if result.boundedAxes.isEmpty {
+        // Only reset boundary tracking if NO vertical boundaries are hit
+        let hasVerticalBoundary = result.boundedAxes.contains { $0 == .top || $0 == .bottom }
+        if !hasVerticalBoundary {
             lastBoundaryEdge = nil
         }
     }

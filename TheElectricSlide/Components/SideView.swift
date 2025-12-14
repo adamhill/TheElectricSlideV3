@@ -39,8 +39,15 @@ struct SideView: View, Equatable {
     /// Threshold for vertical swipe detection (points)
     private static let verticalSwipeThreshold: CGFloat = 50
     
+    /// Maximum duration for a quick flick gesture (seconds)
+    /// Gestures longer than this are considered slow pans and won't trigger flip
+    private static let flipMaxDuration: TimeInterval = 0.4
+    
     /// Tracks if a vertical swipe has been triggered during current gesture
     @State private var hasTriggeredFlip: Bool = false
+    
+    /// Tracks when the vertical swipe gesture started (for duration calculation)
+    @State private var flipGestureStartTime: Date?
     
     // MARK: - Slide Precision Mode State
     
@@ -204,29 +211,53 @@ struct SideView: View, Equatable {
             .equatable()
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
-        // MARK: - Vertical Swipe Gesture for Side Flip
+        #if os(iOS)
+        // MARK: - Vertical Swipe Gesture for Side Flip (iOS/iPadOS only)
+        // NOTE: Disabled on macOS where swipe gestures feel unnatural with trackpad
+        // macOS users can tap the header to cycle view modes instead
+        // Requires QUICK FLICK (short duration) to distinguish from slow panning
         .simultaneousGesture(
             DragGesture(minimumDistance: 30, coordinateSpace: .local)
                 .onChanged { gesture in
-                    // Only trigger flip once per gesture and only if vertical motion dominates
-                    guard !hasTriggeredFlip, gestureHandler != nil else { return }
+                    // Record start time on first movement
+                    if flipGestureStartTime == nil {
+                        flipGestureStartTime = Date()
+                    }
+                }
+                .onEnded { gesture in
+                    // Calculate gesture duration
+                    let duration = flipGestureStartTime.map { Date().timeIntervalSince($0) } ?? 0
+                    
+                    // Reset state for next gesture
+                    flipGestureStartTime = nil
+                    
+                    // Skip if already triggered or no handler
+                    guard !hasTriggeredFlip, gestureHandler != nil else {
+                        hasTriggeredFlip = false
+                        return
+                    }
                     
                     let verticalDistance = abs(gesture.translation.height)
                     let horizontalDistance = abs(gesture.translation.width)
                     
-                    // Require vertical motion to be significantly greater than horizontal
-                    // and exceed threshold
-                    if verticalDistance > Self.verticalSwipeThreshold &&
-                       verticalDistance > horizontalDistance * 1.5 {
+                    // Require ALL conditions for flip:
+                    // 1. Vertical motion exceeds threshold (50px)
+                    // 2. Vertical motion dominates horizontal (1.5× ratio)
+                    // 3. Gesture was quick (< 0.4 seconds) - distinguishes flick from slow pan
+                    let isVerticalEnough = verticalDistance > Self.verticalSwipeThreshold
+                    let isVerticalDominant = verticalDistance > horizontalDistance * 1.5
+                    let isQuickFlick = duration < Self.flipMaxDuration
+                    
+                    if isVerticalEnough && isVerticalDominant && isQuickFlick {
                         hasTriggeredFlip = true
                         haptics.fire(.flip)
                         gestureHandler?.handleFlip()
                     }
-                }
-                .onEnded { _ in
+                    
                     // Reset flip trigger for next gesture
                     hasTriggeredFlip = false
                 }
         )
+        #endif
     }
 }

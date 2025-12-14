@@ -57,7 +57,6 @@ struct SlideRuleSidebarView: View {
                 .toggleStyle(.switch)
             }
             .padding()
-            .background(systemBackgroundColor())
 
             Divider()
             
@@ -106,6 +105,9 @@ struct SlideRuleSidebarView: View {
             }
             .buttonStyle(.plain)
             }
+            // Hide the List's default opaque scroll background to allow
+            // the Liquid Glass translucency effect to show through
+            .scrollContentBackground(.hidden)
             .navigationTitle("Slide Rules")
             #if os(macOS)
             .navigationSplitViewColumnWidth(min: 250, ideal: 300, max: 400)
@@ -114,6 +116,14 @@ struct SlideRuleSidebarView: View {
                 initializeLibraryIfNeeded()
             }
         }
+        // MARK: - Liquid Glass Translucency (iOS 26+)
+        // Apply thin material background to make sidebar translucent on iOS
+        // The detail content extended beneath via .ignoresSafeArea() and .backgroundExtensionEffect()
+        // will show through the sidebar with the characteristic glass blur
+        // Note: .containerBackground(_:for: .navigation) is only available on iOS/iPadOS 18+
+        #if os(iOS)
+        .containerBackground(.thinMaterial, for: .navigation)
+        #endif
     }
     
     /// Initialize or update library with standard rules

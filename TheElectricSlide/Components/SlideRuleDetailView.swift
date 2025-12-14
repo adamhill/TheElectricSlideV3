@@ -125,6 +125,7 @@ struct SlideRuleDetailView: View {
     }
     
     /// View Mode picker section for regular devices (iPad, Mac, Vision Pro)
+    /// Tapping cycles through available view modes (Front → Back → Both → Front...)
     @ViewBuilder
     private func combinedPickersSection() -> some View {
         let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
@@ -132,18 +133,43 @@ struct SlideRuleDetailView: View {
         }
         
         HStack(spacing: 16) {
-            // Slide rule name label
+            // Slide rule name label with side indicator (matching iPhone styling, larger fonts)
             if let ruleName = selectedRuleDefinition?.name {
-                Text(ruleName)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Current slide rule: \(ruleName)")
-                    .accessibilityIdentifier("currentSlideRuleName")
+                HStack(spacing: 10) {
+                    Text(ruleName)
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+                    Text("•")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                .accessibilityIdentifier("currentSlideRuleName")
             }
             
             Spacer()
         }
+        .frame(maxWidth: .infinity, minHeight: 44)  // Minimum 44pt tap target (Apple HIG)
         .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())  // Make entire header area tappable
+        .onTapGesture {
+            // Cycle through available view modes: Front → Back → Both → Front...
+            guard availableModes.count > 1 else { return }
+            
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if let currentIndex = availableModes.firstIndex(of: viewMode) {
+                    let nextIndex = (currentIndex + 1) % availableModes.count
+                    viewMode = availableModes[nextIndex]
+                } else {
+                    // Fallback: if current mode not in available modes, select first
+                    viewMode = availableModes[0]
+                }
+            }
+        }
+        .accessibilityHint("Tap to cycle through view modes: Front, Back, Both")
     }
 }

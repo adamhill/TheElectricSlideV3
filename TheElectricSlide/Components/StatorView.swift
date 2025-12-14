@@ -68,11 +68,11 @@ struct StatorView: View, Equatable {
                     gestureHandler?.handleResetZoom()
                 }
         )
-        // Pan gesture for zoomed content - minimumDistance: 5 prevents accidental activation
-        // during taps (fixes single-tap haptic and triple-tap flakiness issues)
+        // Pan gesture for zoomed content - responds immediately (minimumDistance: 0)
+        // .global coordinate space prevents jitter
         .highPriorityGesture(
             (currentZoomScale > 1.0 && gestureHandler != nil) ?
-                DragGesture(minimumDistance: 5, coordinateSpace: .global)  // 5px threshold; .global prevents jitter
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // Immediate response; .global prevents jitter
                     .onChanged { gesture in
                          #if DEBUG
                         print("🟠 [PanJitter] StatorView-onChanged: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
@@ -87,7 +87,7 @@ struct StatorView: View, Equatable {
                     }
                 : nil
         )
-        // Single-tap as simultaneousGesture - won't be blocked by pan with minimumDistance: 5
+        // Single-tap as simultaneousGesture - works alongside pan gesture
         .simultaneousGesture(
             TapGesture(count: 1)
                 .onEnded { _ in

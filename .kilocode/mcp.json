@@ -35,7 +35,8 @@
                 "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
             },
             "alwaysAllow": [
-                "*"
+                "build_sim",
+                "discover_projs"
             ]
         },
         "dash-api": {

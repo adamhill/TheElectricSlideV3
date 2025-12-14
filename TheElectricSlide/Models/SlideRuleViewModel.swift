@@ -61,6 +61,25 @@ final class SlideRuleViewModel {
     /// Base zoom at start of gesture (HOT - internal tracking only)
     @ObservationIgnored private var _baseZoomScale: CGFloat = 1.0
     
+    // MARK: - Magnification Active State (for gesture conflict resolution)
+    
+    /// Whether a magnification (pinch zoom) gesture is currently active.
+    /// Used to disable slide drag gestures during pinch-to-zoom to prevent
+    /// unintentional slide movements when fingers spread across the slide component.
+    ///
+    /// ## Research-Backed Design (Apple Developer Documentation)
+    /// - Per "Composing SwiftUI gestures" article: Use @GestureState with .updating()
+    ///   to track transient gesture state that auto-resets when gesture ends.
+    /// - Per "simultaneousGesture(_:isEnabled:)" API: Conditionally disable gestures
+    ///   using the isEnabled parameter based on another gesture's active state.
+    ///
+    /// ## Architecture Note
+    /// This is a COLD property (observed) because:
+    /// 1. It needs to trigger view updates in SideView to enable/disable drag gestures
+    /// 2. Changes are relatively infrequent (only on pinch start/end)
+    /// 3. The performance cost is minimal compared to the UX improvement
+    var isMagnifying: Bool = false
+    
     // MARK: - Pan State (Hot/Cold Pattern)
     
     /// Current pan offset for moving zoomed content (COLD - triggers view updates)
@@ -187,6 +206,14 @@ final class SlideRuleViewModel {
         #endif
         
         _basePanOffset = panOffset
+    }
+    
+    // MARK: - Magnification Active State Handlers
+    
+    /// Called when magnification gesture starts or is in progress.
+    /// Sets `isMagnifying` to true to disable slide drag gestures during pinch.
+    func setMagnificationActive(_ active: Bool) {
+        isMagnifying = active
     }
     
     // MARK: - State Queries

@@ -18,6 +18,7 @@ struct SideView: View, Equatable {
     @Environment(\.hapticService) private var haptics
     @Environment(\.precisionCoordinator) private var precisionCoordinator
     @Environment(\.gestureHandler) private var gestureHandler
+    @Environment(\.slideRuleViewModel) private var viewModel
     
     let side: RuleSide
     let topStator: Stator
@@ -53,6 +54,21 @@ struct SideView: View, Equatable {
     
     /// Whether precision mode is active (for GestureState tracking - auto-resets)
     @GestureState private var isSlidePrecisionDragging: Bool = false
+    
+    // MARK: - Computed Properties for Gesture Control
+    
+    /// Whether slide drag gestures should be enabled.
+    /// Disables drags during active magnification/pinch-zoom to prevent unintentional
+    /// slide movements when fingers spread across the slide component.
+    ///
+    /// ## Apple Best Practice: gesture(_:isEnabled:)
+    /// Per Apple Documentation ("simultaneousGesture(_:isEnabled:)"):
+    /// "You can also use the `isEnabled` parameter to conditionally disable the gesture."
+    /// This is the recommended approach for dynamically enabling/disabling gestures.
+    private var isSlideDragEnabled: Bool {
+        // Disable when magnification gesture is active (pinch-zoom in progress)
+        !(viewModel?.isMagnifying ?? false)
+    }
     
     // ✅ Equatable conformance - only compare properties affecting rendering
     // Note: cursorState is not compared in Equatable
@@ -115,8 +131,15 @@ struct SideView: View, Equatable {
                 // Triple-tap to reset zoom to 1.0×
                 gestureHandler?.handleResetZoom()
             }
-            // Normal drag gesture for standard slide movement
-            // Suppressed when precision sequence is active for slide
+            // MARK: Normal Slide Drag Gesture
+            // Standard horizontal drag for slide movement.
+            // Disabled during:
+            // 1. Active magnification (pinch-zoom) - prevents unintentional slide when fingers spread
+            // 2. Active precision sequence - defers to the long-press + drag gesture
+            //
+            // ## Apple Best Practice: gesture(_:isEnabled:)
+            // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
+            // to conditionally disable based on isSlideDragEnabled computed property.
             .gesture(
                 DragGesture()
                     .onChanged { gesture in
@@ -138,9 +161,12 @@ struct SideView: View, Equatable {
                             return
                         }
                         gestureHandler?.handleSlideDragEnded(gesture, isPrecision: false)
-                    }
+                    },
+                isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
             )
-            // Long-press sequenced with drag for precision slide movement
+            // MARK: Precision Slide Drag Gesture (Long-press + Drag)
+            // Allows fine-grained slide positioning with reduced sensitivity.
+            // Also disabled during magnification to prevent conflicts.
             .simultaneousGesture(
                 LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                     .onEnded { _ in
@@ -188,7 +214,8 @@ struct SideView: View, Equatable {
                         
                         // End precision session with cooldown
                         precisionCoordinator.deactivate()
-                    }
+                    },
+                isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
             )
             .animation(.interactiveSpring(), value: sliderOffset)
             .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change

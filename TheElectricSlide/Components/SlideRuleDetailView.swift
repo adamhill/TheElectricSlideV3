@@ -27,6 +27,25 @@ private func systemBackgroundColor() -> Color {
 
 struct SlideRuleDetailView: View {
     @Environment(\.gestureHandler) private var gestureHandler
+    @Environment(\.slideRuleViewModel) private var viewModel
+    
+    // MARK: - Magnification Gesture State
+    
+    /// Tracks whether a pinch-to-zoom gesture is currently active.
+    /// This @GestureState auto-resets to false when the gesture ends.
+    ///
+    /// ## Apple Best Practice: @GestureState for Transient Gesture Tracking
+    /// Per "Composing SwiftUI gestures" documentation:
+    /// - @GestureState is designed for tracking values during an active gesture
+    /// - Automatically resets when gesture becomes inactive
+    /// - Perfect for "is gesture active?" boolean flags
+    ///
+    /// ## Why This Solves the Pinch-Zoom Conflict
+    /// When pinch-zooming, user's fingers may spread across the slide component,
+    /// inadvertently triggering its drag gesture. By tracking `isMagnifying` and
+    /// using the `gesture(_:isEnabled:)` API on slide drag gestures, we can
+    /// temporarily disable slide movement during active pinch operations.
+    @GestureState private var isMagnifying: Bool = false
     
     @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
@@ -84,13 +103,27 @@ struct SlideRuleDetailView: View {
             // The Metal rasterization cache wasn't updating correctly during geometry animations
             .simultaneousGesture(
                 MagnificationGesture()
+                    // MARK: Magnification Active State Tracking
+                    // Use .updating() to track whether pinch gesture is active.
+                    // Per Apple docs: @GestureState auto-resets when gesture ends.
+                    // This drives isMagnifying state that disables slide drag gestures.
+                    .updating($isMagnifying) { _, state, _ in
+                        state = true
+                    }
                     .onChanged { scale in
+                        // Sync magnification active state to viewModel for child views
+                        // This propagates via @Environment(\.slideRuleViewModel) to SideView
+                        viewModel?.setMagnificationActive(true)
+                        
                         // Phase 7: Use gestureHandler for zoom
                         if let handler = gestureHandler {
                             handler.handleZoomChanged(scale)
                         }
                     }
                     .onEnded { scale in
+                        // Clear magnification active state when gesture completes
+                        viewModel?.setMagnificationActive(false)
+                        
                         // Phase 7: Use gestureHandler for zoom
                         if let handler = gestureHandler {
                             handler.handleZoomEnded(scale)

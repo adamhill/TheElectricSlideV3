@@ -163,4 +163,5 @@ swift build && swift test
 # Note: Linux runners (CI/CD environments) may execute tests slower due to virtualization
 # and limited CPU resources compared to local macOS development machines. Test execution
 # times may vary significantly, but correctness should be consistent across platforms.
+# Expect: macOS 10-20 seconds, Linux runners >60 seconds for full test suite.
 ```

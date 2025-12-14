@@ -6,7 +6,7 @@ applyTo: "TheElectricSlide/**/*.swift"
 
 ## Platform Requirements
 - macOS 15+, iOS 18+ (uses enhanced `onGeometryChange` modifier)
-- **Note**: SwiftUI app requires Xcode and simulators - cannot be run or tested on Linux runners
+- **Note**: SwiftUI app requires Xcode and simulators - cannot be run or tested on Linux runners (CI/CD environments like GitHub Actions)
 - Remote agents can still read, analyze, and understand SwiftUI code for architectural context
 
 ## Architecture Overview

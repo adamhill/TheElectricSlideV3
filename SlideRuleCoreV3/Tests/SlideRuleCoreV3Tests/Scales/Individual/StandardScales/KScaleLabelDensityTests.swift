@@ -30,10 +30,7 @@ struct KScaleLabelDensityTests {
         let kScale = StandardScales.kScale(length: 250.0)
         
         // WHEN: We generate tick marks
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: kScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: kScale)
         
         let labeledTicks = ticks.filter { $0.label != nil }
         
@@ -55,10 +52,7 @@ struct KScaleLabelDensityTests {
         let kScale = StandardScales.kScale(length: 250.0)
         
         // WHEN: We generate tick marks
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: kScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: kScale)
         
         let labeledValues = ticks.compactMap { tick -> Int? in
             guard tick.label != nil else { return nil }
@@ -82,10 +76,7 @@ struct KScaleLabelDensityTests {
         let kScale = StandardScales.kScale(length: 250.0)
         
         // WHEN: We count major ticks vs labeled ticks
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: kScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: kScale)
         
         let majorTicks = ticks.filter { $0.style.relativeLength >= 0.9 }
         let labeledTicks = ticks.filter { $0.label != nil }
@@ -106,10 +97,7 @@ struct KScaleLabelDensityTests {
         let kScale = StandardScales.kScale(length: 250.0)
         
         // WHEN: We look at labels in 100-1000 range
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: kScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: kScale)
         
         let upperRangeLabels = ticks.filter { tick in
             tick.label != nil && tick.value >= 100 && tick.value <= 1000

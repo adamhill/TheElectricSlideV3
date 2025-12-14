@@ -85,10 +85,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             // THEN: No ticks should have labels (since labelLevels is empty AND 
             // all styles have shouldLabel: false)
@@ -125,10 +122,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             // THEN: Major ticks (level 0) WILL have labels because
             // TickStyle.major has shouldLabel: true
@@ -185,10 +179,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             let labeledTicks = ticks.filter { $0.label != nil }
             
@@ -236,10 +227,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             let labeledTicks = ticks.filter { $0.label != nil }
             
@@ -287,10 +275,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             let labeledTicks = ticks.filter { $0.label != nil }
             
@@ -347,10 +332,7 @@ struct LabelLevelsBehaviorTests {
             )
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: testScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: testScale)
             
             let labeledTicks = ticks.filter { $0.label != nil }
             
@@ -402,10 +384,7 @@ struct LabelLevelsBehaviorTests {
             let sScale = StandardScales.sScale(length: 250.0)
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: sScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: sScale)
             
             // Filter ticks in the 80-90° range
             let upperRangeTicks = ticks.filter { $0.value >= 80 && $0.value <= 90 }
@@ -439,10 +418,7 @@ struct LabelLevelsBehaviorTests {
             let kScale = StandardScales.kScale(length: 250.0)
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: kScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: kScale)
             
             // Filter ticks near 1000 (endpoint)
             let endpointTicks = ticks.filter { $0.value >= 990 && $0.value <= 1000 }
@@ -471,10 +447,7 @@ struct LabelLevelsBehaviorTests {
             let cScale = StandardScales.cScale(length: 250.0)
             
             // WHEN: We generate tick marks
-            let ticks = ScaleCalculator.generateTickMarks(
-                for: cScale,
-                algorithm: .modulo(config: .default)
-            )
+            let ticks = ScaleCalculator.generateTickMarks(for: cScale)
             
             // Filter ticks in the 1.0-2.0 range (first subsection)
             let firstSubsectionTicks = ticks.filter { $0.value >= 1.0 && $0.value < 2.0 }
@@ -606,10 +579,7 @@ struct LabelOrLogicTests {
             constants: []
         )
         
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: testScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: testScale)
         
         let labeledTicks = ticks.filter { $0.label != nil }
         
@@ -653,10 +623,7 @@ struct LabelOrLogicTests {
             constants: []
         )
         
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: testScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: testScale)
         
         let labeledTicks = ticks.filter { $0.label != nil }
         
@@ -696,10 +663,7 @@ struct LabelOrLogicTests {
             constants: []
         )
         
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: testScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: testScale)
         let labeledTicks = ticks.filter { $0.label != nil }
         
         #expect(labeledTicks.isEmpty,
@@ -742,10 +706,7 @@ struct LabelOrLogicTests {
             constants: []
         )
         
-        let noLabelTicks = ScaleCalculator.generateTickMarks(
-            for: noLabelScale,
-            algorithm: .modulo(config: .default)
-        )
+        let noLabelTicks = ScaleCalculator.generateTickMarks(for: noLabelScale)
         
         let labeledNoLabel = noLabelTicks.filter { $0.label != nil }
         
@@ -775,10 +736,7 @@ struct LabelOrLogicTests {
             constants: []
         )
         
-        let withLabelTicks = ScaleCalculator.generateTickMarks(
-            for: withLabelScale,
-            algorithm: .modulo(config: .default)
-        )
+        let withLabelTicks = ScaleCalculator.generateTickMarks(for: withLabelScale)
         
         let labeledWithLabel = withLabelTicks.filter { $0.label != nil }
         
@@ -805,10 +763,7 @@ struct AbsolutelyNoneIntegrationTests {
         let omegaScale = StandardScales.angularFrequencyOmegaScale(length: 250.0)
         
         // WHEN: We generate tick marks
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: omegaScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: omegaScale)
         
         // Filter ticks in the 0.5-0.7 range (unlabeled region)
         let unlabeledRangeTicks = ticks.filter { $0.value >= 0.5 && $0.value < 0.7 }
@@ -831,10 +786,7 @@ struct AbsolutelyNoneIntegrationTests {
         let omegaScale = StandardScales.angularFrequencyOmegaScale(length: 250.0)
         
         // WHEN: We generate tick marks
-        let ticks = ScaleCalculator.generateTickMarks(
-            for: omegaScale,
-            algorithm: .modulo(config: .default)
-        )
+        let ticks = ScaleCalculator.generateTickMarks(for: omegaScale)
         
         // Filter ticks in the 0.7-1.0 range (labeled region)
         let labeledRangeTicks = ticks.filter { $0.value >= 0.7 && $0.value <= 1.0 }

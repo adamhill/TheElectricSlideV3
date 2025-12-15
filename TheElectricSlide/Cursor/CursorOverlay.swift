@@ -210,7 +210,7 @@ struct CursorOverlay: View {
                             print("🎯 [Cursor.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
                             #endif
                         }
-                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
                         .updating($isPrecisionDragging) { value, state, _ in
                             // Track active drag state via @GestureState (auto-resets on gesture end)
                             if case .second(true, _) = value {

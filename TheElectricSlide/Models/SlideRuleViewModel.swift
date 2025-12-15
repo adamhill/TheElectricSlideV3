@@ -19,8 +19,8 @@ import Observation
 
 /// Constants for zoom behavior
 enum ZoomConstants {
-    /// Minimum zoom level (zoom out to 0.5× / 50%)
-    static let minZoomScale: CGFloat = 0.5
+    /// Minimum zoom level (zoom out to 0.8× / 80%)
+    static let minZoomScale: CGFloat = 0.8
     /// Default zoom level (1.0× / 100%)
     static let defaultZoomScale: CGFloat = 1.0
     /// Maximum zoom level (200%)

@@ -46,7 +46,6 @@ struct DynamicSlideRuleContent: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
-    @Binding var panOffset: CGSize // Pan offset for moving zoomed content
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
@@ -97,7 +96,6 @@ struct DynamicSlideRuleContent: View {
                 // NOTE: Rule name header is now in SlideRuleDetailView via safeAreaInset (all devices)
                 
                 // Cursor readings with tap-to-cycle - uses reusable CursorReadingsContainer
-                // IMPORTANT: This view remains fixed scale (zoom only affects slide rule below)
                 CursorReadingsContainer(
                     viewMode: viewMode,
                     cursorReadingCycleMode: $cursorReadingCycleMode,
@@ -152,9 +150,6 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
-                // APPLY ZOOM AND PAN ONLY TO SLIDE RULE CONTENT
-                .modifier(PanPositionModifier(offset: panOffset))
-                .scaleEffect(currentZoomScale, anchor: .top)
                 #if os(iOS)
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
                 // Creates a natural vertical flip effect when switching sides
@@ -169,13 +164,12 @@ struct DynamicSlideRuleContent: View {
                 #endif
             }
             
-            // Spacer between front and back sides (outside transforms)
+            // Spacing between front and back sides when showing both
             if viewMode == .both && slideRule.backTopStator != nil {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: 16)
+                Spacer()
+                    .frame(height: 40)
             }
-            
+
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
                let backTop = slideRule.backTopStator,
@@ -218,11 +212,6 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
-                // APPLY ZOOM AND PAN ONLY TO SLIDE RULE CONTENT
-                .modifier(PanPositionModifier(offset: panOffset))
-                // In "Both" mode: anchor at bottom so back side expands UPWARD (away from front)
-                // In "Back" only mode: anchor at top for consistent behavior
-                .scaleEffect(currentZoomScale, anchor: viewMode == .both ? .bottom : .top)
                 #if os(iOS)
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
                 // Creates a natural vertical flip effect when switching sides

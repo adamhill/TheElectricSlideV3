@@ -271,6 +271,9 @@ struct CursorView: View {
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
     
+    /// Currently highlighted scale index (from precision mode)
+    var highlightedScaleIndex: Int? = nil
+    
     // MARK: - Constants
     
     /// Width of the cursor frame
@@ -343,7 +346,7 @@ struct CursorView: View {
                 // Gradient backgrounds for each scale row (if configured and enabled)
                 if showGradients {
                     VStack(spacing: 0) {
-                        ForEach(readings) { reading in
+                        ForEach(Array(readings.enumerated()), id: \.element.id) { index, reading in
                             ZStack {
                                 // Scale name gradient (left side)
                                 if let gradient = displayConfig.scaleNameFont.gradient {
@@ -410,20 +413,25 @@ struct CursorView: View {
             // Skip if outside visible area
             guard yPosition >= 0 && yPosition <= size.height else { continue }
             
+            // Determine font config
+            let nameConfig = displayConfig.scaleNameFont
+            let valueConfig = displayConfig.scaleValueFont
+            
             // Draw scale name on the left (aligned left, against frame edge)
             drawText(
                 context: context,
                 text: reading.scaleName,
-                fontConfig: displayConfig.scaleNameFont,
+                fontConfig: nameConfig,
                 xPosition: displayConfig.labelPadding,
                 yPosition: yPosition,
                 maxWidth: halfWidth
             )
             
             // Draw value on the right (aligned right, against frame edge)
+            // Note: We need to measure with the potentially modified font config
             let valueText = Text(reading.displayValue)
-                .font(displayConfig.scaleValueFont.makeFont())
-                .foregroundColor(displayConfig.scaleValueFont.color)
+                .font(valueConfig.makeFont())
+                .foregroundColor(valueConfig.color)
             
             let resolvedValue = context.resolve(valueText)
             let valueSize = resolvedValue.measure(in: CGSize(width: halfWidth, height: scaleHeight))
@@ -433,13 +441,14 @@ struct CursorView: View {
             drawText(
                 context: context,
                 text: reading.displayValue,
-                fontConfig: displayConfig.scaleValueFont,
+                fontConfig: valueConfig,
                 xPosition: valueX,
                 yPosition: yPosition,
                 maxWidth: halfWidth
             )
         }
     }
+    
     
     /// Draw text with optional outline/stroke
     private func drawText(
@@ -448,13 +457,17 @@ struct CursorView: View {
         fontConfig: FontConfig,
         xPosition: CGFloat,
         yPosition: CGFloat,
-        maxWidth: CGFloat
+        maxWidth: CGFloat,
+        opacity: Double = 1.0
     ) {
+        var ctx = context
+        ctx.opacity = opacity
+        
         let textView = Text(text)
             .font(fontConfig.makeFont())
             .foregroundColor(fontConfig.color)
         
-        let resolved = context.resolve(textView)
+        let resolved = ctx.resolve(textView)
         let textSize = resolved.measure(in: CGSize(width: maxWidth, height: scaleHeight))
         
         let rect = CGRect(
@@ -480,7 +493,7 @@ struct CursorView: View {
             let outlineText = Text(text)
                 .font(fontConfig.makeFont())
                 .foregroundColor(outline.color)
-            let outlineResolved = context.resolve(outlineText)
+            let outlineResolved = ctx.resolve(outlineText)
             
             for (dx, dy) in offsets {
                 let outlineRect = CGRect(
@@ -489,12 +502,22 @@ struct CursorView: View {
                     width: rect.width,
                     height: rect.height
                 )
-                context.draw(outlineResolved, in: outlineRect)
+                ctx.draw(outlineResolved, in: outlineRect)
             }
         }
         
         // Draw main text on top
-        context.draw(resolved, in: rect)
+        ctx.draw(resolved, in: rect)
+    }
+}
+
+// MARK: - Equatable Conformance
+extension FontConfig.GradientConfig: Equatable {
+    static func == (lhs: FontConfig.GradientConfig, rhs: FontConfig.GradientConfig) -> Bool {
+        return lhs.colors == rhs.colors &&
+               lhs.startPoint == rhs.startPoint &&
+               lhs.endPoint == rhs.endPoint &&
+               lhs.opacity == rhs.opacity
     }
 }
 

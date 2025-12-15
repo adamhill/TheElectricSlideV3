@@ -65,6 +65,10 @@ struct CursorOverlay: View {
     
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
+    
+    /// Currently highlighted scale index during precision mode
+    @State private var highlightedScaleIndex: Int? = nil
+    
     // MARK: - Precision Mode State
     
     /// Whether precision (slow-move) mode is active - using @GestureState for automatic reset
@@ -112,7 +116,8 @@ struct CursorOverlay: View {
                     showReadings: showReadings,
                     showGradients: showGradients,
                     zoomScale: currentZoomScale,
-                    cursorDisplayMode: $cursorDisplayMode
+                    cursorDisplayMode: $cursorDisplayMode,
+                    highlightedScaleIndex: highlightedScaleIndex
                 )
                     .frame(width: CursorView.cursorWidth, alignment: .top)
                     .offset(y: -CursorView.handleHeight)
@@ -189,7 +194,14 @@ struct CursorOverlay: View {
                 // Allows fine-grained cursor positioning with reduced sensitivity.
                 // Also disabled during magnification to prevent conflicts.
                 .simultaneousGesture(
-                    LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
+                    {
+                        #if os(macOS)
+                        // macOS Fix: Use shorter duration and allow movement to handle mouse jitter
+                        LongPressGesture(minimumDuration: 0.2, maximumDistance: 10)
+                        #else
+                        LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
+                        #endif
+                    }()
                         .onEnded { _ in
                             // Enter precision sequence with haptic feedback via coordinator
                             precisionCoordinator.activate(for: .cursor, startPosition: cursorState.position(for: side))
@@ -217,6 +229,15 @@ struct CursorOverlay: View {
                             case .second(true, let drag):
                                 // Now in precision drag mode
                                 if let drag = drag {
+                                    // Calculate highlighted scale index
+                                    let index = Int(floor(drag.location.y / scaleHeight))
+                                    let readings = getReadingsForSide()
+                                    if index >= 0 && index < readings.count {
+                                        highlightedScaleIndex = index
+                                    } else {
+                                        highlightedScaleIndex = nil
+                                    }
+                                    
                                     // Store the translation via coordinator (for use in onEnded)
                                     precisionCoordinator.recordTranslation(drag.translation)
                                     #if DEBUG
@@ -261,6 +282,9 @@ struct CursorOverlay: View {
                             #if DEBUG
                             print("🎯 [Cursor.Precision.onEnded] Final position=\(String(format: "%.6f", finalPosition))")
                             #endif
+                            
+                            // Reset touch position and highlight
+                            highlightedScaleIndex = nil
                             
                             // Deactivate precision mode via coordinator (handles cooldown internally)
                             precisionCoordinator.deactivate()

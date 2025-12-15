@@ -29,6 +29,7 @@ Temporary Items
 # Xcode
 build/
 DerivedData/
+.derivedData
 *.xcworkspace
 *.xcuserstate
 *.moved-aside

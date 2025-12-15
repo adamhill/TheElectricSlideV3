@@ -93,12 +93,14 @@ struct SlideRuleDetailView: View {
                 cursorDisplayMode: $cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
                 currentZoomScale: currentZoomScale,
+                panOffset: $panOffset,
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
             )
-            .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
-            .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
+            // NOTE: Only the internal components (SideView) are scaled now, not the container
+            // This ensures cursor readings remain fixed scale/position
+            
             // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
             // The Metal rasterization cache wasn't updating correctly during geometry animations
             .simultaneousGesture(

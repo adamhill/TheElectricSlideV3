@@ -64,24 +64,10 @@ struct SlideRuleDetailView: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header controls (ViewMode picker for iPad/Mac)
-            // NOTE: Cursor Display picker is now in the sidebar
-            if deviceCategory.supportsMultiSideView {
-                VStack(spacing: 0) {
-                    Divider()
-                    
-                    combinedPickersSection()
-                    
-                    Divider()
-                }
-                .background(systemBackgroundColor())
-                .allowsHitTesting(true)
-                .zIndex(100)
-            }
-            
-            // Dynamic content - responds to sliderOffset and zoom
-            DynamicSlideRuleContent(
+        // Dynamic content - responds to sliderOffset and zoom
+        // CRITICAL: .frame(maxHeight: .infinity, alignment: .top) pins content to top of detail pane
+        // Without this, NavigationSplitView centers content, causing header to track slide rule position
+        DynamicSlideRuleContent(
                 viewMode: viewMode,
                 slideRule: currentSlideRule,
                 ruleId: ruleId,
@@ -147,6 +133,20 @@ struct SlideRuleDetailView: View {
                 }
             )
             .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: currentZoomScale)
+            // MARK: - Anchored Header (safeAreaInset)
+            // Uses safeAreaInset to keep header fixed at top during view mode transitions.
+            // The header is layout-independent: content height changes don't affect header position.
+            // Shows on ALL devices (iPhone, iPad, Mac) - iPhone also keeps FlipButton overlay.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                combinedPickersSection()
+                    .background(systemBackgroundColor())
+                    // Bottom border separator using overlay instead of Divider
+                    .overlay(alignment: .bottom) {
+                        Rectangle()
+                            .fill(Color(white: 0.5, opacity: 0.3))
+                            .frame(height: 1)
+                    }
+            }
             .overlay(alignment: .bottomLeading) {
                 // Floating flip button for compact devices (iPhone, Apple Watch)
                 // Positioned at bottom-left, horizontally aligned under NavigationView's disclosure widget
@@ -156,10 +156,13 @@ struct SlideRuleDetailView: View {
                         .padding(.bottom, 16)
                 }
             }
-        }
+            // CRITICAL: Pin content to top of NavigationSplitView detail pane
+            // Without this, detail pane centers content vertically, causing header to shift
+            // when slide rule height changes during mode transitions (Both/Front/Back)
+            .frame(maxHeight: .infinity, alignment: .top)
     }
     
-    /// View Mode picker section for regular devices (iPad, Mac, Vision Pro)
+    /// View Mode picker section - shown on ALL devices
     /// Tapping cycles through available view modes (Front → Back → Both → Front...)
     @ViewBuilder
     private func combinedPickersSection() -> some View {

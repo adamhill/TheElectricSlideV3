@@ -94,24 +94,7 @@ struct DynamicSlideRuleContent: View {
             // Consolidated cursor readings display - centered under title
             // Shows readings based on cycle mode with tap-to-cycle gesture
             VStack(spacing: 2) {
-                // Rule name and side indicator (always shown on compact devices, larger fonts)
-                if !deviceCategory.supportsMultiSideView, let ruleName = selectedRuleDefinition?.name {
-                    HStack(spacing: 10) {
-                        Text(ruleName)
-                            .font(.title2.bold())
-                            .foregroundStyle(.primary)
-                        Text("•")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                        Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-                    .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
-                    .accessibilityIdentifier("slideRuleNameHeader_\(viewMode.rawValue.lowercased())")
-                }
+                // NOTE: Rule name header is now in SlideRuleDetailView via safeAreaInset (all devices)
                 
                 // Cursor readings with tap-to-cycle - uses reusable CursorReadingsContainer
                 // IMPORTANT: This view remains fixed scale (zoom only affects slide rule below)
@@ -123,6 +106,11 @@ struct DynamicSlideRuleContent: View {
                 )
                 .padding(.horizontal, 8)
             }
+            
+            // Spacer between cursor readings and slide rule (outside transforms)
+            Rectangle()
+                .fill(Color.clear)
+                .frame(height: 8)
             
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
@@ -181,12 +169,13 @@ struct DynamicSlideRuleContent: View {
                 #endif
             }
             
-            // Spacing between front and back sides when showing both
+            // Spacer between front and back sides (outside transforms)
             if viewMode == .both && slideRule.backTopStator != nil {
-                Spacer()
-                    .frame(height: 40)
+                Rectangle()
+                    .fill(Color.clear)
+                    .frame(height: 16)
             }
-
+            
             // Back side - show if mode is .back or .both (and back side exists)
             if (viewMode == .back || viewMode == .both),
                let backTop = slideRule.backTopStator,
@@ -231,7 +220,9 @@ struct DynamicSlideRuleContent: View {
                 }
                 // APPLY ZOOM AND PAN ONLY TO SLIDE RULE CONTENT
                 .modifier(PanPositionModifier(offset: panOffset))
-                .scaleEffect(currentZoomScale, anchor: .top)
+                // In "Both" mode: anchor at bottom so back side expands UPWARD (away from front)
+                // In "Back" only mode: anchor at top for consistent behavior
+                .scaleEffect(currentZoomScale, anchor: viewMode == .both ? .bottom : .top)
                 #if os(iOS)
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
                 // Creates a natural vertical flip effect when switching sides

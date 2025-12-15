@@ -64,10 +64,24 @@ struct SlideRuleDetailView: View {
     let totalScaleHeight: (RuleSide) -> CGFloat
     
     var body: some View {
-        // Dynamic content - responds to sliderOffset and zoom
-        // CRITICAL: .frame(maxHeight: .infinity, alignment: .top) pins content to top of detail pane
-        // Without this, NavigationSplitView centers content, causing header to track slide rule position
-        DynamicSlideRuleContent(
+        VStack(spacing: 0) {
+            // Header controls (ViewMode picker for iPad/Mac)
+            // NOTE: Cursor Display picker is now in the sidebar
+            if deviceCategory.supportsMultiSideView {
+                VStack(spacing: 0) {
+                    Divider()
+                    
+                    combinedPickersSection
+                    
+                    Divider()
+                }
+                .background(systemBackgroundColor())
+                .allowsHitTesting(true)
+                .zIndex(100)
+            }
+            
+            // Dynamic content - responds to sliderOffset and zoom
+            DynamicSlideRuleContent(
                 viewMode: viewMode,
                 slideRule: currentSlideRule,
                 ruleId: ruleId,
@@ -79,22 +93,20 @@ struct SlideRuleDetailView: View {
                 cursorDisplayMode: $cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
                 currentZoomScale: currentZoomScale,
-                panOffset: $panOffset,
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
                 deviceCategory: deviceCategory
             )
-            // NOTE: Only the internal components (SideView) are scaled now, not the container
-            // This ensures cursor readings remain fixed scale/position
-            
-            // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
-            // The Metal rasterization cache wasn't updating correctly during geometry animations
+            .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
+            .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
+                                                          // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
+                                                          // The Metal rasterization cache wasn't updating correctly during geometry animations
             .simultaneousGesture(
                 MagnificationGesture()
-                    // MARK: Magnification Active State Tracking
-                    // Use .updating() to track whether pinch gesture is active.
-                    // Per Apple docs: @GestureState auto-resets when gesture ends.
-                    // This drives isMagnifying state that disables slide drag gestures.
+                // MARK: Magnification Active State Tracking
+                // Use .updating() to track whether pinch gesture is active.
+                // Per Apple docs: @GestureState auto-resets when gesture ends.
+                // This drives isMagnifying state that disables slide drag gestures.
                     .updating($isMagnifying) { _, state, _ in
                         state = true
                     }
@@ -138,9 +150,9 @@ struct SlideRuleDetailView: View {
             // The header is layout-independent: content height changes don't affect header position.
             // Shows on ALL devices (iPhone, iPad, Mac) - iPhone also keeps FlipButton overlay.
             .safeAreaInset(edge: .top, spacing: 0) {
-                combinedPickersSection()
+                combinedPickersSection
                     .background(systemBackgroundColor())
-                    // Bottom border separator using overlay instead of Divider
+                // Bottom border separator using overlay instead of Divider
                     .overlay(alignment: .bottom) {
                         Rectangle()
                             .fill(Color(white: 0.5, opacity: 0.3))
@@ -160,16 +172,14 @@ struct SlideRuleDetailView: View {
             // Without this, detail pane centers content vertically, causing header to shift
             // when slide rule height changes during mode transitions (Both/Front/Back)
             .frame(maxHeight: .infinity, alignment: .top)
+        }
     }
     
-    /// View Mode picker section - shown on ALL devices
-    /// Tapping cycles through available view modes (Front → Back → Both → Front...)
     @ViewBuilder
-    private func combinedPickersSection() -> some View {
+    private var combinedPickersSection: some View {
         let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
             mode == .front || (currentSlideRule.backTopStator != nil)
         }
-        
         HStack(spacing: 16) {
             // Slide rule name label with side indicator (matching iPhone styling, larger fonts)
             if let ruleName = selectedRuleDefinition?.name {
@@ -187,17 +197,15 @@ struct SlideRuleDetailView: View {
                 .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
                 .accessibilityIdentifier("currentSlideRuleName")
             }
-            
             Spacer()
         }
-        .frame(maxWidth: .infinity, minHeight: 44)  // Minimum 44pt tap target (Apple HIG)
+        .frame(maxWidth: .infinity, minHeight: 44)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .contentShape(Rectangle())  // Make entire header area tappable
+        .contentShape(Rectangle())
         .onTapGesture {
             // Cycle through available view modes: Front → Back → Both → Front...
             guard availableModes.count > 1 else { return }
-            
             withAnimation(.easeInOut(duration: 0.2)) {
                 if let currentIndex = availableModes.firstIndex(of: viewMode) {
                     let nextIndex = (currentIndex + 1) % availableModes.count

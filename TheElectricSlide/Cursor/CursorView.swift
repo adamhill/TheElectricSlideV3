@@ -397,6 +397,42 @@ struct CursorView: View {
                     .frame(width: Self.cursorWidth, height: height)
                 }
             }
+            
+            // Gray handle at the very bottom - OUTSIDE the slide rule area
+            HStack(spacing: 0) {
+                // Zoom level label on left side of handle
+                Text(String(format: "%.1f×", zoomScale))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(width: 36, alignment: .center)
+                
+                // Handle with drag indicator
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.5).opacity(0.7))
+                    .frame(width: Self.cursorWidth - 36, height: Self.handleHeight)
+                    .overlay(
+                        // Visual indicator for dragging
+                        VStack(spacing: 2) {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 30, height: 2)
+                                .cornerRadius(1)
+                            Rectangle()
+                                .fill(Color.white.opacity(0.5))
+                                .frame(width: 30, height: 2)
+                                .cornerRadius(1)
+                        }
+                    )
+            }
+            .frame(width: Self.cursorWidth, height: Self.handleHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(white: 0.5).opacity(0.7))
+            )
+            .onTapGesture(count: 2) {
+                // Double-tap toggles cursor values on/off
+                cursorDisplayMode = cursorDisplayMode.showReadings ? .gradients : .both
+            }
         }
     }
     

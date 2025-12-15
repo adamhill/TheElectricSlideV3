@@ -46,6 +46,7 @@ struct DynamicSlideRuleContent: View {
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
+    @Binding var panOffset: CGSize // Pan offset for moving zoomed content
     let totalScaleHeight: (RuleSide) -> CGFloat
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
@@ -113,6 +114,7 @@ struct DynamicSlideRuleContent: View {
                 }
                 
                 // Cursor readings with tap-to-cycle - uses reusable CursorReadingsContainer
+                // IMPORTANT: This view remains fixed scale (zoom only affects slide rule below)
                 CursorReadingsContainer(
                     viewMode: viewMode,
                     cursorReadingCycleMode: $cursorReadingCycleMode,
@@ -162,6 +164,9 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
+                // APPLY ZOOM AND PAN ONLY TO SLIDE RULE CONTENT
+                .modifier(PanPositionModifier(offset: panOffset))
+                .scaleEffect(currentZoomScale, anchor: .top)
                 #if os(iOS)
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
                 // Creates a natural vertical flip effect when switching sides
@@ -224,6 +229,9 @@ struct DynamicSlideRuleContent: View {
                         )
                     }
                 }
+                // APPLY ZOOM AND PAN ONLY TO SLIDE RULE CONTENT
+                .modifier(PanPositionModifier(offset: panOffset))
+                .scaleEffect(currentZoomScale, anchor: .top)
                 #if os(iOS)
                 // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
                 // Creates a natural vertical flip effect when switching sides

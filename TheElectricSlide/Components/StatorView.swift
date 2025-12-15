@@ -70,8 +70,9 @@ struct StatorView: View, Equatable {
         )
         // Pan gesture for zoomed content - responds immediately (minimumDistance: 0)
         // .global coordinate space prevents jitter
+        // Enabled for ANY non-default zoom level (including zoomed out)
         .highPriorityGesture(
-            (currentZoomScale > 1.0 && gestureHandler != nil) ?
+            (abs(currentZoomScale - ZoomConstants.defaultZoomScale) > 0.001 && gestureHandler != nil) ?
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)  // Immediate response; .global prevents jitter
                     .onChanged { gesture in
                          #if DEBUG

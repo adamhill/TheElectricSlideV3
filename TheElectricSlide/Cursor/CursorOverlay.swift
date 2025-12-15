@@ -88,8 +88,8 @@ struct CursorOverlay: View {
     /// "You can also use the `isEnabled` parameter to conditionally disable the gesture."
     /// This is the recommended approach for dynamically enabling/disabling gestures.
     private var isCursorDragEnabled: Bool {
-        // Disable when magnification gesture is active (pinch-zoom in progress)
-        !(viewModel?.isMagnifying ?? false)
+        // Disable when magnification (pinch-zoom) or flick gesture is active
+        !(viewModel?.isMagnifying ?? false) && !(viewModel?.isFlipping ?? false)
     }
     
     // MARK: - Body
@@ -137,7 +137,7 @@ struct CursorOverlay: View {
                 // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
                 // to conditionally disable based on isCursorDragEnabled computed property.
                 .gesture(
-                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    DragGesture(minimumDistance: 0, coordinateSpace: .global)
                         .onChanged { gesture in
                             // Block if precision sequence is active for cursor
                             guard precisionCoordinator.activeTarget != .cursor else {
@@ -210,7 +210,7 @@ struct CursorOverlay: View {
                             print("🎯 [Cursor.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
                             #endif
                         }
-                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
                         .updating($isPrecisionDragging) { value, state, _ in
                             // Track active drag state via @GestureState (auto-resets on gesture end)
                             if case .second(true, _) = value {

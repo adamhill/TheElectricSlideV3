@@ -99,6 +99,17 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Track the last boundary hit to avoid duplicate haptics
     @ObservationIgnored private var lastBoundaryEdge: BoundaryEdge?
     
+    // MARK: - Slide Gesture State (Phase 6: Vertical Panning)
+    
+    /// Direction lock for current slide gesture
+    private enum GestureDirection {
+        case horizontal
+        case vertical
+    }
+    
+    /// Current direction lock for the active gesture
+    @ObservationIgnored private var currentSlideGestureDirection: GestureDirection?
+    
     // MARK: - Initialization
     
     init(
@@ -125,6 +136,49 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Marks cursor state as dragging, delegates to viewModel, and triggers tick haptics.
     /// Also checks for boundary hits and fires haptic feedback.
     func handleSlideDragChanged(_ gesture: DragGesture.Value, isPrecision: Bool) {
+        #if DEBUG
+        print("🎯 [Drag] handleSlideDragChanged: translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height))) zoom=\(String(format: "%.2f", viewModel.currentZoomScale)) isZoomed=\(viewModel.isZoomed) isPrecision=\(isPrecision) directionLock=\(currentSlideGestureDirection.map { String(describing: $0) } ?? "nil")")
+        #endif
+        
+        // PHASE 6: Vertical Panning Support
+        // If zoomed in and not in precision mode, check for vertical pan intent
+        if viewModel.isZoomed && !isPrecision {
+            // Determine direction if not yet locked
+            if currentSlideGestureDirection == nil {
+                let dx = abs(gesture.translation.width)
+                let dy = abs(gesture.translation.height)
+                
+                // Threshold for direction lock (10pt ensures intent)
+                if dx > 10 || dy > 10 {
+                    if dy > dx * 1.5 { // Vertical bias for pan
+                        currentSlideGestureDirection = .vertical
+                        viewModel.setPanningSlideActive(true)
+                        #if DEBUG
+                        print("🎯 [Drag] Direction LOCKED to VERTICAL (panning)")
+                        #endif
+                    } else {
+                        currentSlideGestureDirection = .horizontal
+                        viewModel.setPanningSlideActive(false)
+                        #if DEBUG
+                        print("🎯 [Drag] Direction LOCKED to HORIZONTAL (slide)")
+                        #endif
+                    }
+                } else {
+                    // Waiting for threshold - swallow small movements to prevent jitter
+                    #if DEBUG
+                    print("🎯 [Drag] SWALLOWED - below 10pt threshold (dx=\(String(format: "%.2f", dx)), dy=\(String(format: "%.2f", dy)))")
+                    #endif
+                    return
+                }
+            }
+            
+            // If locked to vertical, handle as pan
+            if currentSlideGestureDirection == .vertical {
+                handlePanChanged(gesture)
+                return
+            }
+        }
+        
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
         
@@ -179,6 +233,20 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Handles drag gesture end for slider movement.
     /// Applies momentum scrolling using `predictedEndTranslation` for a natural feel.
     func handleSlideDragEnded(_ gesture: DragGesture.Value, isPrecision: Bool) {
+        // PHASE 6: Vertical Panning Support
+        // If we were vertically panning, redirect to pan ended handler
+        if currentSlideGestureDirection == .vertical {
+            handlePanEnded(gesture)
+            // Reset direction lock
+            currentSlideGestureDirection = nil
+            viewModel.setPanningSlideActive(false)
+            return
+        }
+        
+        // Reset direction lock for next gesture
+        currentSlideGestureDirection = nil
+        viewModel.setPanningSlideActive(false)
+        
         // Reset boundary tracking
         lastBoundaryEdge = nil
         
@@ -355,8 +423,8 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Handles triple-tap to reset zoom to 1.0× and clear pan offset.
     /// Fires zoom snap haptic when resetting from a zoomed state.
     func handleResetZoom() {
-        // Check if we're actually zoomed before resetting
-        let wasZoomed = viewModel.currentZoomScale > ZoomConstants.minZoomScale
+        // Check if we're actually zoomed (not 1.0) before resetting
+        let wasZoomed = abs(viewModel.currentZoomScale - ZoomConstants.defaultZoomScale) > 0.001
         
         withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
             viewModel.resetZoom()

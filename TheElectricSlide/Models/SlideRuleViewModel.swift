@@ -19,10 +19,12 @@ import Observation
 
 /// Constants for zoom behavior
 enum ZoomConstants {
-    /// Minimum zoom level (no zoom out below 1.0×)
-    static let minZoomScale: CGFloat = 1.0
-    /// Maximum zoom level (400%)
-    static let maxZoomScale: CGFloat = 4.0
+    /// Minimum zoom level (zoom out to 0.5× / 50%)
+    static let minZoomScale: CGFloat = 0.5
+    /// Default zoom level (1.0× / 100%)
+    static let defaultZoomScale: CGFloat = 1.0
+    /// Maximum zoom level (200%)
+    static let maxZoomScale: CGFloat = 2.0
 }
 
 // MARK: - Slide Rule View Model
@@ -79,6 +81,22 @@ final class SlideRuleViewModel {
     /// 2. Changes are relatively infrequent (only on pinch start/end)
     /// 3. The performance cost is minimal compared to the UX improvement
     var isMagnifying: Bool = false
+    
+    // MARK: - Flip Link State (for gesture conflict resolution)
+    
+    /// Whether a vertical flick gesture (side change) is currently active.
+    /// Used to disable slide drag gestures during vertical flicks to prevent
+    /// unintentional slide movements.
+    ///
+    /// ## Architecture Note
+    /// Matches the mutex lock pattern used for pinch-to-zoom (isMagnifying).
+    var isFlipping: Bool = false
+    
+    // MARK: - Slide Pan State (for gesture conflict resolution)
+    
+    /// Whether a vertical pan gesture is currently active on the slide.
+    /// Used to disable horizontal slide gestures during vertical panning.
+    var isPanningSlide: Bool = false
     
     // MARK: - Pan State (Hot/Cold Pattern)
     
@@ -143,11 +161,11 @@ final class SlideRuleViewModel {
     func handleZoomEnded(scale: CGFloat) {
         let newScale = _baseZoomScale * scale
         
-        // Snap to 1.0× if gesture reaches or goes below default scale
+        // Snap to min zoom if gesture reaches or goes below minimum scale
         if newScale <= ZoomConstants.minZoomScale {
             _baseZoomScale = ZoomConstants.minZoomScale
             currentZoomScale = ZoomConstants.minZoomScale
-            // Reset pan offset when zooming back to 1.0×
+            // Reset pan offset when fully zoomed out
             panOffset = .zero
             _basePanOffset = .zero
         } else {
@@ -160,14 +178,14 @@ final class SlideRuleViewModel {
         #endif
     }
     
-    /// Reset zoom to 1.0× (called by triple-tap)
+    /// Reset zoom to 1.0× (called by triple-tap or rule switch)
     func resetZoom() {
         #if DEBUG
         print("🔍 Zoom reset triggered - current: \(currentZoomScale)× → 1.0×")
         #endif
         
-        currentZoomScale = ZoomConstants.minZoomScale
-        _baseZoomScale = ZoomConstants.minZoomScale
+        currentZoomScale = ZoomConstants.defaultZoomScale
+        _baseZoomScale = ZoomConstants.defaultZoomScale
         panOffset = .zero
         _basePanOffset = .zero
     }
@@ -216,15 +234,30 @@ final class SlideRuleViewModel {
         isMagnifying = active
     }
     
-    // MARK: - State Queries
-    
-    /// Whether panning is currently enabled (only when zoomed in)
-    var isPanEnabled: Bool {
-        currentZoomScale > ZoomConstants.minZoomScale
+    /// Called when vertical flip gesture starts or is in progress.
+    /// Sets `isFlipping` to true to disable slide drag gestures during vertical flick.
+    func setFlippingActive(_ active: Bool) {
+        isFlipping = active
     }
     
-    /// Whether zoom is currently active (above 1.0×)
+    /// Called when vertical pan gesture starts on the slide (when zoomed).
+    /// Sets `isPanningSlide` to true to disable horizontal slide gestures.
+    func setPanningSlideActive(_ active: Bool) {
+        isPanningSlide = active
+    }
+    
+    // MARK: - State Queries
+    
+    /// Whether panning is currently enabled (any zoom level different from default)
+    var isPanEnabled: Bool {
+        // Allow panning at any non-default zoom level (including zoomed out)
+        // This enables "cursor panning" (moving cursor while zoomed out) and viewport panning
+        abs(currentZoomScale - ZoomConstants.defaultZoomScale) > 0.001
+    }
+    
+    /// Whether zoom is currently active (any zoom level different from default)
+    /// Used for "Vertical Panning Support" decision in GestureHandler
     var isZoomed: Bool {
-        currentZoomScale > ZoomConstants.minZoomScale
+        abs(currentZoomScale - ZoomConstants.defaultZoomScale) > 0.001
     }
 }

@@ -55,6 +55,9 @@ struct SideView: View, Equatable {
     /// Whether precision mode is active (for GestureState tracking - auto-resets)
     @GestureState private var isSlidePrecisionDragging: Bool = false
     
+    /// Whether vertical flick gesture is active (for GestureState tracking - auto-resets)
+    @GestureState private var isFlippingGesture: Bool = false
+    
     // MARK: - Computed Properties for Gesture Control
     
     /// Whether slide drag gestures should be enabled.
@@ -66,8 +69,8 @@ struct SideView: View, Equatable {
     /// "You can also use the `isEnabled` parameter to conditionally disable the gesture."
     /// This is the recommended approach for dynamically enabling/disabling gestures.
     private var isSlideDragEnabled: Bool {
-        // Disable when magnification gesture is active (pinch-zoom in progress)
-        !(viewModel?.isMagnifying ?? false)
+        // Disable when magnification (pinch-zoom) or flick gesture is active
+        !(viewModel?.isMagnifying ?? false) && !(viewModel?.isFlipping ?? false)
     }
     
     // ✅ Equatable conformance - only compare properties affecting rendering
@@ -141,7 +144,7 @@ struct SideView: View, Equatable {
             // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
             // to conditionally disable based on isSlideDragEnabled computed property.
             .gesture(
-                DragGesture()
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
                     .onChanged { gesture in
                         // Block if precision sequence is active for slide
                         guard precisionCoordinator.activeTarget != .slide else {
@@ -245,13 +248,48 @@ struct SideView: View, Equatable {
         // Requires QUICK FLICK (short duration) to distinguish from slow panning
         .simultaneousGesture(
             DragGesture(minimumDistance: 30, coordinateSpace: .local)
+                // MARK: Flip Gesture Mutex Lock
+                // Track gesture state to disable competing gestures
+                .updating($isFlippingGesture) { value, state, _ in
+                    // Only lock if gesture is vertically dominant to allow horizontal slides
+                    // to continue working even if they exceed minimum distance
+                    let vertical = abs(value.translation.height)
+                    let horizontal = abs(value.translation.width)
+                    if vertical > horizontal {
+                        state = true
+                    }
+                }
                 .onChanged { gesture in
+                    // Phase 6: Disable flip gesture when zoomed in (to allow vertical panning)
+                    if currentZoomScale > 1.0 {
+                        return
+                    }
+                    
                     // Record start time on first movement
                     if flipGestureStartTime == nil {
                         flipGestureStartTime = Date()
                     }
+                    
+                    // Update mutex lock state in ViewModel (COLD property)
+                    let vertical = abs(gesture.translation.height)
+                    let horizontal = abs(gesture.translation.width)
+                    if vertical > horizontal {
+                        viewModel?.setFlippingActive(true)
+                    } else {
+                        // Release lock if gesture becomes horizontal
+                        viewModel?.setFlippingActive(false)
+                    }
                 }
                 .onEnded { gesture in
+                    // Phase 6: Disable flip gesture when zoomed in
+                    if currentZoomScale > 1.0 {
+                        viewModel?.setFlippingActive(false)
+                        return
+                    }
+                    
+                    // Release mutex lock immediately
+                    viewModel?.setFlippingActive(false)
+                    
                     // Calculate gesture duration
                     let duration = flipGestureStartTime.map { Date().timeIntervalSince($0) } ?? 0
                     

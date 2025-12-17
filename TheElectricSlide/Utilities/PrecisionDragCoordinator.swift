@@ -15,7 +15,7 @@ import SwiftUI
 
 /// Identifies which draggable component is currently in precision mode
 enum PrecisionDragTarget: Equatable {
-    case slide
+    case slide(RuleSide)
     case cursor
     case none
 }

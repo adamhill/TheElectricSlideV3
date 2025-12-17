@@ -126,7 +126,8 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                ruleId: ruleId  // Pass rule ID for identity tracking
+                ruleId: ruleId,  // Pass rule ID for identity tracking
+                isPrecisionActive: precisionCoordinator.isActive(for: .slide(side))
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -146,20 +147,20 @@ struct SideView: View, Equatable {
             .gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
                     .onChanged { gesture in
-                        // Block if precision sequence is active for slide
-                        guard precisionCoordinator.activeTarget != .slide else {
+                        // Block if precision sequence is active for ANY slide (prevents conflicting moves)
+                        if case .slide = precisionCoordinator.activeTarget {
                             #if DEBUG
-                            print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active")
+                            print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active for slide")
                             #endif
                             return
                         }
                         gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
                     }
                     .onEnded { gesture in
-                        // Block if precision sequence is active for slide
-                        guard precisionCoordinator.activeTarget != .slide else {
+                        // Block if precision sequence is active for ANY slide (prevents conflicting moves)
+                        if case .slide = precisionCoordinator.activeTarget {
                             #if DEBUG
-                            print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active")
+                            print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active for slide")
                             #endif
                             return
                         }
@@ -174,13 +175,13 @@ struct SideView: View, Equatable {
                 LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                     .onEnded { _ in
                         // Enter precision sequence with haptic feedback
-                        precisionCoordinator.activate(for: .slide)
+                        precisionCoordinator.activate(for: .slide(side))
                         haptics.fire(.longBuzz)
                         #if DEBUG
-                        print("🎯 [Slide.Precision] MODE ACTIVATED via PrecisionDragCoordinator")
+                        print("🎯 [Slide.Precision] MODE ACTIVATED for \(side) via PrecisionDragCoordinator")
                         #endif
                     }
-                    .sequenced(before: DragGesture())
+                    .sequenced(before: DragGesture(minimumDistance: 0))
                     .updating($isSlidePrecisionDragging) { value, state, _ in
                         if case .second(true, _) = value {
                             state = true

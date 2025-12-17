@@ -182,21 +182,23 @@ final class GestureHandler: GestureHandlerProtocol {
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
         
-        // Apply precision factor if in precision mode
-        let translationWidth = isPrecision
-            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
-            : gesture.translation.width
-        
-        // Use GestureCalculator for boundary detection
+        // Use GestureCalculator for zoom/precision correction and boundary detection
         let dimensions = getDimensions()
         let scaleWidth = dimensions.width
         
+        // Get corrected translation (handles both zoom and precision factor)
+        let correctedTranslation = GestureCalculator.correctTranslationWidth(
+            gesture.translation.width,
+            zoomScale: viewModel.currentZoomScale,
+            isPrecision: isPrecision
+        )
+        
         let result = GestureCalculator.calculateSlideOffset(
-            translation: CGSize(width: translationWidth, height: 0),
-            baseOffset: viewModel.sliderOffset - translationWidth, // approximate base
+            translation: gesture.translation,
+            baseOffset: viewModel.sliderOffset - correctedTranslation, // approximate base
             scaleWidth: scaleWidth,
-            isPrecision: false, // already applied precision above
-            precisionFactor: 1.0
+            zoomScale: viewModel.currentZoomScale,
+            isPrecision: isPrecision
         )
         
         // Fire boundary haptic if we hit a new boundary
@@ -209,7 +211,7 @@ final class GestureHandler: GestureHandlerProtocol {
             lastBoundaryEdge = nil
         }
         
-        viewModel.handleSliderDragChanged(translation: translationWidth)
+        viewModel.handleSliderDragChanged(translation: correctedTranslation)
         
         // Trigger tick haptics when crossing tick marks on the slide
         let hapticScale = TickHapticCoordinator.selectHapticScale(
@@ -251,14 +253,13 @@ final class GestureHandler: GestureHandlerProtocol {
         lastBoundaryEdge = nil
         
         // Calculate momentum from predicted end translation
-        let predictedTranslation = gesture.predictedEndTranslation.width
-        let currentTranslation = gesture.translation.width
-        let momentumDelta = predictedTranslation - currentTranslation
-        
-        // Apply precision factor to momentum if in precision mode
-        let adjustedMomentum = isPrecision
-            ? momentumDelta / PrecisionDragConstants.precisionFactor
-            : momentumDelta
+        // Use GestureCalculator for consistent zoom/precision correction
+        let momentumDelta = gesture.predictedEndTranslation.width - gesture.translation.width
+        let adjustedMomentum = GestureCalculator.correctTranslationWidth(
+            momentumDelta,
+            zoomScale: viewModel.currentZoomScale,
+            isPrecision: isPrecision
+        )
         
         // Only apply momentum if significant
         if abs(adjustedMomentum) > MomentumConfig.minimumVelocity {
@@ -350,8 +351,16 @@ final class GestureHandler: GestureHandlerProtocol {
         // Previously, we incorrectly calculated newPan = currentPan + translation,
         // but gesture.translation is ABSOLUTE from drag start, and currentPan already
         // equals base + translation. This was doubling the offset.
+        //
+        // Pan uses .global coordinate space, so apply zoom correction via centralized helper
+        // Note: isPrecision=false because pan never uses precision mode
+        let zoomCorrectedTranslation = GestureCalculator.correctTranslation(
+            gesture.translation,
+            zoomScale: viewModel.currentZoomScale,
+            isPrecision: false  // Pan always uses global coordinate space, never precision
+        )
         withTransaction(Transaction(animation: nil)) {
-            viewModel.handlePanChanged(translation: gesture.translation)
+            viewModel.handlePanChanged(translation: zoomCorrectedTranslation)
         }
         
         // Now use the correctly calculated panOffset for boundary checking

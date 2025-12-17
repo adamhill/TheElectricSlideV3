@@ -117,7 +117,8 @@ struct CursorOverlay: View {
                     showGradients: showGradients,
                     zoomScale: currentZoomScale,
                     cursorDisplayMode: $cursorDisplayMode,
-                    highlightedScaleIndex: highlightedScaleIndex
+                    highlightedScaleIndex: highlightedScaleIndex,
+                    isPrecisionActive: precisionCoordinator.activeTarget == .cursor
                 )
                     .frame(width: CursorView.cursorWidth, alignment: .top)
                     .offset(y: -CursorView.handleHeight)
@@ -194,14 +195,10 @@ struct CursorOverlay: View {
                 // Allows fine-grained cursor positioning with reduced sensitivity.
                 // Also disabled during magnification to prevent conflicts.
                 .simultaneousGesture(
-                    {
-                        #if os(macOS)
-                        // macOS Fix: Use shorter duration and allow movement to handle mouse jitter
-                        LongPressGesture(minimumDuration: 0.2, maximumDistance: 10)
-                        #else
-                        LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
-                        #endif
-                    }()
+                                    // Use same long press duration on all platforms to prevent accidental activation
+                                    // macOS: Previously 0.2s caused normal cursor drags to trigger precision mode
+                                    // Now: 1.0s matches iOS and requires intentional long press
+                                    LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
                         .onEnded { _ in
                             // Enter precision sequence with haptic feedback via coordinator
                             precisionCoordinator.activate(for: .cursor, startPosition: cursorState.position(for: side))
@@ -327,15 +324,26 @@ struct CursorOverlay: View {
         // Mark cursor as dragging
         cursorState.setCursorDragging(true)
         
-        // Apply precision factor if in precision mode
-        let translationWidth = isPrecision
-            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
-            : gesture.translation.width
+        #if DEBUG && os(macOS)
+        print("🐛 [macOS.Cursor.handleDrag] currentZoomScale=\(String(format: "%.4f", currentZoomScale)), isPrecision=\(isPrecision), rawTranslation=\(String(format: "%.2f", gesture.translation.width))")
+        #endif
+        
+        // Use GestureCalculator for zoom/precision correction
+        // Handles both zoom scale and precision factor in one call
+        let correctedTranslation = GestureCalculator.correctTranslationWidth(
+            gesture.translation.width,
+            zoomScale: currentZoomScale,
+            isPrecision: isPrecision
+        )
+        
+        #if DEBUG && os(macOS)
+        print("🐛 [macOS.Cursor.handleDrag] correctedTranslation=\(String(format: "%.2f", correctedTranslation))")
+        #endif
         
         // Calculate what the new position would be with this translation
         let currentPosition = cursorState.position(for: side)
         let currentPixelPosition = currentPosition * effectiveWidth
-        let proposedNewPosition = currentPixelPosition + translationWidth
+        let proposedNewPosition = currentPixelPosition + correctedTranslation
         
         // Clamp to slide bounds [0, effectiveWidth]
         let clampedNewPosition = min(max(proposedNewPosition, 0), effectiveWidth)
@@ -363,15 +371,17 @@ struct CursorOverlay: View {
     ///   - width: Effective width for movement
     ///   - isPrecision: Whether precision mode is active (must match the mode used during drag)
     private func handleDragEnd(_ gesture: DragGesture.Value, width: CGFloat, isPrecision: Bool) {
-        // Apply precision factor if in precision mode (must match drag calculation)
-        let translationWidth = isPrecision
-            ? gesture.translation.width / PrecisionDragConstants.precisionFactor
-            : gesture.translation.width
+        // Use GestureCalculator for zoom/precision correction (matches handleDrag)
+        let correctedTranslation = GestureCalculator.correctTranslationWidth(
+            gesture.translation.width,
+            zoomScale: currentZoomScale,
+            isPrecision: isPrecision
+        )
         
         // Calculate new position based on translation from current position
         let currentPosition = cursorState.position(for: side)
         let currentPixelPosition = currentPosition * width
-        let newPixelPosition = currentPixelPosition + translationWidth
+        let newPixelPosition = currentPixelPosition + correctedTranslation
         let normalizedPosition = newPixelPosition / width
         let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
         

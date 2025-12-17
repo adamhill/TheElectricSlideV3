@@ -231,6 +231,19 @@ struct FontConfig {
             endPoint: .trailing,
             opacity: 1.0
         )
+        
+        /// Precision mode gradient: light orange-red with same intensity as default yellow
+        static let precision = GradientConfig(
+            colors: [
+                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),
+                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
+                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.05),
+                Color.clear
+            ],
+            startPoint: .leading,
+            endPoint: .trailing,
+            opacity: 1.0
+        )
     }
     
     /// Create a SwiftUI Font from this configuration
@@ -273,6 +286,9 @@ struct CursorView: View {
     
     /// Currently highlighted scale index (from precision mode)
     var highlightedScaleIndex: Int? = nil
+    
+    /// Whether precision mode is active for THIS cursor
+    var isPrecisionActive: Bool = false
     
     // MARK: - Constants
     
@@ -345,42 +361,44 @@ struct CursorView: View {
                 
                 // Gradient backgrounds for each scale row (if configured and enabled)
                 if showGradients {
+                    // Select gradient based on precision mode state
+                    let activeGradient: FontConfig.GradientConfig = isPrecisionActive
+                        ? .precision  // Orange-red when precision active
+                        : (displayConfig.scaleNameFont.gradient ?? .default)  // Yellow normally
+                    
                     VStack(spacing: 0) {
                         ForEach(Array(readings.enumerated()), id: \.element.id) { index, reading in
                             ZStack {
-                                // Scale name gradient (left side)
-                                if let gradient = displayConfig.scaleNameFont.gradient {
-                                    HStack(spacing: 0) {
-                                        LinearGradient(
-                                            colors: gradient.colors,
-                                            startPoint: gradient.startPoint,
-                                            endPoint: gradient.endPoint
-                                        )
-                                        .opacity(gradient.opacity)
-                                        .frame(width: Self.cursorWidth / 2)
-                                        
-                                        Spacer()
-                                    }
+                                // Scale name gradient (left side) - use active gradient color
+                                HStack(spacing: 0) {
+                                    LinearGradient(
+                                        colors: activeGradient.colors,
+                                        startPoint: activeGradient.startPoint,
+                                        endPoint: activeGradient.endPoint
+                                    )
+                                    .opacity(activeGradient.opacity)
+                                    .frame(width: Self.cursorWidth / 2)
+                                    
+                                    Spacer()
                                 }
                                 
-                                // Scale value gradient (right side)
-                                if let gradient = displayConfig.scaleValueFont.gradient {
-                                    HStack(spacing: 0) {
-                                        Spacer()
-                                        
-                                        LinearGradient(
-                                            colors: gradient.colors,
-                                            startPoint: gradient.endPoint,  // Flip: start from trailing edge
-                                            endPoint: gradient.startPoint   // Flip: end toward center/hairline
-                                        )
-                                        .opacity(gradient.opacity)
-                                        .frame(width: Self.cursorWidth / 2)
-                                    }
+                                // Scale value gradient (right side) - use active gradient color
+                                HStack(spacing: 0) {
+                                    Spacer()
+                                    
+                                    LinearGradient(
+                                        colors: activeGradient.colors,
+                                        startPoint: activeGradient.endPoint,  // Flip: start from trailing edge
+                                        endPoint: activeGradient.startPoint   // Flip: end toward center/hairline
+                                    )
+                                    .opacity(activeGradient.opacity)
+                                    .frame(width: Self.cursorWidth / 2)
                                 }
                             }
                             .frame(width: Self.cursorWidth, height: scaleHeight)
                         }
                     }
+                    .animation(.easeInOut(duration: 0.2), value: isPrecisionActive)
                 }
                 
                 // True 1-pixel hairline down center - solid black

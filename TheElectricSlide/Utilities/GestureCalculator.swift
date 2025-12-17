@@ -13,24 +13,97 @@ import CoreGraphics
 /// All functions are static, deterministic, and side-effect-free
 enum GestureCalculator {
     
+    // MARK: - Translation Correction
+    
+    /// Corrects a translation from screen space to model space, accounting for zoom and precision mode.
+    ///
+    /// When using `.global` coordinate space, gesture translations are in screen points.
+    /// If the view is scaled (e.g., via `scaleEffect(zoomScale)`), we must divide by zoomScale
+    /// to get the correct model-space translation.
+    ///
+    /// **Precision mode** uses `.local` coordinate space, which automatically compensates for
+    /// view transforms, so no zoom correction is needed.
+    ///
+    /// - Parameters:
+    ///   - translation: Raw translation from gesture (screen space for `.global`, local for `.local`)
+    ///   - zoomScale: Current zoom scale (e.g., 1.0 = no zoom, 2.0 = 2× magnified)
+    ///   - isPrecision: Whether precision mode is active (uses `.local` coordinate space)
+    ///   - precisionFactor: Divisor for precision mode (default 5.0 = 5× slower movement)
+    /// - Returns: Corrected translation in model space
+    static func correctTranslation(
+        _ translation: CGSize,
+        zoomScale: CGFloat,
+        isPrecision: Bool,
+        precisionFactor: CGFloat = PrecisionDragConstants.precisionFactor
+    ) -> CGSize {
+        // Treat zoom scales very close to 1.0 as exactly 1.0 to avoid floating point precision bugs
+        let effectiveZoomScale = abs(zoomScale - 1.0) < 0.001 ? 1.0 : zoomScale
+        
+        // Step 1: Apply zoom correction for global coordinate space
+        // Precision gestures use local space (auto-corrected), so skip zoom correction
+        let zoomCorrected = isPrecision ? translation : CGSize(
+            width: translation.width / effectiveZoomScale,
+            height: translation.height / effectiveZoomScale
+        )
+        
+        // Step 2: Apply precision factor if in precision mode
+        let precisionCorrected = isPrecision ? CGSize(
+            width: zoomCorrected.width / precisionFactor,
+            height: zoomCorrected.height / precisionFactor
+        ) : zoomCorrected
+        
+        return precisionCorrected
+    }
+    
+    /// Convenience method for correcting just the width component of a translation
+    static func correctTranslationWidth(
+        _ width: CGFloat,
+        zoomScale: CGFloat,
+        isPrecision: Bool,
+        precisionFactor: CGFloat = PrecisionDragConstants.precisionFactor
+    ) -> CGFloat {
+        let corrected = correctTranslation(
+            CGSize(width: width, height: 0),
+            zoomScale: zoomScale,
+            isPrecision: isPrecision,
+            precisionFactor: precisionFactor
+        )
+        return corrected.width
+    }
+    
     // MARK: - Slide Calculations
     
+    /// Calculates the new slide offset from a drag gesture.
+    ///
+    /// - Parameters:
+    ///   - translation: Raw translation from gesture
+    ///   - baseOffset: Starting offset before this drag
+    ///   - scaleWidth: Width of the scale (for boundary calculation)
+    ///   - zoomScale: Current zoom scale (for coordinate correction)
+    ///   - isPrecision: Whether precision mode is active
+    ///   - precisionFactor: Divisor for precision mode movement
+    /// - Returns: Result containing bounded offset and boundary information
     static func calculateSlideOffset(
         translation: CGSize,
         baseOffset: CGFloat,
         scaleWidth: CGFloat,
+        zoomScale: CGFloat = 1.0,
         isPrecision: Bool = false,
-        precisionFactor: CGFloat = 5.0
+        precisionFactor: CGFloat = PrecisionDragConstants.precisionFactor
     ) -> SlideGestureResult {
-        let adjustedTranslation = isPrecision 
-            ? translation.width / precisionFactor 
-            : translation.width
+        // Apply zoom and precision correction
+        let adjustedTranslation = correctTranslationWidth(
+            translation.width,
+            zoomScale: zoomScale,
+            isPrecision: isPrecision,
+            precisionFactor: precisionFactor
+        )
         
         let rawOffset = baseOffset + adjustedTranslation
         let boundedOffset = rawOffset.clamped(to: -scaleWidth...scaleWidth)
         
         let hitBoundary = rawOffset != boundedOffset
-        let edge: BoundaryEdge? = hitBoundary 
+        let edge: BoundaryEdge? = hitBoundary
             ? (rawOffset < boundedOffset ? .leading : .trailing)
             : nil
         
@@ -44,16 +117,31 @@ enum GestureCalculator {
     
     // MARK: - Cursor Calculations
     
+    /// Calculates the new cursor position from a drag gesture.
+    ///
+    /// - Parameters:
+    ///   - translation: Raw translation from gesture
+    ///   - basePosition: Starting normalized position (0.0-1.0) before this drag
+    ///   - viewWidth: Width of the view (for normalization)
+    ///   - zoomScale: Current zoom scale (for coordinate correction)
+    ///   - isPrecision: Whether precision mode is active
+    ///   - precisionFactor: Divisor for precision mode movement
+    /// - Returns: Result containing bounded position and boundary information
     static func calculateCursorPosition(
         translation: CGSize,
         basePosition: CGFloat,
         viewWidth: CGFloat,
+        zoomScale: CGFloat = 1.0,
         isPrecision: Bool = false,
-        precisionFactor: CGFloat = 5.0
+        precisionFactor: CGFloat = PrecisionDragConstants.precisionFactor
     ) -> CursorGestureResult {
-        let adjustedTranslation = isPrecision
-            ? translation.width / precisionFactor
-            : translation.width
+        // Apply zoom and precision correction
+        let adjustedTranslation = correctTranslationWidth(
+            translation.width,
+            zoomScale: zoomScale,
+            isPrecision: isPrecision,
+            precisionFactor: precisionFactor
+        )
         
         let normalizedDelta = adjustedTranslation / viewWidth
         let rawPosition = basePosition + normalizedDelta

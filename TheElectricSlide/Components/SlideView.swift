@@ -25,6 +25,9 @@ struct SlideView: View, Equatable {
     let formulaFont: Font
     let ruleId: UUID?
     
+    /// Whether THIS slide is in precision mode
+    var isPrecisionActive: Bool = false
+    
     // Equatable conformance - delegate to ScaleContainerView's comparison
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
         lhs.ruleId == rhs.ruleId &&
@@ -34,23 +37,73 @@ struct SlideView: View, Equatable {
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
-        lhs.borderColor == rhs.borderColor
+        lhs.borderColor == rhs.borderColor &&
+        lhs.isPrecisionActive == rhs.isPrecisionActive
     }
     
     var body: some View {
-        ScaleContainerView(
-            container: slide,
-            width: width,
-            backgroundColor: backgroundColor,
-            borderColor: borderColor,
-            scaleHeight: scaleHeight,
-            leftMarginWidth: leftMarginWidth,
-            rightMarginWidth: rightMarginWidth,
-            nameFont: nameFont,
-            formulaFont: formulaFont,
-            ruleId: ruleId,
-            scaleCount: slide.scales.count
-        )
-        .equatable()
+        ZStack {
+            // Original slide rendering
+            ScaleContainerView(
+                container: slide,
+                width: width,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
+                ruleId: ruleId,
+                scaleCount: slide.scales.count
+            )
+            .equatable()
+            
+            // Precision mode gradient overlay
+            if isPrecisionActive {
+                let precisionColor = Color(red: 1.0, green: 0.4, blue: 0.3)
+                
+                VStack(spacing: 0) {
+                    // Top edge gradient
+                    LinearGradient(
+                        colors: [
+                            precisionColor.opacity(0.3),
+                            precisionColor.opacity(0.15),
+                            precisionColor.opacity(0.05),
+                            precisionColor.opacity(0.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(width: width, height: slideHeight * 0.2)
+                    .allowsHitTesting(false)
+                    
+                    Spacer()
+                    
+                    // Bottom edge gradient
+                    LinearGradient(
+                        colors: [
+                            precisionColor.opacity(0.0),
+                            precisionColor.opacity(0.05),
+                            precisionColor.opacity(0.15),
+                            precisionColor.opacity(0.3)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(width: width, height: slideHeight * 0.2)
+                    .allowsHitTesting(false)
+                }
+                .frame(width: width, height: slideHeight)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: isPrecisionActive)
+            }
+        }
+    }
+    
+    /// Calculate total height of all scales in slide
+    private var slideHeight: CGFloat {
+        scaleHeight * CGFloat(slide.scales.count)
     }
 }

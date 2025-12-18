@@ -12,8 +12,8 @@
 	"argv": [
 		"/opt/homebrew/bin/xcode-build-server"
 	],
-	"workspace": "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlideConsole/TheElectricSlideConsole.xcodeproj/project.xcworkspace",
-	"build_root": "/Users/adamhill/Library/Developer/Xcode/DerivedData/TheElectricSlideConsole-gkpgasbdmsqaqkfcqzfcoxcgaffy",
-	"scheme": "TheElectricSlideConsole",
+	"workspace": "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/adamhill/Library/Developer/Xcode/DerivedData/TheElectricSlide-glgjqxbhdwmxlpcjlzmtslheyrav",
+	"scheme": "TheElectricSlide",
 	"kind": "xcode"
 }

@@ -1,3 +1,4 @@
 {
-    "gitlens.ai.experimental.composer.enabled": true
+    "gitlens.ai.experimental.composer.enabled": true,
+    "sweetpad.workspacePath": "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcworkspace"
 }

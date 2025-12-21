@@ -24,7 +24,7 @@ enum ZoomConstants {
     /// Default zoom level (1.0× / 100%)
     static let defaultZoomScale: CGFloat = 1.0
     /// Maximum zoom level (200%)
-    static let maxZoomScale: CGFloat = 2.0
+    static let maxZoomScale: CGFloat = 2.5
 }
 
 // MARK: - Slide Rule View Model
@@ -57,7 +57,7 @@ final class SlideRuleViewModel {
     // MARK: - Zoom State (Hot/Cold Pattern)
     
     /// Current zoom scale (COLD - triggers view updates)
-    /// Range: 1.0× to maxZoomScale (4.0×)
+    /// Range: 1.0× to maxZoomScale (2.5×)
     var currentZoomScale: CGFloat = 1.0
     
     /// Base zoom at start of gesture (HOT - internal tracking only)

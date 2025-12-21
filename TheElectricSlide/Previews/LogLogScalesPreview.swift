@@ -225,7 +225,8 @@ struct LogLogScalesPreview: View {
         rightMarginWidth: 60,
         nameFontSize: 12,
         formulaFontSize: 10
-    ) .preferredColorScheme(.light)
+    )
+    .preferredColorScheme(.light)
 }
 
 #Preview("Large (iPad)") {
@@ -236,12 +237,14 @@ struct LogLogScalesPreview: View {
         rightMarginWidth: 100,
         nameFontSize: 16,
         formulaFontSize: 14
-    ) .preferredColorScheme(.light)
+    )
+    .preferredColorScheme(.light)
 }
 
 #Preview("High Precision") {
     LogLogScalesPreview(
         scaleLength: 1200,
         scaleHeight: 60
-    ) .preferredColorScheme(.light)
+    )
+    .preferredColorScheme(.light)
 }

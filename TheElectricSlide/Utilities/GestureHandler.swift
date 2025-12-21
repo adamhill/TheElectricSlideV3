@@ -110,6 +110,10 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Current direction lock for the active gesture
     @ObservationIgnored private var currentSlideGestureDirection: GestureDirection?
     
+    /// Base slide offset at the start of the current drag gesture
+    /// Captured on first drag changed call, reset on drag ended
+    @ObservationIgnored private var slideBaseOffset: CGFloat?
+    
     // MARK: - Initialization
     
     init(
@@ -179,6 +183,11 @@ final class GestureHandler: GestureHandlerProtocol {
             }
         }
         
+        // Capture base offset at start of gesture
+        if slideBaseOffset == nil {
+            slideBaseOffset = viewModel.sliderOffset
+        }
+        
         // Mark slide as dragging
         cursorState.setSlideDragging(true)
         
@@ -193,12 +202,14 @@ final class GestureHandler: GestureHandlerProtocol {
             isPrecision: isPrecision
         )
         
+        // Use the corrected translation for boundary detection
+        // Pass zoomScale: 1.0 and isPrecision: false since correction was already applied
         let result = GestureCalculator.calculateSlideOffset(
-            translation: gesture.translation,
-            baseOffset: viewModel.sliderOffset - correctedTranslation, // approximate base
+            translation: CGSize(width: correctedTranslation, height: 0),
+            baseOffset: slideBaseOffset ?? viewModel.sliderOffset,
             scaleWidth: scaleWidth,
-            zoomScale: viewModel.currentZoomScale,
-            isPrecision: isPrecision
+            zoomScale: 1.0,
+            isPrecision: false
         )
         
         // Fire boundary haptic if we hit a new boundary
@@ -251,6 +262,9 @@ final class GestureHandler: GestureHandlerProtocol {
         
         // Reset boundary tracking
         lastBoundaryEdge = nil
+        
+        // Reset slide base offset for next gesture
+        slideBaseOffset = nil
         
         // Calculate momentum from predicted end translation
         // Use GestureCalculator for consistent zoom/precision correction

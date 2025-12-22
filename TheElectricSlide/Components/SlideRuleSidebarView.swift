@@ -33,6 +33,11 @@ struct SlideRuleSidebarView: View {
     let deviceCategory: DeviceCategory
     let onRuleSelected: (SlideRuleDefinitionModel) -> Void
     
+    // MARK: - PDF Export State
+    
+    /// The rule selected for PDF export (via context menu)
+    @State private var ruleForPDFExport: SlideRuleDefinitionModel?
+    
     /// Available view modes based on device category and slide rule capabilities
     private var availableModes: [ViewMode] {
         ViewMode.availableModes(for: deviceCategory).filter { mode in
@@ -104,6 +109,13 @@ struct SlideRuleSidebarView: View {
                 .padding(.vertical, 4)
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    ruleForPDFExport = rule
+                } label: {
+                    Label("Generate PDF...", systemImage: "doc.richtext")
+                }
+            }
             }
             // Hide the List's default opaque scroll background to allow
             // the Liquid Glass translucency effect to show through
@@ -124,6 +136,10 @@ struct SlideRuleSidebarView: View {
         #if os(iOS)
         .containerBackground(.thinMaterial, for: .navigation)
         #endif
+        // MARK: - PDF Export Sheet
+        .sheet(item: $ruleForPDFExport) { rule in
+            PDFExportSheet(rule: rule)
+        }
     }
     
     /// Initialize or update library with standard rules

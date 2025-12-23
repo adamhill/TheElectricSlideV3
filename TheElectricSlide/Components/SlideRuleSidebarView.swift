@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import SlideRuleCoreV3
+import UniformTypeIdentifiers
 
 // MARK: - Platform Color Helpers
 
@@ -116,6 +117,45 @@ struct SlideRuleSidebarView: View {
                 initializeLibraryIfNeeded()
             }
         }
+        #if os(macOS)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Menu("Export Front Side") {
+                        Button("Full Size (9.84\")") {
+                            exportToPDF(side: .frontOnly, size: .full)
+                        }
+                        Button("Pocket Size (4.92\")") {
+                            exportToPDF(side: .frontOnly, size: .pocket)
+                        }
+                    }
+                    
+                    if hasBackSide {
+                        Menu("Export Back Side") {
+                            Button("Full Size (9.84\")") {
+                                exportToPDF(side: .backOnly, size: .full)
+                            }
+                            Button("Pocket Size (4.92\")") {
+                                exportToPDF(side: .backOnly, size: .pocket)
+                            }
+                        }
+                        
+                        Menu("Export Both Sides") {
+                            Button("Full Size (9.84\")") {
+                                exportToPDF(side: .both, size: .full)
+                            }
+                            Button("Pocket Size (4.92\")") {
+                                exportToPDF(side: .both, size: .pocket)
+                            }
+                        }
+                    }
+                } label: {
+                    Label("Export PDF", systemImage: "square.and.arrow.up")
+                }
+                .disabled(selectedRule == nil)
+            }
+        }
+        #endif
         // MARK: - Liquid Glass Translucency (iOS 26+)
         // Apply thin material background to make sidebar translucent on iOS
         // The detail content extended beneath via .ignoresSafeArea() and .backgroundExtensionEffect()
@@ -194,3 +234,94 @@ struct SlideRuleSidebarView: View {
         }
     }
 }
+
+// MARK: - PDF Export Methods
+
+#if os(macOS)
+extension SlideRuleSidebarView {
+    
+    /// Trigger PDF export for the currently selected slide rule
+    private func exportToPDF(side: PDFExportConfiguration.ExportSide, size: PDFExportConfiguration.Size) {
+        guard let selectedRule = selectedRule else {
+            presentError(message: "No slide rule selected")
+            return
+        }
+        
+        // Parse slide rule definition with correct scale length for the chosen size
+        let scaleLength = size.lengthInPoints
+        guard let slideRule = try? parseSlideRule(from: selectedRule, length: scaleLength) else {
+            presentError(message: "Failed to parse slide rule definition")
+            return
+        }
+        
+        // Create configuration
+        let config = PDFExportConfiguration(
+            size: size,
+            side: side,
+            slideRule: slideRule,
+            slideRuleName: selectedRule.name
+        )
+        
+        // Present save panel
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.pdf]
+        savePanel.canCreateDirectories = true
+        savePanel.isExtensionHidden = false
+        savePanel.title = "Export Slide Rule to PDF"
+        savePanel.message = "Choose where to save the PDF"
+        savePanel.nameFieldStringValue = "\(selectedRule.name).pdf"
+        
+        savePanel.begin { response in
+            guard response == .OK, let url = savePanel.url else {
+                return
+            }
+            
+            // Generate PDF in background
+            Task {
+                do {
+                    try PDFGenerator.generate(config: config, to: url)
+                    await MainActor.run {
+                        presentSuccess(message: "PDF exported successfully to \(url.lastPathComponent)")
+                    }
+                } catch {
+                    await MainActor.run {
+                        presentError(message: "Export failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func parseSlideRule(from model: SlideRuleDefinitionModel, length: Distance) throws -> SlideRule {
+        let dimensions = RuleDefinitionParser.Dimensions(
+            topStatorMM: model.topStatorMM,
+            slideMM: model.slideMM,
+            bottomStatorMM: model.bottomStatorMM
+        )
+        
+        return try RuleDefinitionParser.parse(
+            model.definitionString,
+            dimensions: dimensions,
+            scaleLength: length
+        )
+    }
+    
+    private func presentError(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "PDF Export Error"
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    private func presentSuccess(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Export Complete"
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+}
+#endif

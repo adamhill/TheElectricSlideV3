@@ -13,6 +13,17 @@ import SlideRuleCoreV3
 protocol ScaleContainer {
     var scales: [GeneratedScale] { get }
     var showBorder: Bool { get }
+    
+    /// Total height of all scales in this container, including 4pt spacing between them
+    var totalScalesHeight: Distance { get }
+}
+
+extension ScaleContainer {
+    var totalScalesHeight: Distance {
+        let scalesHeight = scales.map { $0.definition.height }.reduce(0.0, +)
+        let spacing = scales.isEmpty ? 0.0 : Double(scales.count - 1) * 4.0
+        return scalesHeight + spacing
+    }
 }
 
 // MARK: - Protocol Conformance

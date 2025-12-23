@@ -78,7 +78,7 @@ extension StandardScales {
                 // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
-            .withLabelColor(red: 0.0, green: 0.5, blue: 0.0) // Green for XL
+            .withLabelColor(.green) // Green for XL
             .build()
     }
     
@@ -135,7 +135,7 @@ extension StandardScales {
                 // Cursor Precision: 2 decimals (from 0.1 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0) // Red for Xc
+            .withLabelColor(.red) // Red for Xc
             .build()
     }
     
@@ -643,7 +643,7 @@ extension StandardScales {
             .withConstants([
                 ScaleConstant(value: 0.0, label: "∞", style: .major)
             ])
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0) // Red
+            .withLabelColor(.red) // Red
             .build()
     }
     
@@ -771,7 +771,7 @@ extension StandardScales {
                 // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0])
             ])
-            .withLabelColor(red: 0.0, green: 0.5, blue: 0.0) // Green
+            .withLabelColor(.green) // Green
             .build()
     }
     

@@ -1574,7 +1574,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .withConstants([
                 ScaleConstant(
@@ -1643,7 +1643,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.80, tickIntervals: [0.02, 0.01, 0.005, 0.001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .withConstants([
                 ScaleConstant(
@@ -1711,7 +1711,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.98, tickIntervals: [0.005, 0.001, 0.0005, 0.0001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .withColorApplication((scaleName: true, scaleLabels: true, scaleTicks: true))
             .build()
     }
@@ -1766,7 +1766,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.998, tickIntervals: [0.0005, 0.0001, 0.00005, 0.00001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
             .build()
     }
@@ -1837,7 +1837,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.80, tickIntervals: [0.05, 0.01, 0.002], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .build()
     }
     
@@ -1898,7 +1898,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.998, tickIntervals: [0.0005, 0.0001, 0.00002], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .build()
     }
     
@@ -1941,7 +1941,7 @@ extension StandardScales {
             ],
             defaultTickStyles: ll00BScale.defaultTickStyles,
             labelFormatter: ll00BScale.labelFormatter,
-            labelColor: (red: 1.0, green: 0.0, blue: 0.0),  // Red labels
+            labelColor: .red,  // Red labels
             constants: []
         )
     }
@@ -2064,7 +2064,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 20000.0, tickIntervals: [100000.0, 50000.0, 10000.0], labelLevels: [0])
             ])
             .withLabelFormatter({ value in h266Formatter(value) ?? "" })
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .build()
     }
     

@@ -77,6 +77,9 @@ public struct ScaleDefinition: Sendable {
     /// Physical length of the scale in points
     public let scaleLengthInPoints: Distance
     
+    /// Physical height of the scale in points
+    public let height: Distance
+    
     /// Layout type: linear or circular
     public let layout: ScaleLayout
     
@@ -92,8 +95,8 @@ public struct ScaleDefinition: Sendable {
     /// Optional custom label formatter for the entire scale
     public let labelFormatter: (@Sendable (ScaleValue) -> String)?
     
-    /// Optional color for labels (as RGB components 0-1)
-    public let labelColor: (red: Double, green: Double, blue: Double)?
+    /// Optional color for labels
+    public let labelColor: LabelColor?
     
     /// Specifies which parts of the scale should use the labelColor
     public let colorApplication: ScaleColorApplication
@@ -117,12 +120,13 @@ public struct ScaleDefinition: Sendable {
         beginValue: ScaleValue,
         endValue: ScaleValue,
         scaleLengthInPoints: Distance,
+        height: Distance = 36.0,
         layout: ScaleLayout,
         tickDirection: TickDirection = .up,
         subsections: [ScaleSubsection] = [],
         defaultTickStyles: [TickStyle] = [.major, .medium, .minor, .tiny],
         labelFormatter: (@Sendable (ScaleValue) -> String)? = nil,
-        labelColor: (red: Double, green: Double, blue: Double)? = nil,
+        labelColor: LabelColor? = nil,
         colorApplication: ScaleColorApplication = ScaleColorPresets.all,
         constants: [ScaleConstant] = [],
         showBaseline: Bool = false,
@@ -136,6 +140,7 @@ public struct ScaleDefinition: Sendable {
         self.beginValue = beginValue
         self.endValue = endValue
         self.scaleLengthInPoints = scaleLengthInPoints
+        self.height = height
         self.layout = layout
         self.tickDirection = tickDirection
         self.subsections = subsections
@@ -189,7 +194,7 @@ public struct ScaleBuilder {
     private var subsections: [ScaleSubsection] = []
     private var defaultTickStyles: [TickStyle] = [.major, .medium, .minor, .tiny]
     private var labelFormatter: (@Sendable (ScaleValue) -> String)?
-    private var labelColor: (red: Double, green: Double, blue: Double)?
+    private var labelColor: LabelColor?
     private var colorApplication: ScaleColorApplication = ScaleColorPresets.all
     private var constants: [ScaleConstant] = []
     private var showBaseline: Bool = false
@@ -261,9 +266,9 @@ public struct ScaleBuilder {
         return copy
     }
     
-    public func withLabelColor(red: Double, green: Double, blue: Double) -> ScaleBuilder {
+    public func withLabelColor(_ color: LabelColor) -> ScaleBuilder {
         var copy = self
-        copy.labelColor = (red, green, blue)
+        copy.labelColor = color
         return copy
     }
     

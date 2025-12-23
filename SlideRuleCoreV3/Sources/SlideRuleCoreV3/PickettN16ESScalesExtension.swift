@@ -120,7 +120,7 @@ extension StandardScales {
                     return String(Int(value.rounded()))
                 }
             }
-            .withLabelColor(red: 0.0, green: 0.5, blue: 0.0)
+            .withLabelColor(.green)
             .addConstant(value: 25.12, label: "XL", style: .major)
             .addConstant(value: 26.30, label: "TL", style: .major)
             .build()
@@ -230,7 +230,7 @@ extension StandardScales {
                     return String(Int(value.rounded()))
                 }
             }
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelColor(.red)
             .build()
     }
     
@@ -633,7 +633,7 @@ extension StandardScales {
                     return String(format: "%.0f dB", dB)
                 }
             }
-            .withLabelColor(red: 0.0, green: 0.5, blue: 0.0)
+            .withLabelColor(.green)
             .build()
     }
     
@@ -664,7 +664,7 @@ extension StandardScales {
                     return String(format: "%.0f dB", dB)
                 }
             }
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelColor(.red)
             .build()
     }
     

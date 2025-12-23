@@ -200,7 +200,7 @@ public enum StandardScales {
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelColor(.red)
             .withColorApplication(ScaleColorPresets.labelsOnly)
             .build()
     }
@@ -423,7 +423,7 @@ public enum StandardScales {
                 )
             ])
             .withLabelFormatter(StandardLabelFormatter.integer)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)
+            .withLabelColor(.red)
             .withColorApplication(ScaleColorPresets.labelsOnly)
             .addConstant(value: .pi, label: "π", style: .major)
             .addConstant(value: 10.0, label: "10", style: .major)
@@ -996,7 +996,7 @@ public enum StandardScales {
             subsections: aScale.subsections,
             defaultTickStyles: aScale.defaultTickStyles,
             labelFormatter: aScale.labelFormatter,
-            labelColor: (red: 1.0, green: 0.0, blue: 0.0),  // Red labels
+            labelColor: .red,  // Red labels
             constants: []  // No constants for inverse scales typically
         )
     }
@@ -1021,7 +1021,7 @@ public enum StandardScales {
             subsections: aiScale.subsections,
             defaultTickStyles: aiScale.defaultTickStyles,
             labelFormatter: aiScale.labelFormatter,
-            labelColor: (red: 1.0, green: 0.0, blue: 0.0),  // Red labels
+            labelColor: .red,  // Red labels
             constants: aiScale.constants
         )
     }

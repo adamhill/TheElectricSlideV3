@@ -639,7 +639,7 @@ extension StandardScales {
             .withRange(begin: 0, end: 0.995)
             .withLength(length)
             .withTickDirection(.up)
-            .withLabelColor(red: 1.0, green: 0.0, blue: 0.0)  // Red labels
+            .withLabelColor(.red)  // Red labels
             .withSubsections([
                 // Cursor Precision: 2 decimals (from 0.1 tertiary interval)
                 // Mathematical: P scale start (0-0.2), √(1-x²) for unit circle, 0.1 marks for low values

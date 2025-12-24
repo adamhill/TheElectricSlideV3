@@ -359,15 +359,12 @@ public struct RuleDefinitionParser {
         var slideScaleCount = 0
         var bottomScaleCount = 0
         var targetForCounting: ScaleTarget = .topStator
-        var inBracketsForCounting = false
         
         for token in tokens {
             switch token {
             case "[":
-                inBracketsForCounting = true
                 targetForCounting = .slide
             case "]":
-                inBracketsForCounting = false
                 targetForCounting = .bottomStator
             case "|", "blank":
                 continue

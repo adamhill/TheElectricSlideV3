@@ -278,7 +278,13 @@ enum PDFGenerator {
         var currentY = yPosition
         
         for (index, scale) in component.scales.enumerated() {
-            let actualHeight = CGFloat(scale.definition.height)
+            var actualHeight = CGFloat(scale.definition.height)
+            
+            // Increase C and D scale heights by ~1.76mm (5.0 points)
+            if scale.definition.name == "C" || scale.definition.name == "D" {
+                actualHeight += 5.0
+            }
+            
             try ScalePDFRenderer.render(
                 scale: scale,
                 at: CGPoint(x: CGFloat(config.leftMargin), y: currentY - actualHeight),

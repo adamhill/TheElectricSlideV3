@@ -120,54 +120,54 @@ struct PDFRenderContext {
     
     // MARK: - Helper Methods
     
-    /// Draw registration marks in margins outside content area
-    /// Following PostScript reference: 29-33mm clearance from scale edges
-    /// Format: 5mm x 4mm rectangles positioned in margins
+    /// Draw registration marks at corners with cross marks
+    /// Cross marks: 5mm offset from corners, 10mm line length, 0.5pt stroke width
     func drawRegistrationMarks(contentRect: CGRect) {
-        // PostScript-based clearance (using 31mm average of 29-33mm range)
-        let clearance: CGFloat = 31.0 * 2.83465  // 31mm in points = ~87.9pts
-        let markWidth: CGFloat = 5.0 * 2.83465  // 5mm
-        let markHeight: CGFloat = 4.0 * 2.83465 // 4mm
-        let lineWidth: CGFloat = 0.2
+        let offset: CGFloat = 5.0 * 2.83465      // 5mm offset from corner in points
+        let lineLength: CGFloat = 10.0 * 2.83465 // 10mm line length in points
+        let lineWidth: CGFloat = 0.5              // 0.5pt stroke width
         let color = CGColor(gray: 0, alpha: 1)
         
-        // Position marks in margins outside content
-        // Left marks: to the left of content by clearance amount
-        // Right marks: to the right of content by clearance amount
-        let leftMarkX = contentRect.minX - clearance
-        let rightMarkX = contentRect.maxX + clearance
-        
-        // Top marks: 8.5mm above top scale
-        let topMarkY = contentRect.maxY + (8.5 * 2.83465)
-        // Bottom marks: 8.5mm below bottom scale
-        let bottomMarkY = contentRect.minY - (8.5 * 2.83465)
-        
-        let marks = [
+        // Corner positions with offset
+        let corners = [
             // Top left
-            CGPoint(x: leftMarkX, y: topMarkY),
+            CGPoint(x: contentRect.minX, y: contentRect.maxY),
             // Top right
-            CGPoint(x: rightMarkX, y: topMarkY),
+            CGPoint(x: contentRect.maxX, y: contentRect.maxY),
             // Bottom left
-            CGPoint(x: leftMarkX, y: bottomMarkY),
+            CGPoint(x: contentRect.minX, y: contentRect.minY),
             // Bottom right
-            CGPoint(x: rightMarkX, y: bottomMarkY)
+            CGPoint(x: contentRect.maxX, y: contentRect.minY)
         ]
         
         context.saveGState()
         context.setStrokeColor(color)
         context.setLineWidth(lineWidth)
         
-        for mark in marks {
-            // Draw registration rectangle (5mm x 4mm)
-            let rect = CGRect(
-                x: mark.x - markWidth / 2,
-                y: mark.y - markHeight / 2,
-                width: markWidth,
-                height: markHeight
+        for (index, corner) in corners.enumerated() {
+            // Determine offset directions based on corner position
+            let xDir: CGFloat = (index == 0 || index == 2) ? -1 : 1  // Left corners: -1, Right corners: 1
+            let yDir: CGFloat = (index == 0 || index == 1) ? 1 : -1  // Top corners: 1, Bottom corners: -1
+            
+            let markCenter = CGPoint(
+                x: corner.x + (offset * xDir),
+                y: corner.y + (offset * yDir)
             )
-            context.stroke(rect)
+            
+            // Draw horizontal line of cross
+            let hStart = CGPoint(x: markCenter.x - lineLength / 2, y: markCenter.y)
+            let hEnd = CGPoint(x: markCenter.x + lineLength / 2, y: markCenter.y)
+            context.move(to: hStart)
+            context.addLine(to: hEnd)
+            
+            // Draw vertical line of cross
+            let vStart = CGPoint(x: markCenter.x, y: markCenter.y - lineLength / 2)
+            let vEnd = CGPoint(x: markCenter.x, y: markCenter.y + lineLength / 2)
+            context.move(to: vStart)
+            context.addLine(to: vEnd)
         }
         
+        context.strokePath()
         context.restoreGState()
     }
     /// Draw a title at the top of the page

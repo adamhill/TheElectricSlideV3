@@ -258,8 +258,14 @@ public struct RuleDefinitionParser {
             throw ParseError.invalidFormat("Empty definition")
         }
         
-        // Parse front side
-        let frontComponents = try parseComponents(sides[0], scaleLength: scaleLength)
+        // Parse front side with component heights for scale sizing
+        let frontComponents = try parseComponents(
+            sides[0],
+            scaleLength: scaleLength,
+            topStatorHeight: dimensions.topStatorHeight,
+            slideHeight: dimensions.slideHeight,
+            bottomStatorHeight: dimensions.bottomStatorHeight
+        )
         
         let frontTopStator = Stator(
             name: "Front Top",
@@ -285,7 +291,13 @@ public struct RuleDefinitionParser {
         var backBottomStator: Stator?
         
         if sides.count > 1 {
-            let backComponents = try parseComponents(sides[1], scaleLength: scaleLength)
+            let backComponents = try parseComponents(
+                sides[1],
+                scaleLength: scaleLength,
+                topStatorHeight: dimensions.topStatorHeight,
+                slideHeight: dimensions.slideHeight,
+                bottomStatorHeight: dimensions.bottomStatorHeight
+            )
             
             backTopStator = Stator(
                 name: "Back Top",
@@ -327,7 +339,10 @@ public struct RuleDefinitionParser {
     
     private static func parseComponents(
         _ sideDefinition: String,
-        scaleLength: Distance
+        scaleLength: Distance,
+        topStatorHeight: Distance,
+        slideHeight: Distance,
+        bottomStatorHeight: Distance
     ) throws -> ParsedComponents {
         var topScales: [GeneratedScale] = []
         var slideScales: [GeneratedScale] = []
@@ -339,6 +354,43 @@ public struct RuleDefinitionParser {
         // Tokenize by spaces and brackets
         let tokens = tokenize(sideDefinition)
         
+        // First pass: count scales per component to calculate individual scale heights
+        var topScaleCount = 0
+        var slideScaleCount = 0
+        var bottomScaleCount = 0
+        var targetForCounting: ScaleTarget = .topStator
+        var inBracketsForCounting = false
+        
+        for token in tokens {
+            switch token {
+            case "[":
+                inBracketsForCounting = true
+                targetForCounting = .slide
+            case "]":
+                inBracketsForCounting = false
+                targetForCounting = .bottomStator
+            case "|", "blank":
+                continue
+            default:
+                // Count actual scales (not separators or brackets)
+                switch targetForCounting {
+                case .topStator:
+                    topScaleCount += 1
+                case .slide:
+                    slideScaleCount += 1
+                case .bottomStator:
+                    bottomScaleCount += 1
+                }
+            }
+        }
+        
+        // Calculate individual scale heights: component_height / number_of_scales
+        // Minimum 5pt per scale to ensure visibility
+        let topScaleHeight = topScaleCount > 0 ? max(5.0, topStatorHeight / Double(topScaleCount)) : 36.0
+        let slideScaleHeight = slideScaleCount > 0 ? max(5.0, slideHeight / Double(slideScaleCount)) : 36.0
+        let bottomScaleHeight = bottomScaleCount > 0 ? max(5.0, bottomStatorHeight / Double(bottomScaleCount)) : 36.0
+        
+        // Second pass: create scales with calculated heights
         for token in tokens {
             switch token {
             case "[":
@@ -378,9 +430,20 @@ public struct RuleDefinitionParser {
                 // Preserve original scale name from definition string if different from canonical name
                 let originalName = (definition.name != scaleName) ? scaleName : nil
                 
-                // Apply tick direction override or displayName if specified
+                // Calculate the appropriate height for this scale based on its component
+                let scaleHeight: Distance
+                switch currentTarget {
+                case .topStator:
+                    scaleHeight = topScaleHeight
+                case .slide:
+                    scaleHeight = slideScaleHeight
+                case .bottomStator:
+                    scaleHeight = bottomScaleHeight
+                }
+                
+                // Apply height, tick direction override, or displayName if needed
                 var finalDefinition = definition
-                if tickDir != nil || originalName != nil {
+                if tickDir != nil || originalName != nil || definition.height != scaleHeight {
                     finalDefinition = ScaleDefinition(
                         name: finalDefinition.name,
                         formula: finalDefinition.formula,
@@ -388,6 +451,7 @@ public struct RuleDefinitionParser {
                         beginValue: finalDefinition.beginValue,
                         endValue: finalDefinition.endValue,
                         scaleLengthInPoints: finalDefinition.scaleLengthInPoints,
+                        height: scaleHeight,  // Apply calculated height
                         layout: finalDefinition.layout,
                         tickDirection: tickDir ?? finalDefinition.tickDirection,
                         subsections: finalDefinition.subsections,

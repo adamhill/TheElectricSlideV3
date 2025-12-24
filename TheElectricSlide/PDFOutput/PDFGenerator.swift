@@ -69,19 +69,19 @@ enum PDFGenerator {
         // Render pages based on configuration
         switch config.side {
         case .frontOnly:
-            try renderFrontPage(renderContext: renderContext, config: config)
+            try renderSingleSidePage(renderContext: renderContext, config: config, isFront: true)
             
         case .backOnly:
             guard config.slideRule.backTopStator != nil else {
                 throw PDFError.noBackSide
             }
-            try renderBackPage(renderContext: renderContext, config: config)
+            try renderSingleSidePage(renderContext: renderContext, config: config, isFront: false)
             
         case .both:
-            try renderFrontPage(renderContext: renderContext, config: config)
-            if config.slideRule.backTopStator != nil {
-                try renderBackPage(renderContext: renderContext, config: config)
+            guard config.slideRule.backTopStator != nil else {
+                throw PDFError.noBackSide
             }
+            try renderBothSidesPage(renderContext: renderContext, config: config)
         }
         
         // Close PDF
@@ -90,73 +90,141 @@ enum PDFGenerator {
     
     // MARK: - Page Rendering
     
-    private static func renderFrontPage(
+    /// Render a single-side page (front only or back only) with unified title
+    private static func renderSingleSidePage(
         renderContext: PDFRenderContext,
-        config: PDFExportConfiguration
+        config: PDFExportConfiguration,
+        isFront: Bool
     ) throws {
         renderContext.beginPage()
         
-        let totalHeight = CGFloat(config.totalRuleHeight(for: .frontOnly))
+        let totalHeight = CGFloat(config.totalRuleHeight(for: isFront ? .frontOnly : .backOnly))
         let contentOffsetY = (CGFloat(config.pageHeight) - totalHeight) / 2
         let contentOffsetX = CGFloat(config.contentOffsetX)
         let contentWidth = CGFloat(config.scaleDrawingWidth)
         
-        // Render title (above content)
-        renderContext.drawTitle("Front Side - \(config.slideRuleName)", at: CGPoint(x: contentOffsetX, y: contentOffsetY + totalHeight + 24))
+        // Render unified title (above content) - no "Front Side" or "Back Side" prefix
+        renderContext.drawTitle(config.slideRuleName, at: CGPoint(x: contentOffsetX, y: contentOffsetY + totalHeight + 24))
         
-        // Calculate vertical positions (starting from top of content area)
+        // Render content
         var currentY = contentOffsetY + totalHeight
         
-        // Top Stator
-        currentY = try renderComponent(
-            component: config.slideRule.frontTopStator,
-            at: currentY,
-            renderContext: renderContext,
-            config: config
-        )
-        currentY -= CGFloat(config.spacingBetweenComponents()) // 2pt gap for cutting guide
+        if isFront {
+            // Front side components
+            currentY = try renderComponent(
+                component: config.slideRule.frontTopStator,
+                at: currentY,
+                renderContext: renderContext,
+                config: config
+            )
+            currentY -= CGFloat(config.spacingBetweenComponents())
+            
+            currentY = try renderComponent(
+                component: config.slideRule.frontSlide,
+                at: currentY,
+                renderContext: renderContext,
+                config: config
+            )
+            currentY -= CGFloat(config.spacingBetweenComponents())
+            
+            _ = try renderComponent(
+                component: config.slideRule.frontBottomStator,
+                at: currentY,
+                renderContext: renderContext,
+                config: config
+            )
+        } else {
+            // Back side components
+            if let topStator = config.slideRule.backTopStator {
+                currentY = try renderComponent(
+                    component: topStator,
+                    at: currentY,
+                    renderContext: renderContext,
+                    config: config
+                )
+                currentY -= CGFloat(config.spacingBetweenComponents())
+            }
+            
+            if let slide = config.slideRule.backSlide {
+                currentY = try renderComponent(
+                    component: slide,
+                    at: currentY,
+                    renderContext: renderContext,
+                    config: config
+                )
+                currentY -= CGFloat(config.spacingBetweenComponents())
+            }
+            
+            if let bottomStator = config.slideRule.backBottomStator {
+                _ = try renderComponent(
+                    component: bottomStator,
+                    at: currentY,
+                    renderContext: renderContext,
+                    config: config
+                )
+            }
+        }
         
-        // Slide
-        currentY = try renderComponent(
-            component: config.slideRule.frontSlide,
-            at: currentY,
-            renderContext: renderContext,
-            config: config
-        )
-        currentY -= CGFloat(config.spacingBetweenComponents()) // 2pt gap for cutting guide
-        
-        // Bottom Stator
-        _ = try renderComponent(
-            component: config.slideRule.frontBottomStator,
-            at: currentY,
-            renderContext: renderContext,
-            config: config
-        )
-        
-        // Draw registration marks at corners of scale area
+        // Draw registration marks at corners
         let contentRect = CGRect(x: contentOffsetX, y: contentOffsetY, width: contentWidth, height: totalHeight)
         renderContext.drawRegistrationMarks(contentRect: contentRect)
         
         renderContext.endPage()
     }
     
-    private static func renderBackPage(
+    /// Render both sides on a single page with unified title
+    private static func renderBothSidesPage(
         renderContext: PDFRenderContext,
         config: PDFExportConfiguration
     ) throws {
         renderContext.beginPage()
         
-        let totalHeight = CGFloat(config.totalRuleHeight(for: .backOnly))
-        let contentOffsetY = (CGFloat(config.pageHeight) - totalHeight) / 2
+        let frontHeight = CGFloat(config.totalRuleHeight(for: .frontOnly))
+        let backHeight = CGFloat(config.totalRuleHeight(for: .backOnly))
+        let gapBetweenSides: CGFloat = 36.0  // 36pt gap between front and back
+        let totalContentHeight = frontHeight + gapBetweenSides + backHeight
+        
         let contentOffsetX = CGFloat(config.contentOffsetX)
         let contentWidth = CGFloat(config.scaleDrawingWidth)
+        let contentOffsetY = (CGFloat(config.pageHeight) - totalContentHeight) / 2
         
-        // Render title
-        renderContext.drawTitle("Back Side - \(config.slideRuleName)", at: CGPoint(x: contentOffsetX, y: contentOffsetY + totalHeight + 24))
+        // Render unified title at top (above all content)
+        let titleY = contentOffsetY + totalContentHeight + 24
+        renderContext.drawTitle(config.slideRuleName, at: CGPoint(x: contentOffsetX, y: titleY))
         
-        var currentY = contentOffsetY + totalHeight
+        // Render front side at top
+        var currentY = contentOffsetY + totalContentHeight
+        let frontTopY = currentY
         
-        // Back side components (if present)
+        currentY = try renderComponent(
+            component: config.slideRule.frontTopStator,
+            at: currentY,
+            renderContext: renderContext,
+            config: config
+        )
+        currentY -= CGFloat(config.spacingBetweenComponents())
+        
+        currentY = try renderComponent(
+            component: config.slideRule.frontSlide,
+            at: currentY,
+            renderContext: renderContext,
+            config: config
+        )
+        currentY -= CGFloat(config.spacingBetweenComponents())
+        
+        currentY = try renderComponent(
+            component: config.slideRule.frontBottomStator,
+            at: currentY,
+            renderContext: renderContext,
+            config: config
+        )
+        
+        // Gap between front and back
+        currentY -= gapBetweenSides
+        
+        // Render back side below front
+        let backTopY = currentY
+        
         if let topStator = config.slideRule.backTopStator {
             currentY = try renderComponent(
                 component: topStator,
@@ -164,7 +232,7 @@ enum PDFGenerator {
                 renderContext: renderContext,
                 config: config
             )
-            currentY -= CGFloat(config.spacingBetweenComponents()) // 2pt gap for cutting guide
+            currentY -= CGFloat(config.spacingBetweenComponents())
         }
         
         if let slide = config.slideRule.backSlide {
@@ -174,7 +242,7 @@ enum PDFGenerator {
                 renderContext: renderContext,
                 config: config
             )
-            currentY -= CGFloat(config.spacingBetweenComponents()) // 2pt gap for cutting guide
+            currentY -= CGFloat(config.spacingBetweenComponents())
         }
         
         if let bottomStator = config.slideRule.backBottomStator {
@@ -186,9 +254,13 @@ enum PDFGenerator {
             )
         }
         
-        // Draw registration marks
-        let contentRect = CGRect(x: contentOffsetX, y: contentOffsetY, width: contentWidth, height: totalHeight)
-        renderContext.drawRegistrationMarks(contentRect: contentRect)
+        // Draw registration marks for front side
+        let frontRect = CGRect(x: contentOffsetX, y: frontTopY - frontHeight, width: contentWidth, height: frontHeight)
+        renderContext.drawRegistrationMarks(contentRect: frontRect)
+        
+        // Draw registration marks for back side
+        let backRect = CGRect(x: contentOffsetX, y: backTopY - backHeight, width: contentWidth, height: backHeight)
+        renderContext.drawRegistrationMarks(contentRect: backRect)
         
         renderContext.endPage()
     }

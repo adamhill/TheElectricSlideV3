@@ -336,15 +336,30 @@ struct ScaleLabelRenderer {
     }
     
     /// Determine font size based on tick relativeLength
+    ///
+    /// **Dual Font Size System**: This method uses larger sizes for on-screen readability,
+    /// while PDF export (in ScalePDFRenderer) uses smaller PostScript-compliant sizes.
+    ///
+    /// **Font Size Mapping**:
+    /// - **Major ticks**: 8.0pt (screen) ⟷ 4.5pt (PDF/PostScript LargeF)
+    /// - **Medium ticks**: 6.5pt (screen) ⟷ 3.8pt (PDF/PostScript MedF)
+    /// - **Minor ticks**: 5.0pt (screen) ⟷ 3.2pt (PDF/PostScript SmallF)
+    ///
+    /// **Rationale**: PostScript values (4.5, 3.8, 3.2) are optimal for physical printing
+    /// at slide rule dimensions, but are too small for comfortable on-screen viewing.
+    /// This dual system maintains print accuracy while ensuring digital usability.
+    ///
+    /// - Parameter relativeLength: The tick's relative length (0.0-1.0)
+    /// - Returns: Font size in points for on-screen rendering
     func fontSizeForTick(_ relativeLength: Double) -> CGFloat {
-        if relativeLength >= 0.9 {
-            return 8.0  // Major ticks
-        } else if relativeLength >= 0.7 {
-            return 6.5  // Medium ticks
-        } else if relativeLength >= 0.4 {
-            return 5.0  // Minor ticks
+        if relativeLength >= FontSizeConfiguration.majorTickThreshold {
+            return FontSizeConfiguration.screenMajorFontSize
+        } else if relativeLength >= FontSizeConfiguration.mediumTickThreshold {
+            return FontSizeConfiguration.screenMediumFontSize
+        } else if relativeLength >= FontSizeConfiguration.minorTickThreshold {
+            return FontSizeConfiguration.screenMinorFontSize
         } else {
-            return 0.0  // Tiny ticks - no label
+            return 0.0
         }
     }
 }

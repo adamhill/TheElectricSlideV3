@@ -45,12 +45,11 @@ struct PDFExportConfiguration: Sendable {
     
     // MARK: - Computed Properties
     
-    /// Total width of PDF page
-    /// Total width of PDF page (11 inches)
-    var pageWidth: Distance { 792.0 }
+    /// Total width of PDF page (17 inches in landscape)
+    var pageWidth: Distance { 1224.0 }
     
-    /// Total height of PDF page (17 inches)
-    var pageHeight: Distance { 1224.0 }
+    /// Total height of PDF page (11 inches in landscape)
+    var pageHeight: Distance { 792.0 }
     
     /// Scale drawing area width (excluding margins)
     var scaleDrawingWidth: Distance {

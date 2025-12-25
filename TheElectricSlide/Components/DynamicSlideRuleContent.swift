@@ -154,6 +154,7 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients,
                             currentZoomScale: currentZoomScale,
                             manufacturer: selectedRuleDefinition?.manufacturerEnum,
+                            colorScheme: colorScheme,
                             cursorDisplayMode: $cursorDisplayMode
                         )
                     }
@@ -220,6 +221,7 @@ struct DynamicSlideRuleContent: View {
                             showGradients: cursorDisplayMode.showGradients,
                             currentZoomScale: currentZoomScale,
                             manufacturer: selectedRuleDefinition?.manufacturerEnum,
+                            colorScheme: colorScheme,
                             cursorDisplayMode: $cursorDisplayMode
                         )
                     }

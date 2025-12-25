@@ -325,6 +325,9 @@ struct CursorView: View {
     /// Faber-Castell uses green, all others use red-orange
     var manufacturer: SlideRuleManufacturer? = nil
     
+    /// Color scheme for precision mode colors (centralized source of truth)
+    var colorScheme: SlideRuleColorScheme? = nil
+    
     // MARK: - Constants
     
     /// Width of the cursor frame
@@ -396,16 +399,27 @@ struct CursorView: View {
                 
                 // Gradient backgrounds for each scale row (if configured and enabled)
                 if showGradients {
-                    // Select gradient based on precision mode state and manufacturer
-                    // Faber-Castell: green normally, intense green for precision
-                    // Pickett/others: yellow normally, red-orange for precision
+                    // Create dynamic gradient based on precision mode state and color scheme
+                    // Uses centralized colors from SlideRuleColorScheme for single source of truth
                     let activeGradient: FontConfig.GradientConfig = {
                         if isPrecisionActive {
-                            // Precision mode gradients
-                            if manufacturer == .faberCastell {
-                                return .precisionGreen  // Intense green for F-C
+                            // Precision mode: Use centralized cursorPrecisionColor from color scheme
+                            if let precisionColor = colorScheme?.cursorPrecisionColor {
+                                // Create dynamic precision gradient from centralized color
+                                return FontConfig.GradientConfig(
+                                    colors: [
+                                        precisionColor.opacity(0.7),
+                                        precisionColor.opacity(0.5),
+                                        precisionColor.opacity(0.25),
+                                        Color.clear
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing,
+                                    opacity: 1.0
+                                )
                             } else {
-                                return .precision  // Red-orange for Pickett and others
+                                // Fallback to static gradients if colorScheme not available
+                                return manufacturer == .faberCastell ? .precisionGreen : .precision
                             }
                         } else {
                             // Normal mode gradients

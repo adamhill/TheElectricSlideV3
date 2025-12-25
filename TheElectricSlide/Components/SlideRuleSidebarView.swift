@@ -29,6 +29,7 @@ struct SlideRuleSidebarView: View {
     @Binding var selectedRule: SlideRuleDefinitionModel?
     @Binding var viewMode: ViewMode
     @Binding var cursorDisplayMode: CursorDisplayMode
+    @Binding var useManufacturerColors: Bool
     let availableRules: [SlideRuleDefinitionModel]
     let hasBackSide: Bool
     let deviceCategory: DeviceCategory
@@ -56,6 +57,20 @@ struct SlideRuleSidebarView: View {
                     }
                 ))
                 .toggleStyle(.switch)
+                
+                // Manufacturer colorway toggle - only shown when rule has a manufacturer
+                if selectedRule?.manufacturer != nil {
+                    Divider()
+                        .padding(.vertical, 4)
+                    
+                    Text("Appearance")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Toggle("Manufacturer Colors", isOn: $useManufacturerColors)
+                        .toggleStyle(.switch)
+                        .help("Apply authentic \(selectedRule?.manufacturerEnum?.displayName ?? "") color scheme")
+                }
             }
             .padding()
 
@@ -204,6 +219,7 @@ struct SlideRuleSidebarView: View {
                         existingRule.sortOrder = standardRule.sortOrder
                         existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
+                        existingRule.manufacturer = standardRule.manufacturer  // Sync manufacturer
                         // Preserve user's favorite status
                     } else {
                         // New rule: insert it

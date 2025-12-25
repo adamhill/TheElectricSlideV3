@@ -63,6 +63,10 @@ struct SlideRuleDetailView: View {
     
     let totalScaleHeight: (RuleSide) -> CGFloat
     
+    // Manufacturer colorway support
+    let useManufacturerColors: Bool
+    let colorScheme: SlideRuleColorScheme?
+    
     var body: some View {
         VStack(spacing: 0) {
             // Header controls (ViewMode picker for iPad/Mac)
@@ -95,7 +99,9 @@ struct SlideRuleDetailView: View {
                 currentZoomScale: currentZoomScale,
                 totalScaleHeight: totalScaleHeight,
                 selectedRuleDefinition: selectedRuleDefinition,
-                deviceCategory: deviceCategory
+                deviceCategory: deviceCategory,
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme
             )
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift

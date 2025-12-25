@@ -50,6 +50,10 @@ struct DynamicSlideRuleContent: View {
     let selectedRuleDefinition: SlideRuleDefinitionModel?  // For displaying rule name
     let deviceCategory: DeviceCategory  // For layout decisions
     
+    // Manufacturer colorway support
+    let useManufacturerColors: Bool
+    let colorScheme: SlideRuleColorScheme?
+    
     // MARK: - Stable Dimensions (debounced to avoid intermediate animation values)
     // The system animates geometry changes through intermediate widths (e.g., 876→856→836→816→796)
     // We use stableDimensions to only render with the final settled value
@@ -128,7 +132,10 @@ struct DynamicSlideRuleContent: View {
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         ruleId: ruleId,
-                        currentZoomScale: currentZoomScale
+                        currentZoomScale: currentZoomScale,
+                        useManufacturerColors: useManufacturerColors,
+                        colorScheme: colorScheme,
+                        manufacturer: selectedRuleDefinition?.manufacturerEnum
                     )
                     .equatable()
                     .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -146,6 +153,7 @@ struct DynamicSlideRuleContent: View {
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             currentZoomScale: currentZoomScale,
+                            manufacturer: selectedRuleDefinition?.manufacturerEnum,
                             cursorDisplayMode: $cursorDisplayMode
                         )
                     }
@@ -190,7 +198,10 @@ struct DynamicSlideRuleContent: View {
                         sliderOffset: sliderOffset,
                         cursorState: cursorState,
                         ruleId: ruleId,
-                        currentZoomScale: currentZoomScale
+                        currentZoomScale: currentZoomScale,
+                        useManufacturerColors: useManufacturerColors,
+                        colorScheme: colorScheme,
+                        manufacturer: selectedRuleDefinition?.manufacturerEnum
                     )
                     .equatable()
                     .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
@@ -208,6 +219,7 @@ struct DynamicSlideRuleContent: View {
                             showReadings: cursorDisplayMode.showReadings,
                             showGradients: cursorDisplayMode.showGradients,
                             currentZoomScale: currentZoomScale,
+                            manufacturer: selectedRuleDefinition?.manufacturerEnum,
                             cursorDisplayMode: $cursorDisplayMode
                         )
                     }

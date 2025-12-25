@@ -49,6 +49,16 @@ final class SlideRuleDefinitionModel {
     /// Library version this rule was created/updated with
     var libraryVersion: Int = 0
     
+    /// Manufacturer associated with this rule (for color scheme application)
+    /// Stored as String for SwiftData compatibility - nil for generic/educational rules
+    var manufacturer: String?
+    
+    /// Computed property to get the SlideRuleManufacturer enum for color scheme lookup
+    var manufacturerEnum: SlideRuleManufacturer? {
+        guard let manufacturer else { return nil }
+        return SlideRuleManufacturer(rawValue: manufacturer)
+    }
+    
     init(
         name: String,
         description: String,
@@ -60,7 +70,8 @@ final class SlideRuleDefinitionModel {
         isFavorite: Bool = false,
         sortOrder: Int = 0,
         scaleNameOverrides: [String: String] = [:],
-        libraryVersion: Int = 0
+        libraryVersion: Int = 0,
+        manufacturer: String? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -74,6 +85,7 @@ final class SlideRuleDefinitionModel {
         self.sortOrder = sortOrder
         self.scaleNameOverrides = scaleNameOverrides
         self.libraryVersion = libraryVersion
+        self.manufacturer = manufacturer
     }
     
     /// Parse this definition into a SlideRule

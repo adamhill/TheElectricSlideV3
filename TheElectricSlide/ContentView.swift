@@ -63,6 +63,9 @@ struct ContentView: View {
     @State private var cursorReadingCycleMode: CursorReadingCycleMode = .currentSide  // Cycle mode for reading display
     @State private var deviceCategory: DeviceCategory = DeviceDetection.currentDeviceCategory()  // Device detection for adaptive UI
     
+    // Manufacturer colorway toggle - only applies when selected rule has a manufacturer
+    @AppStorage("useManufacturerColors") private var useManufacturerColors: Bool = false
+    
     // ✅ State for calculated dimensions - only updates when window size changes
     // Note: internal access for extensions
     @State var calculatedDimensions: Dimensions = .default
@@ -119,6 +122,7 @@ struct ContentView: View {
                 selectedRule: $selectedRuleDefinition,
                 viewMode: $viewMode,
                 cursorDisplayMode: $cursorDisplayMode,
+                useManufacturerColors: $useManufacturerColors,
                 availableRules: availableRules,
                 hasBackSide: currentSlideRule.backTopStator != nil,
                 deviceCategory: deviceCategory,
@@ -145,7 +149,9 @@ struct ContentView: View {
                     cursorState: cursorState,
                     currentZoomScale: $viewModel.currentZoomScale,
                     panOffset: $viewModel.panOffset,
-                    totalScaleHeight: totalScaleHeight
+                    totalScaleHeight: totalScaleHeight,
+                    useManufacturerColors: useManufacturerColors,
+                    colorScheme: selectedRuleDefinition?.manufacturerEnum?.colorScheme
                 )
                 // Animate slide rule transitions with crossfade effect
                 // When selectedRuleId changes, SwiftUI treats this as a new view

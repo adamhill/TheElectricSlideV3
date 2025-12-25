@@ -924,23 +924,57 @@ public enum StandardScales {
     }
     
     /// Ln scale: Natural logarithm scale
+    ///
+    /// **CRITICAL FIX**: Changed begin value from 0 to 0.001 to prevent NaN generation.
+    /// The LnNormalizedFunction uses log(value), and log(0) = -∞, which causes NaN when
+    /// inverse transformed during tick generation. Starting at 0.001 is mathematically valid
+    /// and provides effectively the same range as the intended 0 to 10×ln(10).
+    ///
+    /// **RENDERING FIX**: Added multiple subsections to cover full range 0.001 to 23.026.
+    /// Previous implementation only had one subsection covering 0.001 to ~1.0, leaving
+    /// most of the scale with no ticks. The cursor worked because it could interpolate
+    /// anywhere in the range, but no ticks rendered beyond ~1.0.
     public static func lnScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Ln")
             .withFormula("ln x")
             .withFunction(LnNormalizedFunction())
-            .withRange(begin: 0, end: 10 * log(10))
+            .withRange(begin: 0.001, end: 10 * log(10))  // 0.001 to ~23.026
             .withLength(length)
             .withTickDirection(.down)
             .withSubsections([
                 // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
-                // Mathematical: Linear natural log scale, 0.005 marks → readable to ~0.002
-                // Historical: Ln scale for natural logarithm conversion, similar precision to L scale
+                // Mathematical: Linear natural log scale, fine detail near 0, 0.005 marks → readable to ~0.002
+                // Historical: Ln scale for natural logarithm conversion
                 ScaleSubsection(
-                    startValue: 0.0,
+                    startValue: 0.001,  // Must match begin value
                     tickIntervals: [0.1, 0.05, 0.01, 0.005],
                     labelLevels: [0],
                     labelFormatter: StandardLabelFormatter.oneDecimal
+                ),
+                // Cursor Precision: 3 decimals (from 0.05 quaternary interval)
+                // Mathematical: Mid-range precision, 0.05 marks → readable to ~0.02
+                ScaleSubsection(
+                    startValue: 1.0,
+                    tickIntervals: [1.0, 0.5, 0.1, 0.05],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                // Cursor Precision: 2 decimals (from 0.5 quaternary interval)
+                // Mathematical: Upper range, 0.5 marks → readable to ~0.2
+                ScaleSubsection(
+                    startValue: 10.0,
+                    tickIntervals: [5.0, 1.0, 0.5],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
+                ),
+                // Cursor Precision: 2 decimals (from 1.0 quaternary interval)
+                // Mathematical: Top of range near 10×ln(10) ≈ 23
+                ScaleSubsection(
+                    startValue: 20.0,
+                    tickIntervals: [5.0, 1.0],
+                    labelLevels: [0],
+                    labelFormatter: StandardLabelFormatter.integer
                 )
             ])
             .build()

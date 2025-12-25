@@ -350,6 +350,8 @@ public struct RuleDefinitionParser {
         
         var currentTarget: ScaleTarget = .topStator
         var inBrackets = false
+        var nextScaleNoLineBreak = false  // Track if next scale should have noLineBreak
+        var nextScaleSeparator = false    // Track if next scale should have bottom separator
         
         // Tokenize by spaces and brackets
         let tokens = tokenize(sideDefinition)
@@ -405,7 +407,40 @@ public struct RuleDefinitionParser {
                 currentTarget = .bottomStator
                 
             case "|":
-                // Separator line indicator - ignored for now
+                // Separator line indicator - mark the PREVIOUS scale to have a bottom separator
+                // Also set noLineBreak for the NEXT scale (they appear together)
+                nextScaleNoLineBreak = true
+                
+                // Mark the most recently added scale with hasBottomSeparator
+                switch currentTarget {
+                case .topStator:
+                    if !topScales.isEmpty {
+                        let lastIndex = topScales.count - 1
+                        let lastScale = topScales[lastIndex]
+                        topScales[lastIndex] = GeneratedScale(
+                            definition: updateScaleWithSeparator(lastScale.definition),
+                            noLineBreak: lastScale.noLineBreak
+                        )
+                    }
+                case .slide:
+                    if !slideScales.isEmpty {
+                        let lastIndex = slideScales.count - 1
+                        let lastScale = slideScales[lastIndex]
+                        slideScales[lastIndex] = GeneratedScale(
+                            definition: updateScaleWithSeparator(lastScale.definition),
+                            noLineBreak: lastScale.noLineBreak
+                        )
+                    }
+                case .bottomStator:
+                    if !bottomScales.isEmpty {
+                        let lastIndex = bottomScales.count - 1
+                        let lastScale = bottomScales[lastIndex]
+                        bottomScales[lastIndex] = GeneratedScale(
+                            definition: updateScaleWithSeparator(lastScale.definition),
+                            noLineBreak: lastScale.noLineBreak
+                        )
+                    }
+                }
                 continue
                 
             case "blank":
@@ -458,12 +493,18 @@ public struct RuleDefinitionParser {
                         colorApplication: finalDefinition.colorApplication,
                         constants: finalDefinition.constants,
                         showBaseline: finalDefinition.showBaseline,
+                        hasBottomSeparator: false,  // Never set separator on the scale after |
                         formulaTracking: finalDefinition.formulaTracking,
                         displayName: originalName
                     )
                 }
                 
-                let generated = GeneratedScale(definition: finalDefinition, noLineBreak: noLineBreak)
+                // Use nextScaleNoLineBreak flag (from | token) or noLineBreak from token modifier (^)
+                let generated = GeneratedScale(
+                    definition: finalDefinition,
+                    noLineBreak: nextScaleNoLineBreak || noLineBreak
+                )
+                nextScaleNoLineBreak = false  // Reset flag after use
                 
                 switch currentTarget {
                 case .topStator:
@@ -562,6 +603,31 @@ public struct RuleDefinitionParser {
         return (scaleName, tickDir, noLineBreak)
     }
     
+    /// Helper to create a copy of a ScaleDefinition with hasBottomSeparator set to true
+    private static func updateScaleWithSeparator(_ definition: ScaleDefinition) -> ScaleDefinition {
+        return ScaleDefinition(
+            name: definition.name,
+            formula: definition.formula,
+            function: definition.function,
+            beginValue: definition.beginValue,
+            endValue: definition.endValue,
+            scaleLengthInPoints: definition.scaleLengthInPoints,
+            height: definition.height,
+            layout: definition.layout,
+            tickDirection: definition.tickDirection,
+            subsections: definition.subsections,
+            defaultTickStyles: definition.defaultTickStyles,
+            labelFormatter: definition.labelFormatter,
+            labelColor: definition.labelColor,
+            colorApplication: definition.colorApplication,
+            constants: definition.constants,
+            showBaseline: definition.showBaseline,
+            hasBottomSeparator: true,  // Set separator flag
+            formulaTracking: definition.formulaTracking,
+            displayName: definition.displayName
+        )
+    }
+    
     // MARK: - Circular Conversion Helpers
     
     private static func convertToCircular(
@@ -608,6 +674,7 @@ public struct RuleDefinitionParser {
             colorApplication: generated.definition.colorApplication,
             constants: generated.definition.constants,
             showBaseline: generated.definition.showBaseline,
+            hasBottomSeparator: generated.definition.hasBottomSeparator,
             formulaTracking: generated.definition.formulaTracking,
             displayName: generated.definition.displayName
         )

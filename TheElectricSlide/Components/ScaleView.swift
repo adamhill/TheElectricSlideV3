@@ -92,20 +92,18 @@ struct ScaleView: View, Equatable {
                 .frame(width: leftMarginWidth, alignment: .trailing)
             
             // Scale view
-            GeometryReader { geometry in
-                ZStack(alignment: .topLeading) {
-                    // Tick marks and labels
-                    Canvas { context, size in
-                        // ✅ Use pre-computed tick marks from GeneratedScale
-                        drawScale(
-                            context: &context,
-                            size: size,
-                            tickMarks: generatedScale.tickMarks,
-                            definition: generatedScale.definition
-                        )
-                    }
-                    .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
+            ZStack(alignment: .topLeading) {
+                // Tick marks and labels
+                Canvas { context, size in
+                    // ✅ Use pre-computed tick marks from GeneratedScale
+                    drawScale(
+                        context: &context,
+                        size: size,
+                        tickMarks: generatedScale.tickMarks,
+                        definition: generatedScale.definition
+                    )
                 }
+                .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
             }
             .frame(width: width)
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
@@ -131,13 +129,21 @@ struct ScaleView: View, Equatable {
             canvasRedrawCount += 1
             let redrawId = canvasRedrawCount
             
-            // Log every redraw for LL scales, or periodically for others
-            if definition.name.contains("LL") || redrawId <= 10 || redrawId % 50 == 0 {
+            // Log every redraw for L/Ln scales, LL scales, or periodically for others
+            if definition.name == "L" || definition.name == "Ln" || definition.name.contains("LL") || redrawId <= 10 || redrawId % 50 == 0 {
                 print("🎨 [Canvas REDRAW #\(redrawId)] scale=\(definition.name) size=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) width_prop=\(String(format: "%.2f", self.width)) height_prop=\(String(format: "%.2f", self.height)) tickCount=\(tickMarks.count)")
                 
                 // Log if there's a mismatch between passed size and view property
                 if abs(size.width - width) > 0.5 || abs(size.height - height) > 0.5 {
                     print("⚠️ SIZE MISMATCH: Canvas size differs from view props! canvas=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) props=(\(String(format: "%.2f", self.width))x\(String(format: "%.2f", self.height)))")
+                }
+                
+                // DEBUG: For Ln scale, log first few tick details
+                if definition.name == "Ln" {
+                    print("🔍 [Ln DEBUG] First 5 ticks:")
+                    for (idx, tick) in tickMarks.prefix(5).enumerated() {
+                        print("  Tick \(idx): value=\(tick.value), normPos=\(tick.normalizedPosition), relLen=\(tick.style.relativeLength), isNaN=\(tick.normalizedPosition.isNaN)")
+                    }
                 }
             }
         }
@@ -146,6 +152,9 @@ struct ScaleView: View, Equatable {
         
         // Draw baseline if enabled
         tickRenderer.drawBaseline(context: &context, size: size)
+        
+        // Draw separator line if enabled
+        tickRenderer.drawSeparator(context: &context, size: size)
         
         // Draw tick marks and labels
         for tick in tickMarks {

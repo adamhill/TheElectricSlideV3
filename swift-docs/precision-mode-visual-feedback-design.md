@@ -424,14 +424,14 @@ extension FontConfig.GradientConfig {
 3. **Cursor Precision (Faber-Castell)**: Long-press cursor → INTENSE GREEN gradients appear
 4. **Cursor Precision (Pickett/others)**: Long-press cursor → RED-ORANGE gradients appear
 5. **Slide Precision (F-C colors ON)**: Long-press slide → Green/blue scales intensify to 100%
-6. **Slide Precision (F-C colors OFF)**: Long-press slide → GREEN overlay appears (matches F-C brand)
+6. **Slide Precision (F-C colors OFF)**: Long-press slide → GREEN overlay appears (brand-specific, independent of colors toggle)
 7. **Slide Precision (Pickett/others)**: Long-press slide → Red-orange overlay appears
 8. **State Isolation**: Activating cursor precision doesn't affect slide, and vice versa
 9. **Reset**: Lifting finger returns all colors to normal state
 
 ### Manufacturer Testing
 1. **Faber-Castell 62/83 N (colors ON)**: Cursor=green→intense green, slide=intensified green/blue scales
-2. **Faber-Castell 62/83 N (colors OFF)**: Cursor=green→intense green, slide=GREEN overlay
+2. **Faber-Castell 62/83 N (colors OFF)**: Cursor=green→intense green, slide=GREEN overlay (brand-specific, independent of colors toggle)
 3. **Pickett N-16 ES**: Cursor=yellow→red-orange, slide=red-orange overlay
 4. **K&E 4081-3**: Cursor=yellow→red-orange, slide=red-orange overlay
 5. **Hemmi 266**: Cursor=yellow→red-orange, slide=red-orange overlay

@@ -74,10 +74,8 @@ struct SlideView: View, Equatable {
             // - Faber-Castell ALWAYS uses green gradient (regardless of manufacturer colors toggle)
             // - Other manufacturers use red-orange overlay when scale highlights are not enabled
             if isPrecisionActive && !hasScaleHighlightsEnabled {
-                // Determine precision color based on manufacturer
-                let precisionColor: Color = manufacturer == .faberCastell
-                    ? Color(red: 0.2, green: 0.85, blue: 0.4)  // Green for F-C
-                    : Color(red: 1.0, green: 0.4, blue: 0.3)   // Red-orange for others
+                // Get precision color from color scheme (centralized in SlideRuleColorScheme)
+                let precisionColor: Color = colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)
                 
                 VStack(spacing: 0) {
                     // Top edge gradient

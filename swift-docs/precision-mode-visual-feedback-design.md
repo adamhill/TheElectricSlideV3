@@ -34,17 +34,90 @@ Use gradient color changes to indicate precision mode activation. The existing g
 
 ### Color Specification
 
-#### Precision Indicator Color: Light Orange-Red
-```swift
-// Replaces the default yellow gradient with same intensity
-static let precisionOrangeRed = Color(red: 1.0, green: 0.4, blue: 0.3)
+#### Slide Precision Mode: Intensified Scale Colors
+When precision mode is active on the slide, the existing manufacturer scale colors become **more saturated**:
 
-// Gradient configuration (mirrors yellow gradient structure)
-static let precisionGradient = FontConfig.GradientConfig(
+```swift
+// Normal gradient (from scaleBackgroundGradient)
+LinearGradient(
+    stops: [
+        .init(color: color.opacity(0.4), location: 0.0),
+        .init(color: color.opacity(0.85), location: 0.12),
+        .init(color: color.opacity(0.85), location: 0.88),
+        .init(color: color.opacity(0.4), location: 1.0)
+    ],
+    startPoint: .top,
+    endPoint: .bottom
+)
+
+// Precision gradient (from precisionScaleBackgroundGradient) - HIGHER OPACITY
+LinearGradient(
+    stops: [
+        .init(color: color.opacity(0.6), location: 0.0),   // 40% → 60%
+        .init(color: color.opacity(0.95), location: 0.12), // 85% → 95%
+        .init(color: color.opacity(0.95), location: 0.88), // 85% → 95%
+        .init(color: color.opacity(0.6), location: 1.0)    // 40% → 60%
+    ],
+    startPoint: .top,
+    endPoint: .bottom
+)
+```
+
+**Slide Color Behavior**:
+- **Faber-Castell Green scales** (C, D, CF, DF): Green becomes more intense green
+- **Faber-Castell Blue scales** (A, B): Blue becomes more intense blue
+- **Pickett/K&E/Hemmi** (no highlight colors): No visual change (requires manufacturer colors ON)
+- Only affects scales that have manufacturer highlighting; non-highlighted scales unchanged
+
+#### Cursor Precision Mode: Manufacturer-Specific Gradients
+The cursor gradient varies by manufacturer, both in normal and precision modes:
+
+```swift
+// Faber-Castell normal: Green gradient
+static let green = GradientConfig(
     colors: [
-        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),  // Light orange-red
-        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
-        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.05),
+        Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.3),
+        Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.15),
+        Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.05),
+        Color.clear
+    ],
+    startPoint: .leading,
+    endPoint: .trailing,
+    opacity: 1.0
+)
+
+// Faber-Castell precision: INTENSE green gradient
+static let precisionGreen = GradientConfig(
+    colors: [
+        Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),
+        Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.5),
+        Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.25),
+        Color.clear
+    ],
+    startPoint: .leading,
+    endPoint: .trailing,
+    opacity: 1.0
+)
+
+// Pickett & all others normal: Yellow gradient (default)
+static let `default` = GradientConfig(
+    colors: [
+        Color.yellow.opacity(0.3),
+        Color.yellow.opacity(0.15),
+        Color.yellow.opacity(0.05),
+        Color.clear
+    ],
+    startPoint: .leading,
+    endPoint: .trailing,
+    opacity: 1.0
+)
+
+// Pickett & all others precision: Red-orange gradient  
+static let precision = GradientConfig(
+    colors: [
+        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
+        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),
+        Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.12),
         Color.clear
     ],
     startPoint: .leading,
@@ -53,11 +126,11 @@ static let precisionGradient = FontConfig.GradientConfig(
 )
 ```
 
-**Color Choice Rationale**:
-- **RGB(1.0, 0.4, 0.3)**: Warm, alert-evoking without being alarming
-- **Intensity Match**: Same opacity values as yellow (0.3, 0.15, 0.05) for consistency
-- **Contrast**: Clearly distinguishable from default yellow at all zoom levels
-- **Psychology**: Orange-red indicates "special mode" or "caution" (slower speed)
+**Cursor Color Behavior**:
+- **Faber-Castell Normal**: GREEN gradient (matches their color scheme)
+- **Faber-Castell Precision**: INTENSE GREEN gradient (more saturated)
+- **Pickett/Others Normal**: YELLOW gradient (default)
+- **Pickett/Others Precision**: RED-ORANGE gradient
 
 ### Visual Feedback Behavior
 
@@ -66,32 +139,32 @@ static let precisionGradient = FontConfig.GradientConfig(
 
 **Visual Change**:
 - **Target**: Horizontal gradients in [`CursorView`](../TheElectricSlide/Cursor/CursorView.swift:347-383)
-- **Transition**: Yellow → Light orange-red (0.2s ease-in)
+- **Faber-Castell**: Green → INTENSE GREEN (0.2s ease-in)
+- **Pickett/Others**: Yellow → RED-ORANGE (0.2s ease-in)
 - **Duration**: While precision mode active (`precisionCoordinator.activeTarget == .cursor`)
-- **Reset**: Orange-red → Yellow (0.2s ease-out) when finger lifts
+- **Reset**: Returns to normal gradient (0.2s ease-out) when finger lifts
 
 **Implementation Location**:
-- Modify gradient colors in `CursorView.body` based on `precisionCoordinator.activeTarget`
+- `CursorView.manufacturer` property determines gradient color
+- Gradient selection in `CursorView.body` checks manufacturer enum
 - Apply to both name gradient (left) and value gradient (right)
 
 #### 2. Slide Precision Mode
 **Trigger**: Long press on slide component
 
 **Visual Change**:
-- **Target**: Slide background via overlay gradients
-- **Transition**: Add vertical gradients from top and bottom edges (0.2s ease-in)
-- **Gradient Structure**:
-  ```
-  Top Edge:    Orange-red (opacity 0.3) → Clear (over 20% of height)
-  Bottom Edge: Orange-red (opacity 0.3) → Clear (over 20% of height)
-  Center:      Original white background visible
-  ```
+- **Target**: Scale background gradients in [`ScaleContainerView`](../TheElectricSlide/Components/ScaleContainerView.swift)
+- **Effect**: Existing scale colors become MORE SATURATED (not an overlay)
+- **Faber-Castell Green scales**: Green opacity increases (40%→60% edges, 85%→95% body)
+- **Faber-Castell Blue scales**: Blue opacity increases (same pattern)
+- **No Manufacturer Colors**: No visual change (precision still works, just no color feedback)
 - **Duration**: While precision mode active (`precisionCoordinator.activeTarget == .slide`)
-- **Reset**: Fade out gradients (0.2s ease-out) when finger lifts
+- **Reset**: Colors return to normal intensity (0.2s ease-out) when finger lifts
 
 **Implementation Location**:
-- Add conditional overlay to [`SlideView`](../TheElectricSlide/Components/SlideView.swift:40-54)
-- Use `ZStack` with `VStack` containing top and bottom gradients
+- `ScaleContainerView.isPrecisionActive` property passed from `SlideView`
+- `scaleBackground(for:)` helper selects `precisionScaleBackgroundGradient` when active
+- Colors intensify in-place; no separate overlay needed
 
 ### Progress Indication (Optional - Deferred)
 
@@ -106,15 +179,16 @@ The current design **does not show 0-100% progress** during the 1-second long pr
 ### Extreme Zoom Visibility
 
 **Zoom Scenarios**:
-1. **Zoomed to cursor only**: Horizontal gradient visible across full cursor glass
-2. **Zoomed to slide only**: Vertical edge gradients visible on slide background
-3. **Zoomed to scale detail**: Whichever component is visible shows its gradient
+1. **Zoomed to cursor only**: Manufacturer-appropriate gradient visible (green for F-C, red-orange for others)
+2. **Zoomed to slide only**: Scale colors intensify in-place (green greener, blue bluer)
+3. **Zoomed to scale detail**: Individual scale shows intensified color
 4. **Normal view**: Both indicators visible simultaneously
 
 **Guaranteed Visibility**:
-- Gradients are percentage-based, scale with zoom level
-- Color contrast (yellow vs orange-red) remains distinct at any zoom
-- No pixel-perfect elements that disappear at extreme magnification
+- Cursor gradients are percentage-based, scale with zoom level
+- Slide color intensification affects the actual scale, always visible when scale is visible
+- No separate overlay means no pixel-perfect elements that could disappear
+- Requires manufacturer colors ON for slide visual feedback
 
 ## Component Modifications Required
 
@@ -197,7 +271,7 @@ CursorView(
 
 ### 3. [`SlideView.swift`](../TheElectricSlide/Components/SlideView.swift)
 
-**Add Precision Overlay**:
+**Pass Precision State to ScaleContainerView**:
 ```swift
 struct SlideView: View, Equatable {
     // ... existing properties ...
@@ -208,63 +282,46 @@ struct SlideView: View, Equatable {
     // ... existing equatable ...
     
     var body: some View {
-        ZStack {
-            // Original slide rendering
-            ScaleContainerView(
-                container: slide,
-                width: width,
-                backgroundColor: backgroundColor,
-                borderColor: borderColor,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                ruleId: ruleId,
-                scaleCount: slide.scales.count
-            )
-            .equatable()
-            
-            // Precision mode gradient overlay
-            if isPrecisionActive {
-                VStack(spacing: 0) {
-                    // Top edge gradient
-                    LinearGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),
-                            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
-                            Color.clear
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: slideHeight * 0.2)
-                    .allowsHitTesting(false)
-                    
-                    Spacer()
-                    
-                    // Bottom edge gradient
-                    LinearGradient(
-                        colors: [
-                            Color.clear,
-                            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
-                            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: slideHeight * 0.2)
-                    .allowsHitTesting(false)
-                }
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.2), value: isPrecisionActive)
-            }
-        }
+        // Slide rendering - precision mode intensifies scale colors via ScaleContainerView
+        ScaleContainerView(
+            container: slide,
+            width: width,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            nameFont: nameFont,
+            formulaFont: formulaFont,
+            ruleId: ruleId,
+            scaleCount: slide.scales.count,
+            useManufacturerColors: useManufacturerColors,
+            colorScheme: colorScheme,
+            isPrecisionActive: isPrecisionActive  // Passed to intensify scale colors
+        )
+        .equatable()
     }
-    
-    /// Calculate total height of all scales in slide
-    private var slideHeight: CGFloat {
-        scaleHeight * CGFloat(slide.scales.count)
+}
+```
+
+**ScaleContainerView uses precision-intensity gradients**:
+```swift
+/// Creates a background view for a scale, applying manufacturer-specific gradients when enabled
+/// When precision mode is active, uses intensified (more saturated) versions of the gradients
+@ViewBuilder
+private func scaleBackground(for scaleName: String) -> some View {
+    if useManufacturerColors, let scheme = colorScheme {
+        // Use precision-intensity gradient when precision mode is active
+        if isPrecisionActive,
+           let precisionGradient = scheme.precisionScaleBackgroundGradient(for: scaleName) {
+            precisionGradient
+        } else if let gradient = scheme.scaleBackgroundGradient(for: scaleName) {
+            gradient
+        } else {
+            Color.clear
+        }
+    } else {
+        Color.clear
     }
 }
 ```
@@ -290,15 +347,54 @@ SlideView(
 
 ### 5. [`FontConfig.swift`](../TheElectricSlide/Cursor/CursorView.swift) (Add to FontConfig.GradientConfig)
 
-**Add Precision Gradient Preset**:
+**Add Gradient Presets**:
 ```swift
 extension FontConfig.GradientConfig {
-    /// Precision mode gradient: light orange-red with same intensity as default yellow
+    /// Default gradient: yellow (for Pickett and others normal mode)
+    static let `default` = GradientConfig(
+        colors: [
+            Color.yellow.opacity(0.3),
+            Color.yellow.opacity(0.15),
+            Color.yellow.opacity(0.05),
+            Color.clear
+        ],
+        startPoint: .leading,
+        endPoint: .trailing,
+        opacity: 1.0
+    )
+    
+    /// Green gradient for Faber-Castell (normal mode)
+    static let green = GradientConfig(
+        colors: [
+            Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.3),
+            Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.15),
+            Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.05),
+            Color.clear
+        ],
+        startPoint: .leading,
+        endPoint: .trailing,
+        opacity: 1.0
+    )
+    
+    /// Precision mode gradient for Pickett and others: red-orange
     static let precision = GradientConfig(
         colors: [
+            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
             Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),
-            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
-            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.05),
+            Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.12),
+            Color.clear
+        ],
+        startPoint: .leading,
+        endPoint: .trailing,
+        opacity: 1.0
+    )
+    
+    /// Precision mode gradient for Faber-Castell: INTENSE green
+    static let precisionGreen = GradientConfig(
+        colors: [
+            Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),
+            Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.5),
+            Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.25),
             Color.clear
         ],
         startPoint: .leading,
@@ -323,11 +419,23 @@ extension FontConfig.GradientConfig {
 ## Testing Strategy
 
 ### Visual Verification
-1. **Normal State**: Yellow gradients visible on cursor, white slide
-2. **Cursor Precision**: Long-press cursor → Orange-red gradients appear
-3. **Slide Precision**: Long-press slide → Vertical edge gradients appear
-4. **State Isolation**: Activating cursor precision doesn't affect slide, and vice versa
-5. **Reset**: Lifting finger returns gradients to normal state
+1. **Normal State (F-C)**: Green gradients on cursor, normal green/blue scale colors on slide
+2. **Normal State (Pickett/others)**: Yellow gradients on cursor, normal slide colors
+3. **Cursor Precision (Faber-Castell)**: Long-press cursor → INTENSE GREEN gradients appear
+4. **Cursor Precision (Pickett/others)**: Long-press cursor → RED-ORANGE gradients appear
+5. **Slide Precision (F-C colors ON)**: Long-press slide → Green/blue scales intensify to 100%
+6. **Slide Precision (F-C colors OFF)**: Long-press slide → GREEN overlay appears (matches F-C brand)
+7. **Slide Precision (Pickett/others)**: Long-press slide → Red-orange overlay appears
+8. **State Isolation**: Activating cursor precision doesn't affect slide, and vice versa
+9. **Reset**: Lifting finger returns all colors to normal state
+
+### Manufacturer Testing
+1. **Faber-Castell 62/83 N (colors ON)**: Cursor=green→intense green, slide=intensified green/blue scales
+2. **Faber-Castell 62/83 N (colors OFF)**: Cursor=green→intense green, slide=GREEN overlay
+3. **Pickett N-16 ES**: Cursor=yellow→red-orange, slide=red-orange overlay
+4. **K&E 4081-3**: Cursor=yellow→red-orange, slide=red-orange overlay
+5. **Hemmi 266**: Cursor=yellow→red-orange, slide=red-orange overlay
+6. **No manufacturer set**: Cursor=yellow→red-orange (default), slide=red-orange overlay
 
 ### Zoom Level Testing
 1. **Cursor-only zoom**: Verify horizontal gradient visible and color distinguishable
@@ -454,11 +562,12 @@ View Observes activeTarget via @Environment
 │  Cursor Precision               │  Slide Precision                 │
 │  (activeTarget == .cursor)      │  (activeTarget == .slide)        │
 ├─────────────────────────────────┼──────────────────────────────────┤
-│  CursorView.isPrecisionActive   │  SlideView.isPrecisionActive     │
-│  = true                         │  = true                          │
+│  CursorView.isPrecisionActive   │  ScaleContainerView              │
+│  = true                         │  .isPrecisionActive = true       │
 │          ↓                      │           ↓                      │
-│  Horizontal gradients           │  Vertical edge gradients         │
-│  Yellow → Orange-Red            │  Top + Bottom overlays           │
+│  Check manufacturer:            │  If useManufacturerColors:       │
+│  • F-C → GREEN gradient         │  • Use precisionScaleBackground  │
+│  • Others → RED-ORANGE          │  • Opacity: 40→60%, 85→95%       │
 │  (0.2s ease-in)                 │  (0.2s ease-in)                  │
 └─────────────────────────────────┴──────────────────────────────────┘
                     ↓
@@ -471,10 +580,10 @@ View Observes activeTarget via @Environment
     precisionCoordinator.activeTarget = .none
                     ↓
 ┌─────────────────────────────────┬──────────────────────────────────┐
-│  CursorView.isPrecisionActive   │  SlideView.isPrecisionActive     │
-│  = false                        │  = false                         │
+│  CursorView.isPrecisionActive   │  ScaleContainerView              │
+│  = false                        │  .isPrecisionActive = false      │
 │          ↓                      │           ↓                      │
-│  Orange-Red → Yellow            │  Gradients fade out              │
+│  Return to pale yellow          │  Return to normal opacity        │
 │  (0.2s ease-out)                │  (0.2s ease-out)                 │
 └─────────────────────────────────┴──────────────────────────────────┘
 ```
@@ -492,7 +601,22 @@ View Observes activeTarget via @Environment
 
 ---
 
-**Document Version**: 1.0  
-**Date**: 2025-12-17  
+**Document Version**: 1.4  
+**Date**: 2025-12-24  
 **Author**: Kilo Code (Architect Mode)  
-**Status**: Design Complete - Ready for Implementation
+**Status**: Design Complete - Implemented
+
+**Revision History**:
+- v1.4 (2025-12-24): Faber-Castell slide precision now ALWAYS uses GREEN overlay:
+  - F-C with colors ON: Scales intensify (green→greener, blue→bluer)
+  - F-C with colors OFF: GREEN overlay (not red-orange)
+  - Other manufacturers: Red-orange overlay (unchanged)
+- v1.3 (2025-12-24): Manufacturer-aware cursor gradients in normal AND precision modes:
+  - Faber-Castell: green normally → intense green for precision
+  - Pickett/others: yellow normally → red-orange for precision
+  - Slide: intensified scale colors (F-C) or red-orange overlay (others)
+- v1.2 (2025-12-24): Manufacturer-aware precision colors:
+  - Slide: Intensifies existing scale colors (green→greener, blue→bluer) instead of overlay
+  - Cursor: Green for Faber-Castell, red-orange for Pickett and all others
+- v1.1 (2025-12-24): Changed precision colors - cursor uses saturated yellow, slide uses Faber-Castell blue for colorway compatibility
+- v1.0 (2025-12-17): Initial design with orange-red for both cursor and slide

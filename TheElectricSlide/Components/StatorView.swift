@@ -32,6 +32,10 @@ struct StatorView: View, Equatable {
     let ruleId: UUID?
     let currentZoomScale: CGFloat
     
+    // Manufacturer colorway support
+    let useManufacturerColors: Bool
+    let colorScheme: SlideRuleColorScheme?
+    
     // Equatable conformance - delegate to ScaleContainerView's comparison plus zoom scale
     static func == (lhs: StatorView, rhs: StatorView) -> Bool {
         lhs.ruleId == rhs.ruleId &&
@@ -42,7 +46,8 @@ struct StatorView: View, Equatable {
         lhs.stator.scales.count == rhs.stator.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
-        lhs.currentZoomScale == rhs.currentZoomScale
+        lhs.currentZoomScale == rhs.currentZoomScale &&
+        lhs.useManufacturerColors == rhs.useManufacturerColors
     }
     
     var body: some View {
@@ -57,7 +62,9 @@ struct StatorView: View, Equatable {
             nameFont: nameFont,
             formulaFont: formulaFont,
             ruleId: ruleId,
-            scaleCount: stator.scales.count
+            scaleCount: stator.scales.count,
+            useManufacturerColors: useManufacturerColors,
+            colorScheme: colorScheme
         )
         .equatable()
         .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures

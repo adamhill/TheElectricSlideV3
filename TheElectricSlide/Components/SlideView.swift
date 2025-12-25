@@ -28,6 +28,11 @@ struct SlideView: View, Equatable {
     /// Whether THIS slide is in precision mode
     var isPrecisionActive: Bool = false
     
+    // Manufacturer colorway support
+    let useManufacturerColors: Bool
+    let colorScheme: SlideRuleColorScheme?
+    let manufacturer: SlideRuleManufacturer?
+    
     // Equatable conformance - delegate to ScaleContainerView's comparison
     static func == (lhs: SlideView, rhs: SlideView) -> Bool {
         lhs.ruleId == rhs.ruleId &&
@@ -38,12 +43,13 @@ struct SlideView: View, Equatable {
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
-        lhs.isPrecisionActive == rhs.isPrecisionActive
+        lhs.isPrecisionActive == rhs.isPrecisionActive &&
+        lhs.useManufacturerColors == rhs.useManufacturerColors
     }
     
     var body: some View {
         ZStack {
-            // Original slide rendering
+            // Slide rendering - precision mode intensifies scale colors via ScaleContainerView
             ScaleContainerView(
                 container: slide,
                 width: width,
@@ -55,27 +61,36 @@ struct SlideView: View, Equatable {
                 nameFont: nameFont,
                 formulaFont: formulaFont,
                 ruleId: ruleId,
-                scaleCount: slide.scales.count
+                scaleCount: slide.scales.count,
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme,
+                isPrecisionActive: isPrecisionActive
             )
             .equatable()
             
-            // Precision mode gradient overlay
-            if isPrecisionActive {
-                let precisionColor = Color(red: 1.0, green: 0.4, blue: 0.3)
+            // Precision overlay for slide
+            // - Faber-Castell ALWAYS uses green gradient (regardless of manufacturer colors toggle)
+            // - Other manufacturers use red-orange overlay when scale highlights are not enabled
+            if isPrecisionActive && !hasScaleHighlightsEnabled {
+                // Determine precision color based on manufacturer
+                // Faber-Castell gets green even when manufacturer colors are OFF
+                let precisionColor: Color = manufacturer == .faberCastell
+                    ? Color(red: 0.2, green: 0.85, blue: 0.4)  // Green for F-C
+                    : Color(red: 1.0, green: 0.4, blue: 0.3)   // Red-orange for others
                 
                 VStack(spacing: 0) {
                     // Top edge gradient
                     LinearGradient(
                         colors: [
+                            precisionColor.opacity(0.5),
                             precisionColor.opacity(0.3),
-                            precisionColor.opacity(0.15),
-                            precisionColor.opacity(0.05),
+                            precisionColor.opacity(0.12),
                             precisionColor.opacity(0.0)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(width: width, height: slideHeight * 0.2)
+                    .frame(width: width, height: slideHeight * 0.25)
                     .allowsHitTesting(false)
                     
                     Spacer()
@@ -84,22 +99,26 @@ struct SlideView: View, Equatable {
                     LinearGradient(
                         colors: [
                             precisionColor.opacity(0.0),
-                            precisionColor.opacity(0.05),
-                            precisionColor.opacity(0.15),
-                            precisionColor.opacity(0.3)
+                            precisionColor.opacity(0.12),
+                            precisionColor.opacity(0.3),
+                            precisionColor.opacity(0.5)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(width: width, height: slideHeight * 0.2)
+                    .frame(width: width, height: slideHeight * 0.25)
                     .allowsHitTesting(false)
                 }
                 .frame(width: width, height: slideHeight)
                 .allowsHitTesting(false)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.2), value: isPrecisionActive)
             }
         }
+    }
+    
+    /// Whether scale highlights are enabled and available
+    /// True only if manufacturer colors are ON and the color scheme has highlight colors
+    private var hasScaleHighlightsEnabled: Bool {
+        useManufacturerColors && (colorScheme?.hasScaleHighlights ?? false)
     }
     
     /// Calculate total height of all scales in slide

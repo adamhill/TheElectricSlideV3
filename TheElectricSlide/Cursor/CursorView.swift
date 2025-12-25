@@ -232,12 +232,41 @@ struct FontConfig {
             opacity: 1.0
         )
         
-        /// Precision mode gradient: light orange-red with same intensity as default yellow
+        /// Precision mode gradient: saturated yellow for clear visual distinction
+        /// More intense than the default yellow to indicate precision mode is active
         static let precision = GradientConfig(
             colors: [
+                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
                 Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.3),
-                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.15),
-                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.05),
+                Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.12),
+                Color.clear
+            ],
+            startPoint: .leading,
+            endPoint: .trailing,
+            opacity: 1.0
+        )
+        
+        /// Green gradient for Faber-Castell (normal mode)
+        /// Matches the Faber-Castell mint green color scheme
+        static let green = GradientConfig(
+            colors: [
+                Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.3),
+                Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.15),
+                Color(red: 0.4, green: 0.85, blue: 0.5).opacity(0.05),
+                Color.clear
+            ],
+            startPoint: .leading,
+            endPoint: .trailing,
+            opacity: 1.0
+        )
+        
+        /// Precision mode gradient for Faber-Castell: INTENSE saturated green
+        /// Much more visible than normal green to clearly indicate precision mode
+        static let precisionGreen = GradientConfig(
+            colors: [
+                Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),
+                Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.5),
+                Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.25),
                 Color.clear
             ],
             startPoint: .leading,
@@ -289,6 +318,10 @@ struct CursorView: View {
     
     /// Whether precision mode is active for THIS cursor
     var isPrecisionActive: Bool = false
+    
+    /// Current manufacturer (for selecting precision gradient color)
+    /// Faber-Castell uses green, all others use red-orange
+    var manufacturer: SlideRuleManufacturer? = nil
     
     // MARK: - Constants
     
@@ -361,10 +394,26 @@ struct CursorView: View {
                 
                 // Gradient backgrounds for each scale row (if configured and enabled)
                 if showGradients {
-                    // Select gradient based on precision mode state
-                    let activeGradient: FontConfig.GradientConfig = isPrecisionActive
-                        ? .precision  // Orange-red when precision active
-                        : (displayConfig.scaleNameFont.gradient ?? .default)  // Yellow normally
+                    // Select gradient based on precision mode state and manufacturer
+                    // Faber-Castell: green normally, intense green for precision
+                    // Pickett/others: yellow normally, red-orange for precision
+                    let activeGradient: FontConfig.GradientConfig = {
+                        if isPrecisionActive {
+                            // Precision mode gradients
+                            if manufacturer == .faberCastell {
+                                return .precisionGreen  // Intense green for F-C
+                            } else {
+                                return .precision  // Red-orange for Pickett and others
+                            }
+                        } else {
+                            // Normal mode gradients
+                            if manufacturer == .faberCastell {
+                                return .green  // Green for F-C
+                            } else {
+                                return displayConfig.scaleNameFont.gradient ?? .default  // Yellow for others
+                            }
+                        }
+                    }()
                     
                     VStack(spacing: 0) {
                         ForEach(Array(readings.enumerated()), id: \.element.id) { index, reading in

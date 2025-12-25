@@ -35,6 +35,11 @@ struct SideView: View, Equatable {
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     
+    // Manufacturer colorway support
+    let useManufacturerColors: Bool
+    let colorScheme: SlideRuleColorScheme?
+    let manufacturer: SlideRuleManufacturer?
+    
     // MARK: - Vertical Swipe State
     
     /// Threshold for vertical swipe detection (points)
@@ -85,6 +90,7 @@ struct SideView: View, Equatable {
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.sliderOffset == rhs.sliderOffset &&
         lhs.currentZoomScale == rhs.currentZoomScale &&
+        lhs.useManufacturerColors == rhs.useManufacturerColors &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
         lhs.bottomStator.scales.count == rhs.bottomStator.scales.count
@@ -95,13 +101,29 @@ struct SideView: View, Equatable {
         "\(side.rawValue)-\(ruleId?.uuidString ?? "default")"
     }
     
+    /// Computed background color for stators based on manufacturer colorway toggle
+    private var statorBackgroundColor: Color {
+        if useManufacturerColors, let scheme = colorScheme {
+            return scheme.primaryBackground
+        }
+        return .white
+    }
+    
+    /// Computed background color for slide based on manufacturer colorway toggle
+    private var slideBackgroundColor: Color {
+        if useManufacturerColors, let scheme = colorScheme {
+            return scheme.slideBackground
+        }
+        return .white
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Top Stator (Fixed)
             StatorView(
                 stator: topStator,
                 width: width,
-                backgroundColor: .white,
+                backgroundColor: statorBackgroundColor,
                 borderColor: side.borderColor,
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
@@ -110,7 +132,9 @@ struct SideView: View, Equatable {
                 formulaFont: formulaFont,
                 cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale  // For pan gesture control
+                currentZoomScale: currentZoomScale,  // For pan gesture control
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme
             )
             .equatable()
             .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
@@ -119,7 +143,7 @@ struct SideView: View, Equatable {
             SlideView(
                 slide: slide,
                 width: width,
-                backgroundColor: .white,
+                backgroundColor: slideBackgroundColor,
                 borderColor: .orange,
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
@@ -127,7 +151,10 @@ struct SideView: View, Equatable {
                 nameFont: nameFont,
                 formulaFont: formulaFont,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
-                isPrecisionActive: precisionCoordinator.isActive(for: .slide(side))
+                isPrecisionActive: precisionCoordinator.isActive(for: .slide(side)),
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme,
+                manufacturer: manufacturer
             )
             .equatable()
             .offset(x: sliderOffset)
@@ -228,7 +255,7 @@ struct SideView: View, Equatable {
             StatorView(
                 stator: bottomStator,
                 width: width,
-                backgroundColor: .white,
+                backgroundColor: statorBackgroundColor,
                 borderColor: side.borderColor,
                 scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
@@ -237,7 +264,9 @@ struct SideView: View, Equatable {
                 formulaFont: formulaFont,
                 cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale  // For pan gesture control
+                currentZoomScale: currentZoomScale,  // For pan gesture control
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme
             )
             .equatable()
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change

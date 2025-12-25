@@ -63,6 +63,9 @@ struct CursorOverlay: View {
     /// Current zoom scale for display on cursor handle
     var currentZoomScale: CGFloat = 1.0
     
+    /// Current manufacturer (for precision mode gradient color selection)
+    var manufacturer: SlideRuleManufacturer? = nil
+    
     /// Binding to cursor display mode for toggle on double-tap
     @Binding var cursorDisplayMode: CursorDisplayMode
     
@@ -118,7 +121,8 @@ struct CursorOverlay: View {
                     zoomScale: currentZoomScale,
                     cursorDisplayMode: $cursorDisplayMode,
                     highlightedScaleIndex: highlightedScaleIndex,
-                    isPrecisionActive: precisionCoordinator.activeTarget == .cursor
+                    isPrecisionActive: precisionCoordinator.activeTarget == .cursor,
+                    manufacturer: manufacturer
                 )
                     .frame(width: CursorView.cursorWidth, alignment: .top)
                     .offset(y: -CursorView.handleHeight)

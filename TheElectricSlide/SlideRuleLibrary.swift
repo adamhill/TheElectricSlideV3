@@ -23,7 +23,8 @@ struct SlideRuleLibrary {
     /// Version 9: Fixed Hemmi 266 sortOrder collision with K&E 4081-3
     /// Version 10: Added Faber-Castell 62/83 N with W scale aliases (W1→R1, W2→R2, W1'→SQ1, W2'→SQ2)
     /// Version 11: Implemented Pickett N-16 ES pickettF (PF) Scale (frequency in MHz, 0.1-10 MHz range)
-    static let libraryVersion = 11
+    /// Version 12: Added manufacturer field for colorway support (Pickett, Faber-Castell, K&E, Hemmi)
+    static let libraryVersion = 12
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -68,7 +69,8 @@ struct SlideRuleLibrary {
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 20,
-            scaleNameOverrides: [:]
+            scaleNameOverrides: [:],
+            manufacturer: SlideRuleManufacturer.faberCastell.rawValue
         )
     }
     
@@ -118,7 +120,8 @@ struct SlideRuleLibrary {
                 "ω": "ω",            // Angular frequency (lowercase Greek)
                 "τ": "τ",
                 "PF": "F"            // Time constant (lowercase Greek)
-            ]
+            ],
+            manufacturer: SlideRuleManufacturer.pickett.rawValue
         )
     }
     
@@ -133,7 +136,8 @@ struct SlideRuleLibrary {
             topStatorMM: 14,
             slideMM: 13,
             bottomStatorMM: 14,
-            sortOrder: 1  // Changed from 0 to prevent collision with Pickett N-16 ES
+            sortOrder: 1,  // Changed from 0 to prevent collision with Pickett N-16 ES
+            manufacturer: SlideRuleManufacturer.keuffelEsser.rawValue
         )
     }
     
@@ -153,7 +157,8 @@ struct SlideRuleLibrary {
                 "L": "㏈ L", // Hemmi 266 labels L scale as "dB L"
                 "H266LL01": "L̅L̅1",
                 "H266LL03": "L̅L̅3"
-            ]
+            ],
+            manufacturer: SlideRuleManufacturer.hemmi.rawValue
         )
     }
     
@@ -167,7 +172,8 @@ struct SlideRuleLibrary {
             topStatorMM: 13,
             slideMM: 22,
             bottomStatorMM: 13,
-            sortOrder: 3
+            sortOrder: 3,
+            manufacturer: SlideRuleManufacturer.hemmi.rawValue
         )
     }
     
@@ -195,7 +201,8 @@ struct SlideRuleLibrary {
             topStatorMM: 19,
             slideMM: 19,
             bottomStatorMM: 19,
-            sortOrder: 5
+            sortOrder: 5,
+            manufacturer: SlideRuleManufacturer.keuffelEsser.rawValue
         )
     }
     
@@ -222,7 +229,8 @@ struct SlideRuleLibrary {
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
-            sortOrder: 7
+            sortOrder: 7,
+            manufacturer: SlideRuleManufacturer.pickett.rawValue
         )
     }
     

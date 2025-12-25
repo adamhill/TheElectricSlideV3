@@ -63,6 +63,43 @@ Provides precision reading across all scales simultaneously:
 - `TickHapticCoordinator.swift` - Haptic feedback when cursor crosses tick marks
 - `DeviceDetection.swift` - Device category detection (iPhone/iPad/Mac)
 - `ScrollWheelZoomModifier.swift` - Mouse wheel zoom support (macOS)
+- `SlideRuleColorScheme.swift` - ⭐ **Centralized color system** for all manufacturer colors and precision mode colors
+
+## Color System (Design Pattern)
+
+**Single Source of Truth:** All colors are defined in `SlideRuleColorScheme.swift`
+
+### Manufacturer Color Schemes
+Each manufacturer has a complete color scheme with:
+- Background colors (stator, slide, alternate)
+- Scale highlight colors (primary, secondary, tertiary)
+- Marking colors (standard, inverted, special)
+- Label colors (standard, inverted, formula)
+- Material appearance (body material, wood grain, cursor frame)
+- **Precision mode colors** (overlay and cursor gradients)
+
+### Precision Mode Colors
+**Centralized Properties:**
+- `precisionOverlayColor` - Slide overlay gradient color (appears when scale highlights disabled)
+  - Faber-Castell: `Color(red: 0.2, green: 0.85, blue: 0.4)` - Green
+  - All others: `Color(red: 1.0, green: 0.4, blue: 0.3)` - Red-orange
+- `cursorPrecisionColor` - Cursor gradient color (matches overlay)
+  - Same values as precisionOverlayColor per manufacturer
+
+**Usage Pattern:**
+```swift
+// ✅ CORRECT - Use centralized color
+let precisionColor = colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)
+
+// ❌ WRONG - Never hardcode
+let precisionColor = Color(red: 1.0, green: 0.4, blue: 0.3)
+```
+
+**Documentation Pattern:**
+When referencing color values in documentation or comments, always include source:
+```swift
+/// **Color Source:** SlideRuleColorScheme.faberCastell.precisionOverlayColor
+```
 
 ## Performance-Critical Patterns
 

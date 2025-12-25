@@ -105,8 +105,11 @@ struct SlideRuleDetailView: View {
             )
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
-                                                          // NOTE: .drawingGroup() removed - was causing scale shift bug at high zoom levels
-                                                          // The Metal rasterization cache wasn't updating correctly during geometry animations
+            // EXPERIMENT: .drawingGroup() re-enabled for optimization testing (Dec 2024)
+            // Previously removed due to scale shift bug at high zoom levels - test at 2.3x+ iPad, 2.7x+ iPhone
+            // If label shifting occurs, the fix in ScaleLabelRenderer (position rounding + concatenate) should handle it
+            // See: swift-docs/zoom-label-shift-fix.md, swift-docs/scale-shift-solution-implementation.md
+            .drawingGroup()
             .simultaneousGesture(
                 MagnificationGesture()
                 // MARK: Magnification Active State Tracking

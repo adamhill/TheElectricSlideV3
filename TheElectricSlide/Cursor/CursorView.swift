@@ -467,10 +467,13 @@ struct CursorView: View {
                 }
                 
                 // True 1-pixel hairline down center - solid black
+                // Width doubles during precision mode for better visibility
+                let hairlineWidth = isPrecisionActive ? Self.hairlineWidth * 2 : Self.hairlineWidth
                 Rectangle()
                     .fill(.black)
-                    .frame(width: Self.hairlineWidth, height: height)
-                    .offset(x: Self.cursorWidth / 2)
+                    .frame(width: hairlineWidth, height: height)
+                    .offset(x: Self.cursorWidth / 2 - (isPrecisionActive ? Self.hairlineWidth / 2 : 0))
+                    .animation(.easeInOut(duration: 0.15), value: isPrecisionActive)
                 
                 // Scale readings drawn with Canvas for maximum performance
                 if showReadings {

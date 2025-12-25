@@ -353,8 +353,12 @@ struct CursorOverlay: View {
         let currentPixelPosition = currentPosition * effectiveWidth
         let proposedNewPosition = currentPixelPosition + correctedTranslation
         
-        // Clamp to slide bounds [0, effectiveWidth]
-        let clampedNewPosition = min(max(proposedNewPosition, 0), effectiveWidth)
+        // Clamp cursor position so the HAIRLINE (center) can reach the full scale width.
+        // Cursor position is the LEFT EDGE, so:
+        // - Left boundary: -halfCursorWidth allows hairline to reach 0
+        // - Right boundary: effectiveWidth - halfCursorWidth allows hairline to reach effectiveWidth
+        let halfCursorWidth = CursorView.cursorWidth / 2.0
+        let clampedNewPosition = min(max(proposedNewPosition, -halfCursorWidth), effectiveWidth - halfCursorWidth)
         
         // Calculate the actual translation we can apply (clamped)
         let clampedTranslation = clampedNewPosition - currentPixelPosition
@@ -387,11 +391,19 @@ struct CursorOverlay: View {
         )
         
         // Calculate new position based on translation from current position
+        // Cursor position is the LEFT EDGE, but we clamp based on HAIRLINE (center) position
+        // to allow the hairline to reach the full scale range [0, width]
         let currentPosition = cursorState.position(for: side)
         let currentPixelPosition = currentPosition * width
         let newPixelPosition = currentPixelPosition + correctedTranslation
-        let normalizedPosition = newPixelPosition / width
-        let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
+        
+        // Clamp pixel position so hairline can reach full scale width
+        let halfCursorWidth = CursorView.cursorWidth / 2.0
+        let clampedPixelPosition = min(max(newPixelPosition, -halfCursorWidth), width - halfCursorWidth)
+        
+        let normalizedPosition = clampedPixelPosition / width
+        // Normalized position can now be slightly negative or > 1.0 to allow hairline at edges
+        let clampedPosition = normalizedPosition
         
         // Update immediately without animation to prevent vibration
         // Note: Position stored is for the LEFT EDGE of cursor
@@ -412,11 +424,18 @@ struct CursorOverlay: View {
         let translationWidth = lastAppliedTranslation / PrecisionDragConstants.precisionFactor
         
         // Calculate new position based on translation from current position
+        // Clamp so hairline (center) can reach full scale width, not cursor left edge
         let currentPosition = cursorState.position(for: side)
         let currentPixelPosition = currentPosition * width
         let newPixelPosition = currentPixelPosition + translationWidth
-        let normalizedPosition = newPixelPosition / width
-        let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
+        
+        // Clamp pixel position so hairline can reach full scale width
+        let halfCursorWidth = CursorView.cursorWidth / 2.0
+        let clampedPixelPosition = min(max(newPixelPosition, -halfCursorWidth), width - halfCursorWidth)
+        
+        let normalizedPosition = clampedPixelPosition / width
+        // Normalized position can now be slightly negative or > 1.0 to allow hairline at edges
+        let clampedPosition = normalizedPosition
         
         // Update immediately without animation to prevent vibration
         cursorState.setPosition(clampedPosition, for: side)

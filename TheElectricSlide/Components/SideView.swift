@@ -248,7 +248,9 @@ struct SideView: View, Equatable {
                     },
                 isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
             )
-            .animation(.interactiveSpring(), value: sliderOffset)
+            // NOTE: Removed `.animation(.interactiveSpring(), value: sliderOffset)` - was causing
+            // slide sticking/stuttering on iPhone. Momentum animation is handled in
+            // GestureHandler.handleSlideDragEnded() with its own spring animation.
             .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
             
             // Bottom Stator (Fixed)

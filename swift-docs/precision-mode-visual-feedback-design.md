@@ -607,9 +607,9 @@ View Observes activeTarget via @Environment
 **Status**: Design Complete - Implemented
 
 **Revision History**:
-- v1.4 (2025-12-24): Faber-Castell slide precision now ALWAYS uses GREEN overlay:
-  - F-C with colors ON: Scales intensify (green→greener, blue→bluer)
-  - F-C with colors OFF: GREEN overlay (not red-orange)
+- v1.4 (2025-12-24): Faber-Castell slide precision now ALWAYS uses GREEN-based treatment:
+  - F-C with colors ON: Scales intensify in-place (no overlay)
+  - F-C with colors OFF: GREEN overlay appears
   - Other manufacturers: Red-orange overlay (unchanged)
 - v1.3 (2025-12-24): Manufacturer-aware cursor gradients in normal AND precision modes:
   - Faber-Castell: green normally → intense green for precision

@@ -10,13 +10,15 @@
 
 import SwiftUI
 import SlideRuleCoreV3
+import CoreGraphics
 
 /// Renders tick marks for scale views with baseline and color support
 struct ScaleTickRenderer {
     let definition: ScaleDefinition
     
-    /// Cached tick color from definition (computed once per renderer instance)
-    private let cachedTickColor: Color
+    /// Cached tick CGColor from definition (computed once per renderer instance)
+    /// Stored as CGColor for direct use with CGContext drawing
+    private let cachedTickCGColor: CGColor
     
     /// Pre-computed height multiplier for tick calculations
     private static let kHeightMultiplier: CGFloat = 0.5
@@ -27,12 +29,18 @@ struct ScaleTickRenderer {
     init(definition: ScaleDefinition) {
         self.definition = definition
         
-        // Pre-compute tick color once instead of per-tick
+        // Pre-compute tick color as CGColor once instead of per-tick
+        // CGColor is required for CGContext drawing operations
         if let tupleColor = definition.labelColor,
            definition.colorApplication.scaleTicks {
-            self.cachedTickColor = Color(red: tupleColor.red, green: tupleColor.green, blue: tupleColor.blue)
+            self.cachedTickCGColor = CGColor(
+                red: CGFloat(tupleColor.red),
+                green: CGFloat(tupleColor.green),
+                blue: CGFloat(tupleColor.blue),
+                alpha: 1.0
+            )
         } else {
-            self.cachedTickColor = .black
+            self.cachedTickCGColor = CGColor(gray: 0, alpha: 1)
         }
     }
     
@@ -93,14 +101,17 @@ struct ScaleTickRenderer {
             path.addLine(to: CGPoint(x: xPos, y: tickEndY))
         }
         
-        // Draw tick mark with anti-aliasing disabled for crisp lines
+        // Draw tick mark with anti-aliasing disabled for crisp 1-pixel lines
+        // IMPORTANT: Must use CGContext drawing primitives (not SwiftUI context.stroke)
+        // because setShouldAntialias only affects CGContext operations.
+        // Per Apple docs: "Any state you set on the Core Graphics context is lost when the closure returns"
+        // and SwiftUI's context.stroke() uses its own rendering path that ignores CGContext state.
         context.withCGContext { cgContext in
             cgContext.setShouldAntialias(false)
-            context.stroke(
-                tickPath,
-                with: .color(cachedTickColor),
-                lineWidth: tick.style.lineWidth * ScaleTickRenderer.kWidthMultiplier
-            )
+            cgContext.setStrokeColor(cachedTickCGColor)
+            cgContext.setLineWidth(tick.style.lineWidth * ScaleTickRenderer.kWidthMultiplier)
+            cgContext.addPath(tickPath.cgPath)
+            cgContext.strokePath()
         }
         
         return (xPos, tickHeight)

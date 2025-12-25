@@ -69,7 +69,7 @@ Faber-Castell is renowned for their distinctive scale highlighting system, parti
 **Scale Background Colors:**
 | Color | Scales Applied | Description |
 |-------|----------------|-------------|
-| Mint Green | C, CF, D (primary multiplication scales) | Signature "Castell" trademark stripe |
+| Mint Green | C, CF, D, DF (primary multiplication scales) | Signature "Castell" trademark stripe |
 | Pale Blue | A, B (square/square root scales) | Secondary highlighting |
 | White/Ivory | All other scales | Base background |
 

@@ -77,6 +77,15 @@ struct SlideRuleColorScheme {
     let hasVisibleWoodGrain: Bool
     let cursorFrameColor: Color
     
+    // MARK: - Precision Mode Colors
+    /// Precision overlay color for slide (used when scale highlights are disabled)
+    /// Faber-Castell uses green, all others use red-orange
+    let precisionOverlayColor: Color
+    
+    /// Cursor precision gradient color (primary component)
+    /// Faber-Castell uses green, all others use red-orange
+    let cursorPrecisionColor: Color
+    
     enum BodyMaterial: String {
         case aluminum           // Pickett
         case plastic            // Faber-Castell, Aristo, late Nestler
@@ -112,7 +121,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .aluminum,
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.3, green: 0.3, blue: 0.3)  // Nylon/plastic
+        cursorFrameColor: Color(red: 0.3, green: 0.3, blue: 0.3),  // Nylon/plastic
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     /// Pickett Traditional (white/natural aluminum) variant
@@ -133,7 +144,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .aluminum,
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.3, green: 0.3, blue: 0.3)
+        cursorFrameColor: Color(red: 0.3, green: 0.3, blue: 0.3),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     // ═══════════════════════════════════════════════════════════════════
@@ -158,7 +171,9 @@ extension SlideRuleColorScheme {
         accentColor: Color(red: 0.75, green: 0.65, blue: 0.35),          // Gold anodized braces
         bodyMaterial: .plastic,
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.75, green: 0.65, blue: 0.35)      // Gold anodized
+        cursorFrameColor: Color(red: 0.75, green: 0.65, blue: 0.35),     // Gold anodized
+        precisionOverlayColor: Color(red: 0.2, green: 0.85, blue: 0.4),  // Signature green for precision
+        cursorPrecisionColor: Color(red: 0.2, green: 0.85, blue: 0.4)    // Green cursor
     )
     
     // ═══════════════════════════════════════════════════════════════════
@@ -183,7 +198,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .celluloidOnWood,
         hasVisibleWoodGrain: true,                                        // Mahogany edges visible
-        cursorFrameColor: Color(red: 0.45, green: 0.25, blue: 0.15)      // Mahogany
+        cursorFrameColor: Color(red: 0.45, green: 0.25, blue: 0.15),     // Mahogany
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     /// K&E aged appearance (yellowed celluloid)
@@ -204,7 +221,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .celluloidOnWood,
         hasVisibleWoodGrain: true,
-        cursorFrameColor: Color(red: 0.40, green: 0.22, blue: 0.12)
+        cursorFrameColor: Color(red: 0.40, green: 0.22, blue: 0.12),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     // ═══════════════════════════════════════════════════════════════════
@@ -229,7 +248,9 @@ extension SlideRuleColorScheme {
         accentColor: Color(red: 0.75, green: 0.12, blue: 0.12),          // Red Post logo
         bodyMaterial: .celluloidOnBamboo,
         hasVisibleWoodGrain: false,                                       // Bamboo usually covered
-        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52)      // Metal frame
+        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52),     // Metal frame
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     /// Hemmi plastic models (late 1960s-1970s) with blue highlighting
@@ -250,7 +271,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .plastic,
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.30, green: 0.30, blue: 0.32)
+        cursorFrameColor: Color(red: 0.30, green: 0.30, blue: 0.32),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     // ═══════════════════════════════════════════════════════════════════
@@ -274,7 +297,9 @@ extension SlideRuleColorScheme {
         accentColor: Color(red: 0.98, green: 0.92, blue: 0.65),
         bodyMaterial: .plastic,                                           // Astralon/Aristopal PVC
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.35, green: 0.35, blue: 0.38)
+        cursorFrameColor: Color(red: 0.35, green: 0.35, blue: 0.38),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     // ═══════════════════════════════════════════════════════════════════
@@ -298,7 +323,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .plastic,                                           // Later models
         hasVisibleWoodGrain: false,
-        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52)
+        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
     
     /// Nestler wood/celluloid models (pre-1960s)
@@ -319,7 +346,9 @@ extension SlideRuleColorScheme {
         accentColor: nil,
         bodyMaterial: .celluloidOnMixed,
         hasVisibleWoodGrain: true,
-        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52)
+        cursorFrameColor: Color(red: 0.50, green: 0.50, blue: 0.52),
+        precisionOverlayColor: Color(red: 1.0, green: 0.4, blue: 0.3),   // Red-orange for precision
+        cursorPrecisionColor: Color(red: 1.0, green: 0.4, blue: 0.3)     // Red-orange cursor
     )
 }
 

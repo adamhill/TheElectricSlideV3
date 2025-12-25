@@ -107,6 +107,9 @@ public struct ScaleDefinition: Sendable {
     /// Whether to render a horizontal baseline for this scale
     public let showBaseline: Bool
     
+    /// Whether to render a separator line below this scale (from `|` symbol in definition)
+    public let hasBottomSeparator: Bool
+    
     /// Typography adjustment for formula text spacing
     /// - 1.0 = normal spacing (no modification)
     /// - < 1.0 = tighter/condensed spacing
@@ -130,6 +133,7 @@ public struct ScaleDefinition: Sendable {
         colorApplication: ScaleColorApplication = ScaleColorPresets.all,
         constants: [ScaleConstant] = [],
         showBaseline: Bool = false,
+        hasBottomSeparator: Bool = false,
         formulaTracking: Double = 1.0,
         displayName: String? = nil
     ) {
@@ -150,6 +154,7 @@ public struct ScaleDefinition: Sendable {
         self.colorApplication = colorApplication
         self.constants = constants
         self.showBaseline = showBaseline
+        self.hasBottomSeparator = hasBottomSeparator
         self.formulaTracking = formulaTracking
     }
     

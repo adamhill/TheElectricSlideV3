@@ -68,6 +68,28 @@ struct ScaleTickRenderer {
         )
     }
     
+    /// Draw a separator line at the baseline if enabled in definition
+    func drawSeparator(context: inout GraphicsContext, size: CGSize) {
+        guard definition.hasBottomSeparator else { return }
+        
+        let separatorPath = Path { path in
+            switch definition.tickDirection {
+            case .down:
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: size.width, y: 0))
+            case .up:
+                path.move(to: CGPoint(x: 0, y: size.height))
+                path.addLine(to: CGPoint(x: size.width, y: size.height))
+            }
+        }
+        
+        context.stroke(
+            separatorPath,
+            with: .color(.black),
+            lineWidth: 1.0
+        )
+    }
+    
     // MARK: - Tick Mark Drawing
     
     /// Draw a single tick mark and return its computed geometry for label positioning
@@ -78,6 +100,15 @@ struct ScaleTickRenderer {
         tick: TickMark,
         size: CGSize
     ) -> (xPos: CGFloat, tickHeight: CGFloat) {
+        // ✅ GUARD: Skip ticks with invalid data (prevents CoreGraphics NaN error)
+        // This can occur if scale generation produces invalid normalizedPosition values
+        // (e.g., from log(0) in LnNormalizedFunction when begin=0)
+        guard !tick.normalizedPosition.isNaN && !tick.normalizedPosition.isInfinite &&
+              !tick.style.relativeLength.isNaN && !tick.style.relativeLength.isInfinite else {
+            // Return default values without drawing to prevent CoreGraphics error
+            return (0, 0)
+        }
+        
         // Calculate horizontal position
         let xPos = tick.normalizedPosition * size.width
         

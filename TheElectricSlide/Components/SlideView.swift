@@ -44,7 +44,9 @@ struct SlideView: View, Equatable {
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
         lhs.isPrecisionActive == rhs.isPrecisionActive &&
-        lhs.useManufacturerColors == rhs.useManufacturerColors
+        lhs.useManufacturerColors == rhs.useManufacturerColors &&
+        lhs.colorScheme?.primaryBackground == rhs.colorScheme?.primaryBackground &&
+        lhs.manufacturer == rhs.manufacturer
     }
     
     var body: some View {

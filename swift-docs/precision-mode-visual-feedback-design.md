@@ -72,6 +72,10 @@ LinearGradient(
 #### Cursor Precision Mode: Manufacturer-Specific Gradients
 The cursor gradient varies by manufacturer, both in normal and precision modes:
 
+**Color Source:** All precision colors are centralized in `SlideRuleColorScheme.swift`:
+- `precisionOverlayColor` - Base precision color (green for F-C, red-orange for others)
+- `cursorPrecisionColor` - Cursor gradient color (matches precisionOverlayColor)
+
 ```swift
 // Faber-Castell normal: Green gradient
 static let green = GradientConfig(
@@ -87,6 +91,7 @@ static let green = GradientConfig(
 )
 
 // Faber-Castell precision: INTENSE green gradient
+// Color source: SlideRuleColorScheme.faberCastell.cursorPrecisionColor
 static let precisionGreen = GradientConfig(
     colors: [
         Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),
@@ -112,7 +117,8 @@ static let `default` = GradientConfig(
     opacity: 1.0
 )
 
-// Pickett & all others precision: Red-orange gradient  
+// Pickett & all others precision: Red-orange gradient
+// Color source: SlideRuleColorScheme.pickett.cursorPrecisionColor (and others)
 static let precision = GradientConfig(
     colors: [
         Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
@@ -377,6 +383,7 @@ extension FontConfig.GradientConfig {
     )
     
     /// Precision mode gradient for Pickett and others: red-orange
+    /// **Color Source:** SlideRuleColorScheme.pickett.cursorPrecisionColor (and others)
     static let precision = GradientConfig(
         colors: [
             Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
@@ -390,6 +397,7 @@ extension FontConfig.GradientConfig {
     )
     
     /// Precision mode gradient for Faber-Castell: INTENSE green
+    /// **Color Source:** SlideRuleColorScheme.faberCastell.cursorPrecisionColor
     static let precisionGreen = GradientConfig(
         colors: [
             Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),

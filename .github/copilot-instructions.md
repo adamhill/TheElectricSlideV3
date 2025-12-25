@@ -434,6 +434,15 @@ swift test --verbose
 - Use Unicode directly: `"x²"`, `"x³"`, `"e⁰·⁰¹ˣ"`, `"100/x²"`
 - No AttributedString helper functions
 
+### Color Centralization (Design System)
+- **All manufacturer colors centralized** in `SlideRuleColorScheme.swift`
+- **Precision mode colors** defined per manufacturer:
+  - `precisionOverlayColor` - Slide overlay color (green for Faber-Castell, red-orange for others)
+  - `cursorPrecisionColor` - Cursor gradient color (matches overlay color)
+- **Never hardcode RGB values** - Always reference `SlideRuleColorScheme` properties
+- **Pattern**: `colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)` (fallback only)
+- **Documentation**: Add `**Color Source:**` comments referencing `SlideRuleColorScheme` property
+
 ## Critical "Don'ts"
 
 1. **Don't add drawing code to SlideRuleCoreV3** - It's a calculation engine only

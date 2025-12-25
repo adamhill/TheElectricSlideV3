@@ -47,7 +47,8 @@ struct StatorView: View, Equatable {
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
         lhs.currentZoomScale == rhs.currentZoomScale &&
-        lhs.useManufacturerColors == rhs.useManufacturerColors
+        lhs.useManufacturerColors == rhs.useManufacturerColors &&
+        lhs.colorScheme?.primaryBackground == rhs.colorScheme?.primaryBackground
     }
     
     var body: some View {

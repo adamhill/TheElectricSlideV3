@@ -42,7 +42,9 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
         lhs.useManufacturerColors == rhs.useManufacturerColors &&
-        lhs.isPrecisionActive == rhs.isPrecisionActive
+        lhs.isPrecisionActive == rhs.isPrecisionActive &&
+        lhs.colorScheme?.primaryHighlight == rhs.colorScheme?.primaryHighlight &&
+        lhs.colorScheme?.secondaryHighlight == rhs.colorScheme?.secondaryHighlight
     }
     
     // Calculate total max height based on number of scales

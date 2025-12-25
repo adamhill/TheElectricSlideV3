@@ -118,6 +118,10 @@ struct ScaleView: View, Equatable {
     }
     
     /// Draw the scale with pre-computed tick marks
+    ///
+    /// **Optimization (Step 2 - December 2025):**
+    /// Uses batched tick drawing to minimize CGContext state changes.
+    /// All ticks are drawn in a single `withCGContext` block, grouped by line width.
     private func drawScale(
         context: inout GraphicsContext,
         size: CGSize,
@@ -148,30 +152,34 @@ struct ScaleView: View, Equatable {
             }
         }
         
-        // Use pre-computed renderers from view properties (avoids recreation on each Canvas redraw)
-        
         // Draw baseline if enabled
         tickRenderer.drawBaseline(context: &context, size: size)
         
         // Draw separator line if enabled
         tickRenderer.drawSeparator(context: &context, size: size)
         
-        // Draw tick marks and labels
-        for tick in tickMarks {
-            // Draw tick mark and get geometry for label positioning
-            let (xPos, tickHeight) = tickRenderer.drawTick(
-                context: &context,
-                tick: tick,
-                size: size
-            )
+        // ✅ OPTIMIZED: Draw all ticks in a single batched operation
+        // Returns pre-computed geometry for label positioning
+        let tickGeometries = tickRenderer.drawTicksBatched(
+            context: &context,
+            tickMarks: tickMarks,
+            size: size
+        )
+        
+        // Draw labels using pre-computed geometry
+        for geometry in tickGeometries {
+            // Skip invalid geometries (from NaN ticks)
+            guard geometry.tickHeight > 0 else { continue }
+            
+            let tick = tickMarks[geometry.tickIndex]
             
             // Draw labels using the label renderer
             if !tick.labels.isEmpty {
                 labelRenderer.drawLabels(
                     context: &context,
                     labels: tick.labels,
-                    xPos: xPos,
-                    tickHeight: tickHeight,
+                    xPos: geometry.xPos,
+                    tickHeight: geometry.tickHeight,
                     tickDirection: definition.tickDirection,
                     size: size,
                     tickRelativeLength: tick.style.relativeLength
@@ -181,8 +189,8 @@ struct ScaleView: View, Equatable {
                 labelRenderer.drawSimpleLabel(
                     context: &context,
                     text: labelText,
-                    xPos: xPos,
-                    tickHeight: tickHeight,
+                    xPos: geometry.xPos,
+                    tickHeight: geometry.tickHeight,
                     tickDirection: definition.tickDirection,
                     size: size,
                     tickRelativeLength: tick.style.relativeLength

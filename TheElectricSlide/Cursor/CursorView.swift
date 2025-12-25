@@ -59,7 +59,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .regular,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         scaleValueFont: FontConfig(
@@ -68,7 +68,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .regular,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         labelPadding: 4
@@ -82,7 +82,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .bold,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         scaleValueFont: FontConfig(
@@ -91,7 +91,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .bold,
             design: .monospaced,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         labelPadding: 4
@@ -105,7 +105,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .bold,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         scaleValueFont: FontConfig(
@@ -114,7 +114,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .bold,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         labelPadding: 4
@@ -128,7 +128,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .regular,
             design: .default,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         scaleValueFont: FontConfig(
@@ -137,7 +137,7 @@ struct CursorReadingDisplayConfig {
             color: .black,
             weight: .regular,
             design: .monospaced,
-            outline: .default,
+            outline: nil,
             gradient: .default
         ),
         labelPadding: 4
@@ -294,8 +294,12 @@ struct CursorView: View {
     /// Height of the cursor (spans full vertical space of slide rule)
     let height: CGFloat
     
-    /// Scale readings to display on cursor
-    let readings: [ScaleReading]
+    /// Cursor state containing readings (Observable dependency isolated here)
+    /// CursorView reads currentReadings internally to prevent CursorOverlay invalidation
+    let cursorState: CursorState
+    
+    /// Which side this cursor is for (determines which readings to display)
+    let side: RuleSide?
     
     /// Height of each scale row (for vertical positioning)
     let scaleHeight: CGFloat
@@ -327,6 +331,19 @@ struct CursorView: View {
     
     /// Color scheme for precision mode colors (centralized source of truth)
     var colorScheme: SlideRuleColorScheme? = nil
+    
+    // MARK: - Computed Properties
+    
+    /// Get readings for the current side from cursorState
+    /// This isolates the Observable dependency to CursorView only
+    private var readings: [ScaleReading] {
+        guard let side = side else { return [] }
+        if side == .front {
+            return cursorState.currentReadings?.frontReadings ?? []
+        } else {
+            return cursorState.currentReadings?.backReadings ?? []
+        }
+    }
     
     // MARK: - Constants
     
@@ -646,9 +663,12 @@ extension FontConfig.GradientConfig: Equatable {
 // MARK: - Preview
 
 #Preview {
+    let state = CursorState()
+    
     CursorView(
         height: 200,
-        readings: [],
+        cursorState: state,
+        side: .front,
         scaleHeight: 25,
         cursorDisplayMode: .constant(.values)
     )

@@ -7,6 +7,14 @@
 //
 //  Extracted from ScaleView.swift for better separation of concerns.
 //
+//  ## Optimization Notes (Step 2 - December 2025)
+//
+//  Key optimizations applied per WWDC2024 "Create custom visual effects with SwiftUI":
+//  1. **Batched drawing**: Ticks grouped by line width to minimize CGContext state changes
+//  2. **Single CGContext block**: One `withCGContext` call for all ticks (was per-tick)
+//  3. **Direct CGMutablePath**: Avoid SwiftUI Path → CGPath conversion overhead
+//  4. **Pre-computed geometry**: Tick positions calculated once, stored for label positioning
+//
 
 import SwiftUI
 import SlideRuleCoreV3
@@ -25,6 +33,9 @@ struct ScaleTickRenderer {
     
     /// Width  multiplier for tick calculations
     private static let kWidthMultiplier: CGFloat = 1.0
+    
+    /// Common line widths for batching (avoid dictionary allocation per draw)
+    private static let kCommonLineWidths: [CGFloat] = [0.5, 1.0, 1.5, 2.0]
 
     init(definition: ScaleDefinition) {
         self.definition = definition
@@ -94,6 +105,8 @@ struct ScaleTickRenderer {
     
     /// Draw a single tick mark and return its computed geometry for label positioning
     /// - Returns: Tuple of (xPos, tickHeight) for use by label renderer
+    ///
+    /// Note: For better performance with many ticks, use `drawTicksBatched()` instead.
     @discardableResult
     func drawTick(
         context: inout GraphicsContext,
@@ -146,6 +159,96 @@ struct ScaleTickRenderer {
         }
         
         return (xPos, tickHeight)
+    }
+    
+    // MARK: - Batched Tick Drawing (Optimized)
+    
+    /// Represents pre-computed tick geometry for batched drawing
+    struct TickGeometry {
+        let xPos: CGFloat
+        let tickHeight: CGFloat
+        let startY: CGFloat
+        let endY: CGFloat
+        let lineWidth: CGFloat
+        let tickIndex: Int  // Reference back to original tick for label drawing
+    }
+    
+    /// Draw all tick marks in a single batched operation, grouped by line width.
+    /// Returns pre-computed geometry for each tick for use by label renderer.
+    ///
+    /// **Performance**: Single `withCGContext` call vs. one per tick.
+    /// Groups ticks by line width to minimize `setLineWidth` state changes.
+    func drawTicksBatched(
+        context: inout GraphicsContext,
+        tickMarks: [TickMark],
+        size: CGSize
+    ) -> [TickGeometry] {
+        // Pre-compute all tick geometry
+        var geometries: [TickGeometry] = []
+        geometries.reserveCapacity(tickMarks.count)
+        
+        // Group ticks by line width for batched drawing
+        // Using array of tuples instead of Dictionary to avoid allocation overhead
+        var ticksByWidth: [(width: CGFloat, path: CGMutablePath)] = []
+        
+        for (index, tick) in tickMarks.enumerated() {
+            // Skip invalid ticks
+            guard !tick.normalizedPosition.isNaN && !tick.normalizedPosition.isInfinite &&
+                  !tick.style.relativeLength.isNaN && !tick.style.relativeLength.isInfinite else {
+                geometries.append(TickGeometry(xPos: 0, tickHeight: 0, startY: 0, endY: 0, lineWidth: 0, tickIndex: index))
+                continue
+            }
+            
+            // Calculate geometry
+            let xPos = tick.normalizedPosition * size.width
+            let tickHeight = tick.style.relativeLength * (size.height * Self.kHeightMultiplier)
+            let lineWidth = tick.style.lineWidth * Self.kWidthMultiplier
+            
+            let (startY, endY): (CGFloat, CGFloat)
+            switch definition.tickDirection {
+            case .down:
+                startY = 0
+                endY = tickHeight
+            case .up:
+                startY = size.height
+                endY = size.height - tickHeight
+            }
+            
+            geometries.append(TickGeometry(
+                xPos: xPos,
+                tickHeight: tickHeight,
+                startY: startY,
+                endY: endY,
+                lineWidth: lineWidth,
+                tickIndex: index
+            ))
+            
+            // Find or create path for this line width
+            if let existingIndex = ticksByWidth.firstIndex(where: { $0.width == lineWidth }) {
+                ticksByWidth[existingIndex].path.move(to: CGPoint(x: xPos, y: startY))
+                ticksByWidth[existingIndex].path.addLine(to: CGPoint(x: xPos, y: endY))
+            } else {
+                let newPath = CGMutablePath()
+                newPath.move(to: CGPoint(x: xPos, y: startY))
+                newPath.addLine(to: CGPoint(x: xPos, y: endY))
+                ticksByWidth.append((width: lineWidth, path: newPath))
+            }
+        }
+        
+        // Draw all ticks in a single CGContext block
+        context.withCGContext { cgContext in
+            cgContext.setShouldAntialias(false)
+            cgContext.setStrokeColor(cachedTickCGColor)
+            
+            // Draw each line width group
+            for (width, path) in ticksByWidth {
+                cgContext.setLineWidth(width)
+                cgContext.addPath(path)
+                cgContext.strokePath()
+            }
+        }
+        
+        return geometries
     }
     
     // MARK: - Geometry Helpers

@@ -112,11 +112,12 @@ struct CursorOverlay: View {
                 let effectiveWidth = width  // Use passed scale width directly
                 let basePosition = cursorState.position(for: side) * effectiveWidth
                 
-                // Get current readings for this side
-                let readings = getReadingsForSide()
+                // CursorView reads currentReadings internally to isolate Observable dependency
+                // This prevents CursorOverlay.body from being invalidated on reading changes
                 CursorView(
                     height: height,
-                    readings: readings,
+                    cursorState: cursorState,  // Pass state, let CursorView read readings
+                    side: side,
                     scaleHeight: scaleHeight,
                     displayConfig: displayConfig,
                     showReadings: showReadings,
@@ -235,9 +236,12 @@ struct CursorOverlay: View {
                                 // Now in precision drag mode
                                 if let drag = drag {
                                     // Calculate highlighted scale index
+                                    // Use readings count from cursorState
+                                    let readingsCount = side == .front 
+                                        ? cursorState.currentReadings?.frontReadings.count ?? 0
+                                        : cursorState.currentReadings?.backReadings.count ?? 0
                                     let index = Int(floor(drag.location.y / scaleHeight))
-                                    let readings = getReadingsForSide()
-                                    if index >= 0 && index < readings.count {
+                                    if index >= 0 && index < readingsCount {
                                         highlightedScaleIndex = index
                                     } else {
                                         highlightedScaleIndex = nil
@@ -311,17 +315,6 @@ struct CursorOverlay: View {
     }
     
     // MARK: - Gesture Handlers
-    
-    /// Get readings array for the current side
-    private func getReadingsForSide() -> [ScaleReading] {
-        guard let side = side else { return [] }
-        
-        if side == .front {
-            return cursorState.currentReadings?.frontReadings ?? []
-        } else {
-            return cursorState.currentReadings?.backReadings ?? []
-        }
-    }
     
     /// Handle cursor drag - supports both normal and precision modes
     /// - Parameters:

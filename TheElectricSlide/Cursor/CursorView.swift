@@ -232,8 +232,9 @@ struct FontConfig {
             opacity: 1.0
         )
         
-        /// Precision mode gradient: saturated yellow for clear visual distinction
+        /// Precision mode gradient: saturated red-orange for clear visual distinction
         /// More intense than the default yellow to indicate precision mode is active
+        /// **Color Source:** SlideRuleColorScheme.precisionOverlayColor (red-orange: rgb(1.0, 0.4, 0.3))
         static let precision = GradientConfig(
             colors: [
                 Color(red: 1.0, green: 0.4, blue: 0.3).opacity(0.5),
@@ -262,6 +263,7 @@ struct FontConfig {
         
         /// Precision mode gradient for Faber-Castell: INTENSE saturated green
         /// Much more visible than normal green to clearly indicate precision mode
+        /// **Color Source:** SlideRuleColorScheme.faberCastell.precisionOverlayColor (green: rgb(0.2, 0.85, 0.4))
         static let precisionGreen = GradientConfig(
             colors: [
                 Color(red: 0.2, green: 0.85, blue: 0.4).opacity(0.7),

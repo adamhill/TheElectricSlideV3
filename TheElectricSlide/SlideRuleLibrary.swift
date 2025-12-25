@@ -275,7 +275,7 @@ struct SlideRuleLibrary {
             slideMM: 17.5,
             bottomStatorMM: 0,
             circularSpec: "circular:5inch",
-            sortOrder: 20
+            sortOrder: 30
         )
     }
     
@@ -290,7 +290,7 @@ struct SlideRuleLibrary {
             slideMM: 14,
             bottomStatorMM: 0,
             circularSpec: "circular:5inch",
-            sortOrder: 21
+            sortOrder: 31
         )
     }
     
@@ -304,7 +304,7 @@ struct SlideRuleLibrary {
             slideMM: 17.5,
             bottomStatorMM: 0,
             circularSpec: "circular:5inch",
-            sortOrder: 22
+            sortOrder: 32
         )
     }
 }

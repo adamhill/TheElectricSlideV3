@@ -75,7 +75,6 @@ struct SlideView: View, Equatable {
             // - Other manufacturers use red-orange overlay when scale highlights are not enabled
             if isPrecisionActive && !hasScaleHighlightsEnabled {
                 // Determine precision color based on manufacturer
-                // Faber-Castell gets green even when manufacturer colors are OFF
                 let precisionColor: Color = manufacturer == .faberCastell
                     ? Color(red: 0.2, green: 0.85, blue: 0.4)  // Green for F-C
                     : Color(red: 1.0, green: 0.4, blue: 0.3)   // Red-orange for others

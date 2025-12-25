@@ -229,9 +229,9 @@ Section("Display Options") {
 }
 ```
 
-### Option B: Header (Alternative)
+### Option B: Header (Not Implemented)
 
-Add to `StaticHeaderSection.swift` for always-visible access.
+Earlier drafts considered placing this toggle in `StaticHeaderSection.swift` for always-visible access, but the final architecture keeps the control in `SlideRuleSidebarView.swift` only to align with the sidebar-based rule details flow.
 
 ---
 

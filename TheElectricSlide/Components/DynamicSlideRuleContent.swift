@@ -93,31 +93,15 @@ struct DynamicSlideRuleContent: View {
     }
     
     var body: some View {
+        // Top padding accommodates cursor handle that extends above the slide rule frame
+        // The CursorView has a 16pt handle offset by -handleHeight, which would clip without this padding
         VStack(spacing: 0) {
-            // Consolidated cursor readings display - centered under title
-            // Shows readings based on cycle mode with tap-to-cycle gesture
-            VStack(spacing: 2) {
-                // NOTE: Rule name header is now in SlideRuleDetailView via safeAreaInset (all devices)
-                
-                // Cursor readings with tap-to-cycle - uses reusable CursorReadingsContainer
-                CursorReadingsContainer(
-                    viewMode: viewMode,
-                    cursorReadingCycleMode: $cursorReadingCycleMode,
-                    currentReadings: cursorState.currentReadings,
-                    hasBackSide: slideRule.backTopStator != nil
-                )
-                .padding(.horizontal, 8)
-            }
-            
-            // Spacer between cursor readings and slide rule (outside transforms)
-            Rectangle()
-                .fill(Color.clear)
-                .frame(height: 8)
+            // NOTE: Cursor readings display moved to SlideRuleDetailView's safeAreaInset header
+            // This keeps readings pinned at top and prevents layout changes during zoom/pan
             
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
                 VStack(spacing: 2) {
-                    
                     SideView(
                         side: .front,
                         topStator: slideRule.frontTopStator,
@@ -240,6 +224,7 @@ struct DynamicSlideRuleContent: View {
                 #endif
             }
         }
+        .padding(.top, 20)  // Space for cursor handle that extends above slide rule (handleHeight = 16pt + buffer)
         .frame(maxWidth: .infinity)
         .ignoresSafeArea(.container, edges: .horizontal)
         .padding(.horizontal, deviceCategory == .phone ? 8 : 20)

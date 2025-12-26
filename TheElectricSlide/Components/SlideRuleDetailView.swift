@@ -146,7 +146,8 @@ struct SlideRuleDetailView: View {
             // Uses safeAreaInset to keep header fixed at top during view mode transitions.
             // The header is layout-independent: content height changes don't affect header position.
             // Shows on ALL devices (iPhone, iPad, Mac) - iPhone also keeps FlipButton overlay.
-            .safeAreaInset(edge: .top, spacing: 0) {
+            // spacing: 16 ensures slide rule content doesn't clip under cursor readings at default zoom
+            .safeAreaInset(edge: .top, spacing: 16) {
                 combinedPickersSection
                     .background(systemBackgroundColor())
                 // Bottom border separator using overlay instead of Divider
@@ -177,42 +178,53 @@ struct SlideRuleDetailView: View {
         let availableModes = ViewMode.availableModes(for: deviceCategory).filter { mode in
             mode == .front || (currentSlideRule.backTopStator != nil)
         }
-        HStack(spacing: 16) {
-            // Slide rule name label with side indicator (matching iPhone styling, larger fonts)
-            if let ruleName = selectedRuleDefinition?.name {
-                HStack(spacing: 10) {
-                    Text(ruleName)
-                        .font(.title2.bold())
-                        .foregroundStyle(.primary)
-                    Text("•")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
+        VStack(spacing: 4) {
+            // Row 1: Rule name and side indicator
+            HStack(spacing: 16) {
+                // Slide rule name label with side indicator (matching iPhone styling, larger fonts)
+                if let ruleName = selectedRuleDefinition?.name {
+                    HStack(spacing: 10) {
+                        Text(ruleName)
+                            .font(.title2.bold())
+                            .foregroundStyle(.primary)
+                        Text("•")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                        Text(viewMode == .front ? "Front" : (viewMode == .back ? "Back" : "Both"))
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
+                    .accessibilityIdentifier("currentSlideRuleName")
                 }
-                .accessibilityLabel("Current slide rule: \(ruleName), \(viewMode.rawValue) side")
-                .accessibilityIdentifier("currentSlideRuleName")
+                Spacer()
             }
-            Spacer()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // Cycle through available view modes: Front → Back → Both → Front...
+                guard availableModes.count > 1 else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if let currentIndex = availableModes.firstIndex(of: viewMode) {
+                        let nextIndex = (currentIndex + 1) % availableModes.count
+                        viewMode = availableModes[nextIndex]
+                    } else {
+                        // Fallback: if current mode not in available modes, select first
+                        viewMode = availableModes[0]
+                    }
+                }
+            }
+            .accessibilityHint("Tap to cycle through view modes: Front, Back, Both")
+            
+            // Row 2: Cursor readings display
+            CursorReadingsContainer(
+                viewMode: viewMode,
+                cursorReadingCycleMode: $cursorReadingCycleMode,
+                currentReadings: cursorState.currentReadings,
+                hasBackSide: currentSlideRule.backTopStator != nil
+            )
         }
         .frame(maxWidth: .infinity, minHeight: 44)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // Cycle through available view modes: Front → Back → Both → Front...
-            guard availableModes.count > 1 else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                if let currentIndex = availableModes.firstIndex(of: viewMode) {
-                    let nextIndex = (currentIndex + 1) % availableModes.count
-                    viewMode = availableModes[nextIndex]
-                } else {
-                    // Fallback: if current mode not in available modes, select first
-                    viewMode = availableModes[0]
-                }
-            }
-        }
-        .accessibilityHint("Tap to cycle through view modes: Front, Back, Both")
     }
 }

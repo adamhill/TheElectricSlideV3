@@ -35,40 +35,36 @@ struct CursorReadingsDisplayView: View, Equatable {
     }
     
     var body: some View {
-        if readings.isEmpty {
-            // Gracefully handle empty readings - show minimal placeholder
-            Text("  ")
-                .font(.system(size: 12).monospaced())
-                .foregroundStyle(.secondary)
-                .frame(height: 24)
-        } else {
-            // Horizontal flow of readings with side indicator
-            HStack(spacing: 4) {
-                // F/B indicator on the left
-                Text(side == .front ? "F" : "B")
-                    .font(.system(size: 14, weight: .bold).monospaced())
-                    .foregroundStyle(side == .front ? .blue : .green)
-                    .frame(width: 18, alignment: .center)
-                    .padding(.leading, 4)
-                
-                // Readings scroll view - maximize horizontal space
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 2) {
+        #if DEBUG
+        let _ = print("📊 CursorReadingsDisplayView[\(side.rawValue)]: \(readings.count) readings, first scaleName: \(readings.first?.scaleName ?? "none"), first displayValue: \(readings.first?.displayValue ?? "none")")
+        #endif
+        
+        // Use Color.clear as the size-defining element, with content as overlay
+        // This prevents the readings HStack from expanding the parent layout
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 32)
+            .background(backgroundColor.opacity(0.5))
+            .overlay(alignment: .leading) {
+                // Content overlaid - clips to container bounds
+                HStack(spacing: 8) {
+                    // F/B indicator
+                    Text(side == .front ? "F" : "B")
+                        .font(.system(size: 14, weight: .bold).monospaced())
+                        .foregroundStyle(side == .front ? .blue : .green)
+                        .frame(width: 16)
+                    
+                    // Readings in plain HStack - will be clipped if too wide
+                    HStack(spacing: 4) {
                         ForEach(readings) { reading in
                             readingView(for: reading)
                         }
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
                 }
-                .frame(maxWidth: .infinity)  // Maximize horizontal space
-                .clipped()  // Prevent overflow
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             }
-            .frame(height: 28)
-            .padding(.vertical, 0)
-            .background(backgroundColor.opacity(0.5))
-            .cornerRadius(4)
-        }
+            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
     
     /// Returns fixed cell width optimized for each scale's name + typical value length

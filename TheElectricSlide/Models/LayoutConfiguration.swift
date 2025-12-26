@@ -76,14 +76,19 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     ///   - availableHeight: Available height from geometry
     ///   - viewMode: Current view mode (front, back, both)
     ///   - slideRule: The current slide rule for scale counts
+    ///   - deviceCategory: Device category for platform-specific adjustments
     /// - Returns: Calculated dimensions for layout
     nonisolated static func calculate(
         availableWidth: CGFloat,
         availableHeight: CGFloat,
         viewMode: ViewMode,
-        slideRule: SlideRule
+        slideRule: SlideRule,
+        deviceCategory: DeviceCategory = .mac
     ) -> Dimensions {
-        let maxWidth = availableWidth
+        // Account for device-specific horizontal padding applied in DynamicSlideRuleContent
+        // iPhone: 8pt × 2 = 16pt, iPad/Mac: 20pt × 2 = 40pt
+        let devicePadding: CGFloat = deviceCategory == .phone ? 16 : 40
+        let maxWidth = availableWidth - devicePadding
         let maxHeight = availableHeight - (padding * 2)
         
         // Determine layout tier based on available width

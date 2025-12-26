@@ -36,6 +36,10 @@ struct CursorReadingsContainer: View {
         let frontReadings = currentReadings?.frontReadings ?? []
         let backReadings = currentReadings?.backReadings ?? []
         
+        #if DEBUG
+        let _ = print("📊 CursorReadingsContainer: frontReadings=\(frontReadings.count), backReadings=\(backReadings.count), currentReadings=\(currentReadings != nil ? "present" : "nil")")
+        #endif
+        
         // Determine which readings to show based on cycle mode and current view mode
         // Cycle mode controls display for all view modes, allowing selective reading visibility
         let (shouldShowFront, shouldShowBack): (Bool, Bool) = {
@@ -81,22 +85,22 @@ struct CursorReadingsContainer: View {
         
         // Stacked layout with tap gesture - negative spacing for tight rows
         VStack(spacing: -4) {
-            if shouldShowFront {
+            if shouldShowFront && !frontReadings.isEmpty {
                 CursorReadingsDisplayView(
                     readings: frontReadings,
                     side: .front
                 )
-                .equatable()
+                // NOTE: .equatable() removed during debugging - was potentially blocking updates
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 0)
             }
             
-            if shouldShowBack {
+            if shouldShowBack && !backReadings.isEmpty {
                 CursorReadingsDisplayView(
                     readings: backReadings,
                     side: .back
                 )
-                .equatable()
+                // NOTE: .equatable() removed during debugging - was potentially blocking updates
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 0)
             }

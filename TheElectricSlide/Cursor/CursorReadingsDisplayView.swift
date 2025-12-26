@@ -71,65 +71,54 @@ struct CursorReadingsDisplayView: View, Equatable {
     /// - Width is FIXED for a given scale (no jumping)
     /// - Different scales have different widths based on their value range
     private func cellWidth(for scaleName: String) -> CGFloat {
-        // Character width estimate: ~8pt per monospace char at size 12-14 (iPad)
+        // Character width estimate: ~7pt per monospace char at size 11-13
         // Plus 8pt padding (4pt each side)
         let charWidth: CGFloat = 7
         let padding: CGFloat = 8
         
         switch scaleName {
-        // Tighter 1-char names: C, D, S, T (values stay compact)
+        // Compact 1-char names with typical values
         case "C", "D", "S", "T", "ω", "τ":
-            // 1 char name + space + 5 chars value = 6 chars
-            return charWidth * 7 + padding  // ~61pt
+            return charWidth * 7 + padding  // 57pt
             
-        // Simple 1-char names with small values (1-10 range: "X.XX" = 4 chars)
+        // 1-char names needing slightly more room
         case "A", "B", "K", "CosΘ":
-            // 1 char name + space + 5 chars value = 6 chars
-            // K goes to 1000 but formatted as "999.9" = 5 chars
-            return charWidth * 8 + padding  // ~61pt
+            return charWidth * 8 + padding  // 64pt
             
-        // L scale needs extra width to prevent wrapping
+        // Scales needing extra width for visual spacing
         case "L", "λ", "D/Q", "SH2":
-            // 1 char name + space + 5 chars value = 6 chars, but needs +2 extra for visual spacing
-            return charWidth * 9 + padding  // ~75pt
+            return charWidth * 9 + padding  // 71pt
             
-        // Tighter 2-char names: CI
+        // Compact 2-char names
         case "Xc", "XL":
-            // 2 char name + space + 5 chars value = 7 chars
-            return charWidth * 7 + padding  // ~68pt
+            return charWidth * 7 + padding  // 57pt
             
-        // ST scale needs extra width (+2 multiplier from CI)
+        // ST scale
         case "ST":
-            // 2 char name + space + 5 chars value = 7 chars + extra for visual spacing
-            return charWidth * 8 + padding  // ~82pt
+            return charWidth * 8 + padding  // 64pt
             
-        // 2-char names with small values
+        // Standard 2-char names
         case "DI", "CI", "CF", "DF", "BI", "db", "PF":
-            // 2 char name + space + 5 chars value = 7 chars
-            return charWidth * 8 + padding  // ~68pt
+            return charWidth * 8 + padding  // 64pt
             
         // 3-char names
         case "CIF", "DIF":
-            // 3 char name + space + 5 chars value = 8 chars
-            return charWidth * 9 + padding  // ~75pt
+            return charWidth * 9 + padding  // 71pt
             
-        // LL scales (3-4 char names with longer values)
+        // LL scales with longer values
         case "LL1", "LL3":
-            // 3 char name + space + 6 chars value = 9 chars
-            return charWidth * 11 + padding  // ~89pt
+            return charWidth * 11 + padding  // 85pt
             
-        // LL2 needs extra width to prevent clipping on K&E 4081
+        // LL2 needs extra width to prevent clipping
         case "LL2":
-            // 3 char name + space + 5 chars value = 8 chars + extra to prevent overlap with FlipButton
-            return charWidth * 13 + padding  // ~110pt
+            return charWidth * 13 + padding  // 99pt
             
+        // 4-char LL scales
         case "LL01", "LL02", "LL03", "LL00":
-            // 4 char name + space + 5 chars value = 9 chars
-            return charWidth * 12 + padding  // ~96pt
+            return charWidth * 12 + padding  // 92pt
             
         default:
-            // Fallback for unknown scales
-            return charWidth * 10 + padding  // ~82pt
+            return charWidth * 10 + padding  // 78pt
         }
     }
     
@@ -143,7 +132,7 @@ struct CursorReadingsDisplayView: View, Equatable {
                 .foregroundStyle(.secondary)
             
             Text(reading.displayValue)
-                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .font(.system(size: 12.5, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Color.accentColor)
         }
         .padding(.horizontal, 2)

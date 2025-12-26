@@ -69,20 +69,8 @@ struct SlideRuleDetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header controls (ViewMode picker for iPad/Mac)
-            // NOTE: Cursor Display picker is now in the sidebar
-            if deviceCategory.supportsMultiSideView {
-                VStack(spacing: 0) {
-                    Divider()
-                    
-                    combinedPickersSection
-                    
-                    Divider()
-                }
-                .background(systemBackgroundColor())
-                .allowsHitTesting(true)
-                .zIndex(100)
-            }
+            // NOTE: Header with rule name and view mode is now ONLY in safeAreaInset(edge: .top)
+            // to avoid duplication. Previously had duplicate header here for iPad/Mac.
             
             // Dynamic content - responds to sliderOffset and zoom
             DynamicSlideRuleContent(

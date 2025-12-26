@@ -176,7 +176,8 @@ struct ContentView: View {
                         availableWidth: size.width,
                         availableHeight: size.height,
                         viewMode: viewMode,
-                        slideRule: currentSlideRule
+                        slideRule: currentSlideRule,
+                        deviceCategory: deviceCategory
                     )
                 } action: { newDimensions in
                     // Disable animation on geometry changes to prevent drawingGroup cache issues

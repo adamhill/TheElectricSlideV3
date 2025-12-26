@@ -145,8 +145,15 @@ final class CursorState {
     /// Update readings for a specific position (used during drag)
     /// - Parameter position: The position to calculate readings for (0.0-1.0)
     func updateReadings(at position: Double) {
+        #if DEBUG
+        print("📊 updateReadings(at: \(position)) - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil ? "set" : "nil")")
+        #endif
+        
         guard enableReadings,
               let provider = slideRuleProvider else {
+            #if DEBUG
+            print("📊 updateReadings: GUARD FAILED - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil)")
+            #endif
             currentReadings = nil
             return
         }
@@ -228,6 +235,10 @@ final class CursorState {
         side: RuleSide
     ) -> [ScaleReading] {
         var readings: [ScaleReading] = []
+        
+        #if DEBUG
+        print("📊 queryScales[\(side.rawValue)]: topStator=\(topStator.scales.count), slide=\(slide.scales.count), bottomStator=\(bottomStator.scales.count), scaleWidth=\(scaleWidth)")
+        #endif
         
         // Read top stator scales (fixed, no offset needed)
         var componentPosition = 0

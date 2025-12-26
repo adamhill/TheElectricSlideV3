@@ -13,7 +13,11 @@ import SlideRuleCoreV3
 
 /// Represents a single scale reading at the cursor position
 struct ScaleReading: Sendable, Identifiable {
-    let id = UUID()
+    /// Unique identifier based on scale name, side, and component position
+    /// Using a computed stable ID instead of UUID() which changes on each struct copy
+    var id: String {
+        "\(scaleName)-\(side.rawValue)-\(component.rawValue)-\(componentPosition)"
+    }
     
     /// Scale identifier (e.g., "C", "D", "A", "K")
     let scaleName: String

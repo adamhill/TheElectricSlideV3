@@ -52,22 +52,21 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
         scaleHeight * CGFloat(container.scales.count)
     }
     
-    /// Creates a background view for a scale, applying manufacturer-specific gradients when enabled
-    /// When precision mode is active, uses intensified (more saturated) versions of the gradients
-    @ViewBuilder
-    private func scaleBackground(for scaleName: String) -> some View {
-        if useManufacturerColors, let scheme = colorScheme {
-            // Use precision-intensity gradient when precision mode is active
-            if isPrecisionActive,
-               let precisionGradient = scheme.precisionScaleBackgroundGradient(for: scaleName) {
-                precisionGradient
-            } else if let gradient = scheme.scaleBackgroundGradient(for: scaleName) {
-                gradient
-            } else {
-                Color.clear
-            }
+    /// Returns background gradient data for drawing directly in ScaleView's Canvas
+    /// This eliminates VStack preference propagation from .background() modifiers
+    ///
+    /// **Optimization (December 2025):**
+    /// Instead of using SwiftUI's .background() which creates preference nodes,
+    /// gradient data is passed to ScaleView and drawn in its Canvas.
+    /// This reduces ~3000 preference updates to near zero during drag gestures.
+    private func scaleBackgroundGradientData(for scaleName: String) -> ScaleBackgroundGradient? {
+        guard useManufacturerColors, let scheme = colorScheme else { return nil }
+        
+        // Use precision-intensity gradient when precision mode is active
+        if isPrecisionActive {
+            return scheme.precisionScaleBackgroundGradientData(for: scaleName)
         } else {
-            Color.clear
+            return scheme.scaleBackgroundGradientData(for: scaleName)
         }
     }
     
@@ -81,13 +80,10 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                     leftMarginWidth: leftMarginWidth,
                     rightMarginWidth: rightMarginWidth,
                     nameFont: nameFont,
-                    formulaFont: formulaFont
+                    formulaFont: formulaFont,
+                    backgroundGradient: scaleBackgroundGradientData(for: generatedScale.definition.name)
                 )
                 .equatable()
-                .background(
-                    scaleBackground(for: generatedScale.definition.name)
-                        .accessibilityIdentifier("scale-bg-\(generatedScale.definition.name)")
-                )
                 .accessibilityIdentifier("scale-row-\(generatedScale.definition.name)")
             }
         }

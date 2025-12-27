@@ -455,6 +455,88 @@ extension SlideRuleColorScheme {
     }
 }
 
+// MARK: - Canvas-Drawable Gradient Types
+
+/// A gradient stop that can be drawn directly in Canvas/CGContext
+/// This avoids using SwiftUI's LinearGradient which creates preference nodes
+public struct CanvasGradientStop: Sendable, Equatable {
+    public let color: Color
+    public let location: CGFloat
+    
+    public init(color: Color, location: CGFloat) {
+        self.color = color
+        self.location = location
+    }
+}
+
+/// Background gradient data that can be drawn in Canvas without preference propagation
+/// Used instead of SwiftUI's LinearGradient to avoid VStack preference updates
+public struct ScaleBackgroundGradient: Sendable, Equatable {
+    public let stops: [CanvasGradientStop]
+    public let isVertical: Bool  // true = top-to-bottom, false = left-to-right
+    
+    public init(stops: [CanvasGradientStop], isVertical: Bool = true) {
+        self.stops = stops
+        self.isVertical = isVertical
+    }
+}
+
+// MARK: - Canvas Gradient Extensions
+
+extension SlideRuleColorScheme {
+    /// Returns raw gradient stop data for drawing scale backgrounds in Canvas
+    /// This eliminates preference propagation caused by SwiftUI's .background() modifier
+    ///
+    /// - Parameter scaleName: The canonical name of the scale (e.g., "C", "D", "A", "B")
+    /// - Returns: ScaleBackgroundGradient if the scale should be highlighted, nil otherwise
+    func scaleBackgroundGradientData(for scaleName: String) -> ScaleBackgroundGradient? {
+        let highlightColor: Color?
+        
+        if ScaleColorMapping.primaryHighlightScales.contains(scaleName) {
+            highlightColor = primaryHighlight
+        } else if ScaleColorMapping.secondaryHighlightScales.contains(scaleName) {
+            highlightColor = secondaryHighlight
+        } else {
+            return nil
+        }
+        
+        guard let color = highlightColor else { return nil }
+        
+        return ScaleBackgroundGradient(stops: [
+            CanvasGradientStop(color: color.opacity(0.4), location: 0.0),
+            CanvasGradientStop(color: color.opacity(0.85), location: 0.12),
+            CanvasGradientStop(color: color.opacity(0.85), location: 0.88),
+            CanvasGradientStop(color: color.opacity(0.4), location: 1.0)
+        ])
+    }
+    
+    /// Returns precision-intensity gradient stop data for drawing in Canvas
+    /// Used when precision mode is active - colors are more saturated/intense
+    ///
+    /// - Parameter scaleName: The canonical name of the scale (e.g., "C", "D", "A", "B")
+    /// - Returns: ScaleBackgroundGradient with intensified colors if highlighted, nil otherwise
+    func precisionScaleBackgroundGradientData(for scaleName: String) -> ScaleBackgroundGradient? {
+        let highlightColor: Color?
+        
+        if ScaleColorMapping.primaryHighlightScales.contains(scaleName) {
+            highlightColor = primaryHighlight
+        } else if ScaleColorMapping.secondaryHighlightScales.contains(scaleName) {
+            highlightColor = secondaryHighlight
+        } else {
+            return nil
+        }
+        
+        guard let color = highlightColor else { return nil }
+        
+        return ScaleBackgroundGradient(stops: [
+            CanvasGradientStop(color: color.opacity(0.8), location: 0.0),
+            CanvasGradientStop(color: color.opacity(1.0), location: 0.12),
+            CanvasGradientStop(color: color.opacity(1.0), location: 0.88),
+            CanvasGradientStop(color: color.opacity(0.8), location: 1.0)
+        ])
+    }
+}
+
 // MARK: - Scale-Specific Color Application
 
 /// Defines which scales receive which color treatments

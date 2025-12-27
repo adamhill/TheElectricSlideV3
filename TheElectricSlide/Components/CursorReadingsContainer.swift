@@ -90,7 +90,7 @@ struct CursorReadingsContainer: View {
                     readings: frontReadings,
                     side: .front
                 )
-                // NOTE: .equatable() removed during debugging - was potentially blocking updates
+                .equatable()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 0)
             }
@@ -100,7 +100,7 @@ struct CursorReadingsContainer: View {
                     readings: backReadings,
                     side: .back
                 )
-                // NOTE: .equatable() removed during debugging - was potentially blocking updates
+                .equatable()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 0)
             }

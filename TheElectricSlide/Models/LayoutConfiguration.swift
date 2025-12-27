@@ -83,7 +83,7 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
         availableHeight: CGFloat,
         viewMode: ViewMode,
         slideRule: SlideRule,
-        deviceCategory: DeviceCategory = .mac
+        deviceCategory: DeviceCategory
     ) -> Dimensions {
         // Account for device-specific horizontal padding applied in DynamicSlideRuleContent
         // iPhone: 8pt × 2 = 16pt, iPad/Mac: 20pt × 2 = 40pt

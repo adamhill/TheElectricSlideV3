@@ -124,6 +124,9 @@ struct SideView: View, Equatable {
     }
     
     var body: some View {
+        // 🔍 DIAGNOSTIC: See which properties trigger body re-evaluation
+        let _ = Self._printChanges()
+        
         VStack(spacing: 0) {
             // Top Stator (Fixed)
             StatorView(

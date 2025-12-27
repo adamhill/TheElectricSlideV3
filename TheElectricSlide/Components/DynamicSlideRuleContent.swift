@@ -93,6 +93,9 @@ struct DynamicSlideRuleContent: View {
     }
     
     var body: some View {
+        // 🔍 DIAGNOSTIC: See which properties trigger body re-evaluation
+        let _ = Self._printChanges()
+
         // Top padding accommodates cursor handle that extends above the slide rule frame
         // The CursorView has a 16pt handle offset by -handleHeight, which would clip without this padding
         VStack(spacing: 0) {

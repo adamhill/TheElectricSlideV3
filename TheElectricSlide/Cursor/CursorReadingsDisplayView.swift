@@ -18,11 +18,16 @@ struct CursorReadingsDisplayView: View, Equatable {
     
     // MARK: - Equatable Conformance
     
-    /// Compare views based on side and display values only
-    /// This prevents unnecessary redraws when display strings haven't changed
+    /// Compare views based on side, scale names, and display values
+    /// This prevents unnecessary redraws when display content hasn't changed
+    /// while ensuring updates when scales or values change
     static func == (lhs: CursorReadingsDisplayView, rhs: CursorReadingsDisplayView) -> Bool {
-        lhs.side == rhs.side &&
-        lhs.readings.elementsEqual(rhs.readings) { $0.displayValue == $1.displayValue }
+        guard lhs.side == rhs.side else { return false }
+        guard lhs.readings.count == rhs.readings.count else { return false }
+        
+        return lhs.readings.elementsEqual(rhs.readings) {
+            $0.scaleName == $1.scaleName && $0.displayValue == $1.displayValue
+        }
     }
     
     /// Cross-platform background color for the readings container

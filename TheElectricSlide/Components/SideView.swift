@@ -75,7 +75,18 @@ struct SideView: View, Equatable {
     /// This is the recommended approach for dynamically enabling/disabling gestures.
     private var isSlideDragEnabled: Bool {
         // Disable when magnification (pinch-zoom) or flick gesture is active
-        !(viewModel?.isMagnifying ?? false) && !(viewModel?.isFlipping ?? false)
+        let isMagnifying = viewModel?.isMagnifying ?? false
+        let isFlipping = viewModel?.isFlipping ?? false
+        let enabled = !isMagnifying && !isFlipping
+        
+        #if DEBUG
+        // Log when gestures are disabled - this is a key diagnostic for sticking
+        if !enabled {
+            print("🚫 [isSlideDragEnabled] DISABLED side=\(side) isMagnifying=\(isMagnifying) isFlipping=\(isFlipping)")
+        }
+        #endif
+        
+        return enabled
     }
     
     // ✅ Equatable conformance - only compare properties affecting rendering
@@ -174,6 +185,21 @@ struct SideView: View, Equatable {
             .gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
                     .onChanged { gesture in
+                        #if DEBUG
+                        // DIAGNOSTIC: Log all blocking conditions to debug slide sticking
+                        let isMagnifying = viewModel?.isMagnifying ?? false
+                        let isFlipping = viewModel?.isFlipping ?? false
+                        let precisionTarget = precisionCoordinator.activeTarget
+                        let isPrecisionBlocking = { if case .slide = precisionTarget { return true } else { return false } }()
+                        
+                        print("🔵 [Slide.NormalDrag.onChanged] side=\(side) " +
+                              "translation=(\(String(format: "%.1f", gesture.translation.width)), \(String(format: "%.1f", gesture.translation.height))) " +
+                              "isSlideDragEnabled=\(isSlideDragEnabled) " +
+                              "isMagnifying=\(isMagnifying) isFlipping=\(isFlipping) " +
+                              "precisionBlocking=\(isPrecisionBlocking) " +
+                              "precisionTarget=\(String(describing: precisionTarget))")
+                        #endif
+                        
                         // Block if precision sequence is active for ANY slide (prevents conflicting moves)
                         if case .slide = precisionCoordinator.activeTarget {
                             #if DEBUG
@@ -283,11 +309,16 @@ struct SideView: View, Equatable {
                 // MARK: Flip Gesture Mutex Lock
                 // Track gesture state to disable competing gestures
                 .updating($isFlippingGesture) { value, state, _ in
-                    // Only lock if gesture is vertically dominant to allow horizontal slides
-                    // to continue working even if they exceed minimum distance
+                    // Only lock if gesture is clearly a vertical flip intent:
+                    // - Pure vertical (horizontal < 10pt, vertical > 40pt) OR
+                    // - Dominant vertical (horizontal > 15pt, vertical > 2× horizontal, vertical > 25pt)
                     let vertical = abs(value.translation.height)
                     let horizontal = abs(value.translation.width)
-                    if vertical > horizontal {
+                    
+                    let isPureVertical = horizontal < 10 && vertical > 40
+                    let isDominantVertical = horizontal > 15 && vertical > horizontal * 2.0 && vertical > 25
+                    
+                    if isPureVertical || isDominantVertical {
                         state = true
                     }
                 }
@@ -303,16 +334,50 @@ struct SideView: View, Equatable {
                     }
                     
                     // Update mutex lock state in ViewModel (COLD property)
+                    // FIX: Use strict criteria to prevent false positives during slide drag:
+                    // 1. Must have meaningful horizontal movement (>15pt) to compare ratio
+                    //    - Prevents end-of-drag finger drift from triggering
+                    // 2. Vertical must dominate by 2× (stricter than 1.5× onEnded threshold)
+                    // 3. Vertical must exceed 25pt minimum
                     let vertical = abs(gesture.translation.height)
                     let horizontal = abs(gesture.translation.width)
-                    if vertical > horizontal {
+                    
+                    // Require meaningful horizontal movement before ratio comparison
+                    // If horizontal < 15pt, the ratio is meaningless (end-of-drag drift)
+                    let hasSignificantHorizontal = horizontal > 15
+                    let isVerticalDominant = vertical > horizontal * 2.0  // Stricter ratio
+                    let meetsMinimumThreshold = vertical > 25  // Higher threshold
+                    
+                    // Only activate if this looks like an intentional vertical gesture:
+                    // - Either purely vertical (minimal horizontal)
+                    // - Or strongly vertical dominant with significant horizontal
+                    let isPureVertical = horizontal < 10 && vertical > 40
+                    let isDominantVertical = hasSignificantHorizontal && isVerticalDominant && meetsMinimumThreshold
+                    
+                    if isPureVertical || isDominantVertical {
                         viewModel?.setFlippingActive(true)
+                        #if DEBUG
+                        print("🔴 [FlipGesture.onChanged] ACTIVATED isFlipping=true " +
+                              "vertical=\(String(format: "%.1f", vertical)) horizontal=\(String(format: "%.1f", horizontal)) " +
+                              "reason=\(isPureVertical ? "pureVertical" : "dominantVertical")")
+                        #endif
                     } else {
-                        // Release lock if gesture becomes horizontal
+                        // Release lock if gesture doesn't meet flip criteria
+                        let wasFlipping = viewModel?.isFlipping ?? false
                         viewModel?.setFlippingActive(false)
+                        #if DEBUG
+                        if wasFlipping {
+                            print("🟢 [FlipGesture.onChanged] DEACTIVATED isFlipping=false " +
+                                  "(gesture doesn't meet flip criteria)")
+                        }
+                        #endif
                     }
                 }
                 .onEnded { gesture in
+                    #if DEBUG
+                    print("🟢 [FlipGesture.onEnded] Releasing mutex, was isFlipping=\(viewModel?.isFlipping ?? false)")
+                    #endif
+                    
                     // Phase 6: Disable flip gesture when zoomed in
                     if currentZoomScale > 1.0 {
                         viewModel?.setFlippingActive(false)

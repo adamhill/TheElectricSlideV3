@@ -183,20 +183,6 @@ struct SideView: View, Equatable {
                         // Mark slide drag as active (blocks flip gesture)
                         isSlideDragActive = true
                         
-                        #if DEBUG
-                        // DIAGNOSTIC: Log all blocking conditions to debug slide sticking
-                        let isMagnifying = viewModel?.isMagnifying ?? false
-                        let precisionTarget = precisionCoordinator.activeTarget
-                        let isPrecisionBlocking = { if case .slide = precisionTarget { return true } else { return false } }()
-                        
-                        print("🔵 [Slide.NormalDrag.onChanged] side=\(side) " +
-                              "translation=(\(String(format: "%.1f", gesture.translation.width)), \(String(format: "%.1f", gesture.translation.height))) " +
-                              "isSlideDragEnabled=\(isSlideDragEnabled) " +
-                              "isMagnifying=\(isMagnifying) " +
-                              "precisionBlocking=\(isPrecisionBlocking) " +
-                              "precisionTarget=\(String(describing: precisionTarget))")
-                        #endif
-                        
                         // Block if precision sequence is active for ANY slide (prevents conflicting moves)
                         if case .slide = precisionCoordinator.activeTarget {
                             #if DEBUG
@@ -380,5 +366,6 @@ struct SideView: View, Equatable {
                 }
         )
         #endif
+        .accessibilityIdentifier("side-view-\(side.rawValue)")
     }
 }

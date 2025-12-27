@@ -90,6 +90,7 @@ struct ScaleView: View, Equatable {
                 .font(nameFont)
                 .foregroundColor(self.scaleLabelColor)
                 .frame(width: leftMarginWidth, alignment: .trailing)
+                .accessibilityIdentifier("scale-name-\(scaleLabel)")
             
             // Scale view
             ZStack(alignment: .topLeading) {
@@ -104,9 +105,11 @@ struct ScaleView: View, Equatable {
                     )
                 }
                 .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
+                .accessibilityIdentifier("scale-canvas-\(generatedScale.definition.name)")
             }
             .frame(width: width)
             .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
+            .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
             
             // Formula label on the right (left-aligned with responsive width)
             Text(generatedScale.definition.formula)
@@ -114,7 +117,9 @@ struct ScaleView: View, Equatable {
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
                 .frame(width: rightMarginWidth, alignment: .leading)
+                .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
         }
+        .accessibilityIdentifier("scaleview-\(generatedScale.definition.name)")
     }
     
     /// Draw the scale with pre-computed tick marks

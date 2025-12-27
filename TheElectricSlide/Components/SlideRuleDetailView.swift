@@ -222,6 +222,7 @@ struct SlideRuleDetailView: View {
                 currentReadings: cursorState.currentReadings,
                 hasBackSide: currentSlideRule.backTopStator != nil
             )
+            .equatable()
         }
         .frame(maxWidth: .infinity, minHeight: 44)
         .padding(.horizontal)

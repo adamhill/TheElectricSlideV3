@@ -140,10 +140,6 @@ final class GestureHandler: GestureHandlerProtocol {
     /// Marks cursor state as dragging, delegates to viewModel, and triggers tick haptics.
     /// Also checks for boundary hits and fires haptic feedback.
     func handleSlideDragChanged(_ gesture: DragGesture.Value, isPrecision: Bool) {
-        #if DEBUG
-        print("🎯 [Drag] handleSlideDragChanged: translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height))) zoom=\(String(format: "%.2f", viewModel.currentZoomScale)) isZoomed=\(viewModel.isZoomed) isPrecision=\(isPrecision) directionLock=\(currentSlideGestureDirection.map { String(describing: $0) } ?? "nil")")
-        #endif
-        
         // PHASE 6: Vertical Panning Support
         // If zoomed in and not in precision mode, check for vertical pan intent
         if viewModel.isZoomed && !isPrecision {
@@ -157,21 +153,12 @@ final class GestureHandler: GestureHandlerProtocol {
                     if dy > dx * 1.5 { // Vertical bias for pan
                         currentSlideGestureDirection = .vertical
                         viewModel.setPanningSlideActive(true)
-                        #if DEBUG
-                        print("🎯 [Drag] Direction LOCKED to VERTICAL (panning)")
-                        #endif
                     } else {
                         currentSlideGestureDirection = .horizontal
                         viewModel.setPanningSlideActive(false)
-                        #if DEBUG
-                        print("🎯 [Drag] Direction LOCKED to HORIZONTAL (slide)")
-                        #endif
                     }
                 } else {
                     // Waiting for threshold - swallow small movements to prevent jitter
-                    #if DEBUG
-                    print("🎯 [Drag] SWALLOWED - below 10pt threshold (dx=\(String(format: "%.2f", dx)), dy=\(String(format: "%.2f", dy)))")
-                    #endif
                     return
                 }
             }

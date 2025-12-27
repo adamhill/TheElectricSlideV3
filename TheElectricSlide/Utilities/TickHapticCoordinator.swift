@@ -129,7 +129,6 @@ final class TickHapticCoordinator {
         
         // We crossed to a new tick - trigger haptic
         lastTriggeredTickPosition = tickPosition
-        tickHapticLogger.info("🎯 HAPTIC TRIGGERED: tick pos=\(tickPosition, format: .fixed(precision: 4)), relLen=\(nearestTick.style.relativeLength, format: .fixed(precision: 2))")
         
         // Use the new HapticService with TickLevel conversion
         let tickLevel = HapticEvent.TickLevel(relativeLength: nearestTick.style.relativeLength)

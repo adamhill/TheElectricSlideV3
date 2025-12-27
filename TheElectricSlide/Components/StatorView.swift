@@ -104,5 +104,6 @@ struct StatorView: View, Equatable {
                     cursorState?.setStatorTouched()
                 }
         )
+        .accessibilityIdentifier("stator-view-root")
     }
 }

@@ -86,22 +86,28 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                 .equatable()
                 .background(
                     scaleBackground(for: generatedScale.definition.name)
+                        .accessibilityIdentifier("scale-bg-\(generatedScale.definition.name)")
                 )
+                .accessibilityIdentifier("scale-row-\(generatedScale.definition.name)")
             }
         }
+        .accessibilityIdentifier("scale-container-vstack")
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(backgroundColor)
+                .accessibilityIdentifier("scale-container-bg")
         )
         .overlay(
             Group {
                 if container.showBorder {
                     RoundedRectangle(cornerRadius: 4)
                         .stroke(borderColor, lineWidth: 2)
+                        .accessibilityIdentifier("scale-container-border")
                 }
             }
         )
         .frame(width: width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
+        .accessibilityIdentifier("scale-container-root")
     }
 }

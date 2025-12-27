@@ -930,6 +930,16 @@ public enum StandardScales {
     /// inverse transformed during tick generation. Starting at 0.001 is mathematically valid
     /// and provides effectively the same range as the intended 0 to 10×ln(10).
     ///
+    /// **APPROXIMATION NOTICE**: This scale does NOT represent the full mathematical domain
+    /// of the natural logarithm function. The domain [0, +∞) has been approximated as [0.001, 23.026]
+    /// to avoid undefined behavior at ln(0) = -∞. Cursor readings at positions intended to represent
+    /// values near 0 will instead show 0.001 as the minimum value. This is acceptable for practical
+    /// slide rule use, as values below 0.001 would be imperceptible at typical scale resolutions.
+    ///
+    /// **COMPATIBILITY WARNING**: External code that depends on this scale definition (PDF generation,
+    /// external calculations, serialization) may be affected by this range change. Any code expecting
+    /// a begin value of 0 should be updated to handle begin = 0.001.
+    ///
     /// **RENDERING FIX**: Added multiple subsections to cover full range 0.001 to 23.026.
     /// Previous implementation only had one subsection covering 0.001 to ~1.0, leaving
     /// most of the scale with no ticks. The cursor worked because it could interpolate

@@ -29,9 +29,7 @@ struct CursorOverlay: View {
     @Environment(\.precisionCoordinator) private var precisionCoordinator
     @Environment(\.gestureHandler) private var gestureHandler
     @Environment(\.slideRuleViewModel) private var viewModel
-    
-    /// Shared cursor state
-    let cursorState: CursorState
+    @Environment(\.cursorState) private var cursorState
     
     /// Total available width
     let width: CGFloat
@@ -101,8 +99,13 @@ struct CursorOverlay: View {
     // MARK: - Body
     
     var body: some View {
+        // Guard against missing cursorState from environment
+        guard let cursorState = cursorState else {
+            return AnyView(EmptyView())
+        }
+        
         // Create a container that matches the scale drawing area exactly
-        HStack(spacing: 0) {
+        return AnyView(HStack(spacing: 0) {
             // Left margin spacer (matches ScaleView left margin + spacing)
             Color.clear
                 .frame(width: leftMarginWidth + 4)
@@ -311,7 +314,7 @@ struct CursorOverlay: View {
                 .frame(width: rightMarginWidth + 4)
         }
         .frame(height: height)
-        .allowsHitTesting(cursorState.isEnabled)
+        .allowsHitTesting(cursorState.isEnabled))
     }
     
     // MARK: - Gesture Handlers
@@ -322,6 +325,8 @@ struct CursorOverlay: View {
     ///   - effectiveWidth: Available width for cursor movement
     ///   - isPrecision: Whether precision mode is active (4x slower movement)
     private func handleDrag(_ gesture: DragGesture.Value, effectiveWidth: CGFloat, isPrecision: Bool) {
+        guard let cursorState = cursorState else { return }
+        
         // Mark cursor as dragging
         cursorState.setCursorDragging(true)
         
@@ -376,6 +381,8 @@ struct CursorOverlay: View {
     ///   - width: Effective width for movement
     ///   - isPrecision: Whether precision mode is active (must match the mode used during drag)
     private func handleDragEnd(_ gesture: DragGesture.Value, width: CGFloat, isPrecision: Bool) {
+        guard let cursorState = cursorState else { return }
+        
         // Use GestureCalculator for zoom/precision correction (matches handleDrag)
         let correctedTranslation = GestureCalculator.correctTranslationWidth(
             gesture.translation.width,
@@ -413,6 +420,8 @@ struct CursorOverlay: View {
     ///   - lastAppliedTranslation: The raw translation from the last onChanged event (before precision factor)
     ///   - width: Effective width for movement
     private func handlePrecisionDragEnd(lastAppliedTranslation: CGFloat, width: CGFloat) {
+        guard let cursorState = cursorState else { return }
+        
         // Apply precision factor (same as during onChanged)
         let translationWidth = lastAppliedTranslation / PrecisionDragConstants.precisionFactor
         
@@ -444,7 +453,6 @@ struct CursorOverlay: View {
     let state = CursorState()
     
     CursorOverlay(
-        cursorState: state,
         width: 800,
         height: 200,
         side: .front,
@@ -453,6 +461,7 @@ struct CursorOverlay: View {
         rightMarginWidth: 64,
         cursorDisplayMode: .constant(.values)
     )
+    .environment(\.cursorState, state)
     .background(Color.gray.opacity(0.2))
     .frame(width: 800, height: 200)
 }

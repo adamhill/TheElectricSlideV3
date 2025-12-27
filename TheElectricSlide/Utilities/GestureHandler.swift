@@ -211,6 +211,11 @@ final class GestureHandler: GestureHandlerProtocol {
         
         viewModel.handleSliderDragChanged(translation: correctedTranslation)
         
+        // Update cursor readings after slide offset changes
+        // Moved here from DynamicSlideRuleContent.onChange(of: sliderOffset) to eliminate
+        // sliderOffset observation cascade through the view hierarchy.
+        cursorState.updateReadings()
+        
         // Trigger tick haptics when crossing tick marks on the slide
         let hapticScale = TickHapticCoordinator.selectHapticScale(
             viewMode: getViewMode(),

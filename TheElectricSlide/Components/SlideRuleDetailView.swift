@@ -80,8 +80,6 @@ struct SlideRuleDetailView: View {
                 calculatedDimensions: calculatedDimensions,
                 nameFont: calculatedDimensions.tier.nameFont,
                 formulaFont: calculatedDimensions.tier.formulaFont,
-                sliderOffset: $sliderOffset,
-                cursorState: cursorState,
                 cursorDisplayMode: $cursorDisplayMode,
                 cursorReadingCycleMode: $cursorReadingCycleMode,
                 currentZoomScale: currentZoomScale,

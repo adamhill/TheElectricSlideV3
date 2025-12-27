@@ -202,6 +202,7 @@ struct ContentView: View {
         .environment(\.slideRuleViewModel, viewModel)
         .environment(\.tickHapticCoordinator, tickHapticCoordinator)
         .environment(\.gestureHandler, gestureHandler)
+        .environment(\.cursorState, cursorState)
         .onAppear {
             // Phase 4: Create GestureHandler with closures for dynamic data
             let handler = GestureHandler(

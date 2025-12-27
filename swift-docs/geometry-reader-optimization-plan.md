@@ -1,9 +1,13 @@
 # GeometryReader Optimization Plan
 
-**Document Version:** 1.0  
-**Created:** 2025-12-25  
-**Target Platform:** iOS 16+  
-**Status:** Ready for Implementation
+> **Version:** 1.1.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Implemented - GeometryReaders removed from ScaleView and CursorOverlay  
+> **Changelog:**
+> - v1.1.0 (2025-12-26): Separator line support added to ScaleView; Ln scale NaN generation fixed
+> - v1.0.0 (2025-12-25): Initial plan; redundant GeometryReaders identified and removed
+
+**Target Platform:** iOS 16+
 
 ---
 

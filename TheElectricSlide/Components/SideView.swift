@@ -30,10 +30,9 @@ struct SideView: View, Equatable {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
-    let sliderOffset: CGFloat
-    let cursorState: CursorState?
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
+    let isActiveForSliderOffset: Bool  // OPTIMIZATION: Only true for visible side to prevent back side from observing sliderOffset
     
     // Manufacturer colorway support
     let useManufacturerColors: Bool
@@ -85,7 +84,8 @@ struct SideView: View, Equatable {
     }
     
     // ✅ Equatable conformance - only compare properties affecting rendering
-    // Note: cursorState is not compared in Equatable
+    // Note: sliderOffset is NOT compared - it's read directly from viewModel and only affects .offset() modifier
+    // Note: isActiveForSliderOffset IS compared - determines if this side observes sliderOffset
     // ruleId is compared to force re-render when rule changes
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
@@ -94,8 +94,8 @@ struct SideView: View, Equatable {
         lhs.scaleHeight == rhs.scaleHeight &&
         lhs.leftMarginWidth == rhs.leftMarginWidth &&
         lhs.rightMarginWidth == rhs.rightMarginWidth &&
-        lhs.sliderOffset == rhs.sliderOffset &&
         lhs.currentZoomScale == rhs.currentZoomScale &&
+        lhs.isActiveForSliderOffset == rhs.isActiveForSliderOffset &&
         lhs.useManufacturerColors == rhs.useManufacturerColors &&
         lhs.topStator.scales.count == rhs.topStator.scales.count &&
         lhs.slide.scales.count == rhs.slide.scales.count &&
@@ -139,7 +139,6 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
                 currentZoomScale: currentZoomScale,  // For pan gesture control
                 useManufacturerColors: useManufacturerColors,
@@ -166,7 +165,10 @@ struct SideView: View, Equatable {
                 manufacturer: manufacturer
             )
             .equatable()
-            .offset(x: sliderOffset)
+            // OPTIMIZATION: Only observe sliderOffset when this side is active (visible).
+            // Back side uses 0 offset to prevent observation cascade when not displayed.
+            // This reduces AttributeGraph updates by ~50% during drag gestures.
+            .offset(x: isActiveForSliderOffset ? (viewModel?.sliderOffset ?? 0) : 0)
             .onTapGesture(count: 3) {
                 // Triple-tap to reset zoom to 1.0×
                 gestureHandler?.handleResetZoom()
@@ -279,7 +281,6 @@ struct SideView: View, Equatable {
                 rightMarginWidth: rightMarginWidth,
                 nameFont: nameFont,
                 formulaFont: formulaFont,
-                cursorState: cursorState,
                 ruleId: ruleId,  // Pass rule ID for identity tracking
                 currentZoomScale: currentZoomScale,  // For pan gesture control
                 useManufacturerColors: useManufacturerColors,

@@ -18,6 +18,7 @@ import SlideRuleCoreV3
 
 struct StatorView: View, Equatable {
     @Environment(\.gestureHandler) private var gestureHandler
+    @Environment(\.cursorState) private var cursorState
     
     let stator: Stator
     let width: CGFloat
@@ -28,7 +29,6 @@ struct StatorView: View, Equatable {
     let rightMarginWidth: CGFloat
     let nameFont: Font
     let formulaFont: Font
-    let cursorState: CursorState?
     let ruleId: UUID?
     let currentZoomScale: CGFloat
     

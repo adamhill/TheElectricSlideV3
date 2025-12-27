@@ -41,8 +41,6 @@ struct DynamicSlideRuleContent: View {
     let calculatedDimensions: Dimensions
     let nameFont: Font
     let formulaFont: Font
-    @Binding var sliderOffset: CGFloat
-    let cursorState: CursorState
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
@@ -116,10 +114,9 @@ struct DynamicSlideRuleContent: View {
                         rightMarginWidth: renderDimensions.rightMarginWidth,
                         nameFont: nameFont,
                         formulaFont: formulaFont,
-                        sliderOffset: sliderOffset,
-                        cursorState: cursorState,
                         ruleId: ruleId,
                         currentZoomScale: currentZoomScale,
+                        isActiveForSliderOffset: viewMode == .front || viewMode == .both,  // Only observe sliderOffset when visible
                         useManufacturerColors: useManufacturerColors,
                         colorScheme: colorScheme,
                         manufacturer: selectedRuleDefinition?.manufacturerEnum
@@ -130,7 +127,6 @@ struct DynamicSlideRuleContent: View {
                     .animation(nil, value: renderDimensions.width)
                     .overlay {
                         CursorOverlay(
-                            cursorState: cursorState,
                             width: renderDimensions.width,
                             height: consistentTotalScaleHeight(for: .front),
                             side: .front,
@@ -183,10 +179,9 @@ struct DynamicSlideRuleContent: View {
                         rightMarginWidth: renderDimensions.rightMarginWidth,
                         nameFont: nameFont,
                         formulaFont: formulaFont,
-                        sliderOffset: sliderOffset,
-                        cursorState: cursorState,
                         ruleId: ruleId,
                         currentZoomScale: currentZoomScale,
+                        isActiveForSliderOffset: viewMode == .back || viewMode == .both,  // Only observe sliderOffset when visible
                         useManufacturerColors: useManufacturerColors,
                         colorScheme: colorScheme,
                         manufacturer: selectedRuleDefinition?.manufacturerEnum
@@ -197,7 +192,6 @@ struct DynamicSlideRuleContent: View {
                     .animation(nil, value: renderDimensions.width)
                     .overlay {
                         CursorOverlay(
-                            cursorState: cursorState,
                             width: renderDimensions.width,
                             height: consistentTotalScaleHeight(for: .back),
                             side: .back,
@@ -298,8 +292,8 @@ struct DynamicSlideRuleContent: View {
             // Initialize baseline width for sidebar detection
             baselineWidth = calculatedDimensions.width
         }
-        .onChange(of: sliderOffset) {
-            cursorState.updateReadings()
-        }
+        // NOTE: Cursor readings update moved to GestureHandler.handleSlideDragChanged()
+        // This eliminates sliderOffset observation in DynamicSlideRuleContent,
+        // reducing AttributeGraph cascade during drag gestures.
     }
 }

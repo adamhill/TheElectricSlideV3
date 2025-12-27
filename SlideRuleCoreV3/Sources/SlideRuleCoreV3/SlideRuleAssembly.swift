@@ -351,7 +351,6 @@ public struct RuleDefinitionParser {
         var currentTarget: ScaleTarget = .topStator
         var inBrackets = false
         var nextScaleNoLineBreak = false  // Track if next scale should have noLineBreak
-        var nextScaleSeparator = false    // Track if next scale should have bottom separator
         
         // Tokenize by spaces and brackets
         let tokens = tokenize(sideDefinition)
@@ -407,11 +406,31 @@ public struct RuleDefinitionParser {
                 currentTarget = .bottomStator
                 
             case "|":
-                // Separator line indicator - mark the PREVIOUS scale to have a bottom separator
-                // Also set noLineBreak for the NEXT scale (they appear together)
+                // Separator line indicator: affects both PREVIOUS and NEXT scales in different ways
+                //
+                // SEMANTIC MEANING: "S | T" means:
+                //   - S has a separator line drawn below it (hasBottomSeparator = true)
+                //   - T appears without vertical spacing/line break (noLineBreak = true)
+                //
+                // INTENTIONAL ASYMMETRY:
+                //   - Separator flag: marks the PREVIOUS scale (the one before |)
+                //   - NoLineBreak flag: marks the NEXT scale (the one after |)
+                //
+                // This asymmetry is correct because:
+                //   1. The separator is drawn BELOW the previous scale
+                //   2. The next scale is positioned WITHOUT line break
+                //   3. They work together to create a visual separator between scales
+                //
+                // EDGE CASE: "| C D" (separator at beginning)
+                //   - C gets noLineBreak = true (normal behavior)
+                //   - NO scale gets hasBottomSeparator (no previous scale exists)
+                //   - The guard checks (!isEmpty) prevent crashes in this case
+                
+                // Set flag for NEXT scale to have noLineBreak
                 nextScaleNoLineBreak = true
                 
-                // Mark the most recently added scale with hasBottomSeparator
+                // Mark the PREVIOUS scale (most recently added) with hasBottomSeparator
+                // Guard checks ensure we don't try to mark a non-existent scale
                 switch currentTarget {
                 case .topStator:
                     if !topScales.isEmpty {

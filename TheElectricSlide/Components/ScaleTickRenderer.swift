@@ -188,8 +188,8 @@ struct ScaleTickRenderer {
         geometries.reserveCapacity(tickMarks.count)
         
         // Group ticks by line width for batched drawing
-        // Using array of tuples instead of Dictionary to avoid allocation overhead
-        var ticksByWidth: [(width: CGFloat, path: CGMutablePath)] = []
+        // Using Dictionary for O(1) lookup vs O(n) linear search with array
+        var ticksByWidth: [CGFloat: CGMutablePath] = [:]
         
         for (index, tick) in tickMarks.enumerated() {
             // Skip invalid ticks
@@ -224,14 +224,14 @@ struct ScaleTickRenderer {
             ))
             
             // Find or create path for this line width
-            if let existingIndex = ticksByWidth.firstIndex(where: { $0.width == lineWidth }) {
-                ticksByWidth[existingIndex].path.move(to: CGPoint(x: xPos, y: startY))
-                ticksByWidth[existingIndex].path.addLine(to: CGPoint(x: xPos, y: endY))
+            if let existingPath = ticksByWidth[lineWidth] {
+                existingPath.move(to: CGPoint(x: xPos, y: startY))
+                existingPath.addLine(to: CGPoint(x: xPos, y: endY))
             } else {
                 let newPath = CGMutablePath()
                 newPath.move(to: CGPoint(x: xPos, y: startY))
                 newPath.addLine(to: CGPoint(x: xPos, y: endY))
-                ticksByWidth.append((width: lineWidth, path: newPath))
+                ticksByWidth[lineWidth] = newPath
             }
         }
         

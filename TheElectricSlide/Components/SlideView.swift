@@ -91,6 +91,7 @@ struct SlideView: View, Equatable {
                     )
                     .frame(width: width, height: slideHeight * 0.25)
                     .allowsHitTesting(false)
+                    .accessibilityIdentifier("slide-precision-gradient-top")
                     
                     Spacer()
                     
@@ -107,11 +108,14 @@ struct SlideView: View, Equatable {
                     )
                     .frame(width: width, height: slideHeight * 0.25)
                     .allowsHitTesting(false)
+                    .accessibilityIdentifier("slide-precision-gradient-bottom")
                 }
                 .frame(width: width, height: slideHeight)
                 .allowsHitTesting(false)
+                .accessibilityIdentifier("slide-precision-overlay-container")
             }
         }
+        .accessibilityIdentifier("slide-view-root")
     }
     
     /// Whether scale highlights are enabled and available

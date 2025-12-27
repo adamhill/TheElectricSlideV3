@@ -15,7 +15,7 @@ import SlideRuleCoreV3
 
 /// Reusable component for displaying cursor readings with tap-to-cycle functionality
 /// Encapsulates all reading display determination logic and rendering
-struct CursorReadingsContainer: View {
+struct CursorReadingsContainer: View, Equatable {
     // MARK: - State Dependencies
     
     /// Current view mode (front, back, or both)
@@ -30,15 +30,22 @@ struct CursorReadingsContainer: View {
     /// Whether the slide rule has a back side
     let hasBackSide: Bool
     
+    // MARK: - Equatable Conformance
+    
+    /// Only re-render when display-affecting properties change
+    /// Compares display values, not raw readings, to minimize updates
+    static func == (lhs: CursorReadingsContainer, rhs: CursorReadingsContainer) -> Bool {
+        lhs.viewMode == rhs.viewMode &&
+        lhs.cursorReadingCycleMode == rhs.cursorReadingCycleMode &&
+        lhs.hasBackSide == rhs.hasBackSide &&
+        lhs.currentReadings == rhs.currentReadings  // Uses CursorReadings.== which compares displayValue strings
+    }
+    
     // MARK: - Body
     
     var body: some View {
         let frontReadings = currentReadings?.frontReadings ?? []
         let backReadings = currentReadings?.backReadings ?? []
-        
-        #if DEBUG
-        let _ = print("📊 CursorReadingsContainer: frontReadings=\(frontReadings.count), backReadings=\(backReadings.count), currentReadings=\(currentReadings != nil ? "present" : "nil")")
-        #endif
         
         // Determine which readings to show based on cycle mode and current view mode
         // Cycle mode controls display for all view modes, allowing selective reading visibility

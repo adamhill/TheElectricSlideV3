@@ -42,26 +42,23 @@ struct SideView: View, Equatable {
     
     // MARK: - Vertical Swipe State
     
-    /// Threshold for vertical swipe detection (points)
-    private static let verticalSwipeThreshold: CGFloat = 50
+    /// Minimum vertical velocity required for flip gesture (points/second)
+    /// A quick flick typically generates 800-2000+ pt/sec
+    private static let flipMinVelocity: CGFloat = 600
     
-    /// Maximum duration for a quick flick gesture (seconds)
-    /// Gestures longer than this are considered slow pans and won't trigger flip
-    private static let flipMaxDuration: TimeInterval = 0.4
+    /// Minimum vertical distance for flip gesture (points)
+    private static let flipMinDistance: CGFloat = 30
     
     /// Tracks if a vertical swipe has been triggered during current gesture
     @State private var hasTriggeredFlip: Bool = false
-    
-    /// Tracks when the vertical swipe gesture started (for duration calculation)
-    @State private var flipGestureStartTime: Date?
     
     // MARK: - Slide Precision Mode State
     
     /// Whether precision mode is active (for GestureState tracking - auto-resets)
     @GestureState private var isSlidePrecisionDragging: Bool = false
     
-    /// Whether vertical flick gesture is active (for GestureState tracking - auto-resets)
-    @GestureState private var isFlippingGesture: Bool = false
+    /// Tracks if a slide drag is currently in progress (for flip gesture exclusion)
+    @State private var isSlideDragActive: Bool = false
     
     // MARK: - Computed Properties for Gesture Control
     
@@ -74,19 +71,17 @@ struct SideView: View, Equatable {
     /// "You can also use the `isEnabled` parameter to conditionally disable the gesture."
     /// This is the recommended approach for dynamically enabling/disabling gestures.
     private var isSlideDragEnabled: Bool {
-        // Disable when magnification (pinch-zoom) or flick gesture is active
+        // Only disable when magnification (pinch-zoom) is active
+        // Note: isFlipping mutex removed - flip gesture now requires slide to be stationary
         let isMagnifying = viewModel?.isMagnifying ?? false
-        let isFlipping = viewModel?.isFlipping ?? false
-        let enabled = !isMagnifying && !isFlipping
         
         #if DEBUG
-        // Log when gestures are disabled - this is a key diagnostic for sticking
-        if !enabled {
-            print("🚫 [isSlideDragEnabled] DISABLED side=\(side) isMagnifying=\(isMagnifying) isFlipping=\(isFlipping)")
+        if isMagnifying {
+            print("🚫 [isSlideDragEnabled] DISABLED side=\(side) isMagnifying=\(isMagnifying)")
         }
         #endif
         
-        return enabled
+        return !isMagnifying
     }
     
     // ✅ Equatable conformance - only compare properties affecting rendering
@@ -185,17 +180,19 @@ struct SideView: View, Equatable {
             .gesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
                     .onChanged { gesture in
+                        // Mark slide drag as active (blocks flip gesture)
+                        isSlideDragActive = true
+                        
                         #if DEBUG
                         // DIAGNOSTIC: Log all blocking conditions to debug slide sticking
                         let isMagnifying = viewModel?.isMagnifying ?? false
-                        let isFlipping = viewModel?.isFlipping ?? false
                         let precisionTarget = precisionCoordinator.activeTarget
                         let isPrecisionBlocking = { if case .slide = precisionTarget { return true } else { return false } }()
                         
                         print("🔵 [Slide.NormalDrag.onChanged] side=\(side) " +
                               "translation=(\(String(format: "%.1f", gesture.translation.width)), \(String(format: "%.1f", gesture.translation.height))) " +
                               "isSlideDragEnabled=\(isSlideDragEnabled) " +
-                              "isMagnifying=\(isMagnifying) isFlipping=\(isFlipping) " +
+                              "isMagnifying=\(isMagnifying) " +
                               "precisionBlocking=\(isPrecisionBlocking) " +
                               "precisionTarget=\(String(describing: precisionTarget))")
                         #endif
@@ -210,6 +207,9 @@ struct SideView: View, Equatable {
                         gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
                     }
                     .onEnded { gesture in
+                        // Mark slide drag as inactive (allows flip gesture)
+                        isSlideDragActive = false
+                        
                         // Block if precision sequence is active for ANY slide (prevents conflicting moves)
                         if case .slide = precisionCoordinator.activeTarget {
                             #if DEBUG
@@ -300,98 +300,36 @@ struct SideView: View, Equatable {
             .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
         }
         #if os(iOS)
-        // MARK: - Vertical Swipe Gesture for Side Flip (iOS/iPadOS only)
-        // NOTE: Disabled on macOS where swipe gestures feel unnatural with trackpad
-        // macOS users can tap the header to cycle view modes instead
-        // Requires QUICK FLICK (short duration) to distinguish from slow panning
+        // MARK: - Vertical Flick Gesture for Side Flip (iOS/iPadOS only)
+        // Velocity-based detection: requires a QUICK vertical flick when slide is stationary.
+        // This prevents accidental flips during horizontal slide dragging.
+        //
+        // Requirements for flip:
+        // 1. Slide must NOT be actively dragging (isSlideDragActive == false)
+        // 2. High vertical velocity (600+ pt/sec) - indicates quick flick
+        // 3. Vertical velocity dominates horizontal (2× ratio)
+        // 4. Minimum vertical distance (30pt) - prevents tiny accidental gestures
+        //
+        // NOTE: Disabled on macOS where swipe gestures feel unnatural with trackpad.
+        // macOS users can tap the header to cycle view modes instead.
         .simultaneousGesture(
-            DragGesture(minimumDistance: 30, coordinateSpace: .local)
-                // MARK: Flip Gesture Mutex Lock
-                // Track gesture state to disable competing gestures
-                .updating($isFlippingGesture) { value, state, _ in
-                    // Only lock if gesture is clearly a vertical flip intent:
-                    // - Pure vertical (horizontal < 10pt, vertical > 40pt) OR
-                    // - Dominant vertical (horizontal > 15pt, vertical > 2× horizontal, vertical > 25pt)
-                    let vertical = abs(value.translation.height)
-                    let horizontal = abs(value.translation.width)
-                    
-                    let isPureVertical = horizontal < 10 && vertical > 40
-                    let isDominantVertical = horizontal > 15 && vertical > horizontal * 2.0 && vertical > 25
-                    
-                    if isPureVertical || isDominantVertical {
-                        state = true
-                    }
-                }
-                .onChanged { gesture in
-                    // Phase 6: Disable flip gesture when zoomed in (to allow vertical panning)
-                    if currentZoomScale > 1.0 {
-                        return
-                    }
-                    
-                    // Record start time on first movement
-                    if flipGestureStartTime == nil {
-                        flipGestureStartTime = Date()
-                    }
-                    
-                    // Update mutex lock state in ViewModel (COLD property)
-                    // FIX: Use strict criteria to prevent false positives during slide drag:
-                    // 1. Must have meaningful horizontal movement (>15pt) to compare ratio
-                    //    - Prevents end-of-drag finger drift from triggering
-                    // 2. Vertical must dominate by 2× (stricter than 1.5× onEnded threshold)
-                    // 3. Vertical must exceed 25pt minimum
-                    let vertical = abs(gesture.translation.height)
-                    let horizontal = abs(gesture.translation.width)
-                    
-                    // Require meaningful horizontal movement before ratio comparison
-                    // If horizontal < 15pt, the ratio is meaningless (end-of-drag drift)
-                    let hasSignificantHorizontal = horizontal > 15
-                    let isVerticalDominant = vertical > horizontal * 2.0  // Stricter ratio
-                    let meetsMinimumThreshold = vertical > 25  // Higher threshold
-                    
-                    // Only activate if this looks like an intentional vertical gesture:
-                    // - Either purely vertical (minimal horizontal)
-                    // - Or strongly vertical dominant with significant horizontal
-                    let isPureVertical = horizontal < 10 && vertical > 40
-                    let isDominantVertical = hasSignificantHorizontal && isVerticalDominant && meetsMinimumThreshold
-                    
-                    if isPureVertical || isDominantVertical {
-                        viewModel?.setFlippingActive(true)
-                        #if DEBUG
-                        print("🔴 [FlipGesture.onChanged] ACTIVATED isFlipping=true " +
-                              "vertical=\(String(format: "%.1f", vertical)) horizontal=\(String(format: "%.1f", horizontal)) " +
-                              "reason=\(isPureVertical ? "pureVertical" : "dominantVertical")")
-                        #endif
-                    } else {
-                        // Release lock if gesture doesn't meet flip criteria
-                        let wasFlipping = viewModel?.isFlipping ?? false
-                        viewModel?.setFlippingActive(false)
-                        #if DEBUG
-                        if wasFlipping {
-                            print("🟢 [FlipGesture.onChanged] DEACTIVATED isFlipping=false " +
-                                  "(gesture doesn't meet flip criteria)")
-                        }
-                        #endif
-                    }
-                }
+            DragGesture(minimumDistance: 20, coordinateSpace: .local)
                 .onEnded { gesture in
-                    #if DEBUG
-                    print("🟢 [FlipGesture.onEnded] Releasing mutex, was isFlipping=\(viewModel?.isFlipping ?? false)")
-                    #endif
-                    
-                    // Phase 6: Disable flip gesture when zoomed in
-                    if currentZoomScale > 1.0 {
-                        viewModel?.setFlippingActive(false)
+                    // CRITICAL: Only allow flip when slide is NOT being dragged
+                    guard !isSlideDragActive else {
+                        #if DEBUG
+                        print("🚫 [FlipGesture] BLOCKED - slide drag is active")
+                        #endif
                         return
                     }
                     
-                    // Release mutex lock immediately
-                    viewModel?.setFlippingActive(false)
-                    
-                    // Calculate gesture duration
-                    let duration = flipGestureStartTime.map { Date().timeIntervalSince($0) } ?? 0
-                    
-                    // Reset state for next gesture
-                    flipGestureStartTime = nil
+                    // Disable flip gesture when zoomed in (to allow vertical panning)
+                    guard currentZoomScale <= 1.0 else {
+                        #if DEBUG
+                        print("🚫 [FlipGesture] BLOCKED - zoomed in (zoom=\(String(format: "%.2f", currentZoomScale)))")
+                        #endif
+                        return
+                    }
                     
                     // Skip if already triggered or no handler
                     guard !hasTriggeredFlip, gestureHandler != nil else {
@@ -399,21 +337,42 @@ struct SideView: View, Equatable {
                         return
                     }
                     
+                    // Extract velocity (points/second)
+                    let verticalVelocity = abs(gesture.velocity.height)
+                    let horizontalVelocity = abs(gesture.velocity.width)
+                    
+                    // Extract distance
                     let verticalDistance = abs(gesture.translation.height)
                     let horizontalDistance = abs(gesture.translation.width)
                     
-                    // Require ALL conditions for flip:
-                    // 1. Vertical motion exceeds threshold (50px)
-                    // 2. Vertical motion dominates horizontal (1.5× ratio)
-                    // 3. Gesture was quick (< 0.4 seconds) - distinguishes flick from slow pan
-                    let isVerticalEnough = verticalDistance > Self.verticalSwipeThreshold
-                    let isVerticalDominant = verticalDistance > horizontalDistance * 1.5
-                    let isQuickFlick = duration < Self.flipMaxDuration
+                    #if DEBUG
+                    print("🎯 [FlipGesture.onEnded] velocity=(\(String(format: "%.0f", gesture.velocity.width)), \(String(format: "%.0f", gesture.velocity.height))) " +
+                          "translation=(\(String(format: "%.1f", gesture.translation.width)), \(String(format: "%.1f", gesture.translation.height)))")
+                    #endif
                     
-                    if isVerticalEnough && isVerticalDominant && isQuickFlick {
+                    // Require ALL conditions for flip:
+                    // 1. High vertical velocity (quick flick)
+                    let hasHighVelocity = verticalVelocity > Self.flipMinVelocity
+                    // 2. Vertical velocity dominates horizontal (2× ratio)
+                    let isVelocityVertical = verticalVelocity > horizontalVelocity * 2.0
+                    // 3. Minimum vertical distance traveled
+                    let hasMinDistance = verticalDistance > Self.flipMinDistance
+                    // 4. Distance is also vertically dominant
+                    let isDistanceVertical = verticalDistance > horizontalDistance * 1.5
+                    
+                    if hasHighVelocity && isVelocityVertical && hasMinDistance && isDistanceVertical {
                         hasTriggeredFlip = true
                         haptics.fire(.flip)
                         gestureHandler?.handleFlip()
+                        #if DEBUG
+                        print("✅ [FlipGesture] TRIGGERED! velocity=\(String(format: "%.0f", verticalVelocity)) pt/sec")
+                        #endif
+                    } else {
+                        #if DEBUG
+                        print("❌ [FlipGesture] NOT triggered: " +
+                              "highVel=\(hasHighVelocity) velVertical=\(isVelocityVertical) " +
+                              "minDist=\(hasMinDistance) distVertical=\(isDistanceVertical)")
+                        #endif
                     }
                     
                     // Reset flip trigger for next gesture

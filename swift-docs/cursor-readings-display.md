@@ -1,5 +1,12 @@
 # Cursor Readings Display Architecture
 
+> **Version:** 2.0.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Implemented  
+> **Changelog:**
+> - v2.0.0 (2025-12-26): Cursor readings relocated to fixed header position; cellWidth calculation simplified
+> - v1.0.0 (2025-12): Initial Canvas-based rendering implementation
+
 Comprehensive documentation of the cursor readings feature with full visual display implementation.
 
 ## Overview

@@ -1,5 +1,12 @@
 # Navigation Gestures & Haptics Implementation
 
+> **Version:** 2.1.0  
+> **Last Updated:** December 26, 2025  
+> **Changelog:**
+> - v2.1.0 (2025-12-26): Rewrote flip gesture to use velocity-based detection; removed `isFlipping` mutex that caused slide sticking bug
+> - v2.0.0 (2025-12): Added precision mode, tick haptics, comprehensive gesture system
+> - v1.0.0 (2025-11): Initial gesture system implementation
+
 ## Overview
 
 This document covers the complete gesture and haptic feedback systems in The Electric Slide app. It documents all gesture types including zoom, pan, slide drag, cursor drag, precision mode, and navigation gestures.
@@ -24,7 +31,7 @@ graph TB
     
     subgraph "Navigation Gestures"
         TFP[Two-Finger Pan] --> |when zoomed| VP[Viewport Position]
-        VF[Vertical Swipe] --> |flips side| FM[Front/Back Mode]
+        VF[Vertical Flick] --> |velocity-based, flips side| FM[Front/Back Mode]
     end
     
     subgraph "Manipulation Gestures"
@@ -50,9 +57,9 @@ Multiple gestures can be active simultaneously. The system resolves conflicts th
 |---------|----------|------------|
 | Precision Mode | Highest | Blocks normal drag during cooldown period |
 | Pan (when zoomed) | High | `.highPriorityGesture` on stators |
-| Slide Drag | Medium | Standard `.gesture` on SlideView |
+| Slide Drag | Medium | Standard `.gesture` on SlideView; sets `isSlideDragActive` |
 | Cursor Drag | Medium | Standard `.gesture` on CursorOverlay |
-| Vertical Swipe | Low | `.simultaneousGesture` allows coexistence |
+| Vertical Flick | Low | `.simultaneousGesture`; requires slide stationary (`!isSlideDragActive`) |
 | Pinch Zoom | Low | `.simultaneousGesture` on detail view |
 
 ### Gesture Files Quick Reference
@@ -61,7 +68,7 @@ Multiple gestures can be active simultaneously. The system resolves conflicts th
 |------|------------------|
 | [`SlideRuleDetailView.swift`](../TheElectricSlide/Components/SlideRuleDetailView.swift) | Pinch zoom, scroll wheel zoom |
 | [`StatorView.swift`](../TheElectricSlide/Components/StatorView.swift) | Pan gesture (when zoomed), triple-tap reset |
-| [`SideView.swift`](../TheElectricSlide/Components/SideView.swift) | Slide drag, precision slide drag, vertical swipe |
+| [`SideView.swift`](../TheElectricSlide/Components/SideView.swift) | Slide drag, precision slide drag, vertical flick (velocity-based) |
 | [`CursorOverlay.swift`](../TheElectricSlide/Cursor/CursorOverlay.swift) | Cursor drag, precision cursor drag |
 | [`ContentView+Gestures.swift`](../TheElectricSlide/Extensions/ContentView+Gestures.swift) | Handler implementations for all gestures |
 | [`SlideRuleViewModel.swift`](../TheElectricSlide/Models/SlideRuleViewModel.swift) | Zoom/pan/slide state management |
@@ -711,61 +718,123 @@ Feel haptic feedback when dragging the cursor (glass indicator) across the slide
 
 ---
 
-## 1. Vertical Swipe to Flip Sides
+## 1. Vertical Flick to Flip Sides (v2.1 - Velocity-Based)
 
 ### Purpose
-On compact devices (iPhone) where only one side is shown at a time, users can flip between front and back sides with a natural vertical swipe gesture instead of tapping the flip button.
+On compact devices (iPhone) where only one side is shown at a time, users can flip between front and back sides with a **quick vertical flick** gesture. This is designed to be a deliberate action that cannot accidentally trigger during normal slide manipulation.
+
+### v2.1 Architecture Change: Velocity-Based Detection
+
+**Previous Approach (v2.0 - DEPRECATED):**
+The original implementation used position-based detection with an `isFlipping` mutex that blocked slide drags when a vertical gesture was detected. This caused intermittent "slide sticking" bugs on iOS because:
+1. The flip gesture's `onChanged` would set `isFlipping=true` when `vertical > horizontal`
+2. This blocked `isSlideDragEnabled`, preventing slide movement
+3. End-of-drag finger drift could trigger the mutex even when no flip was intended
+
+**New Approach (v2.1 - Velocity-Based):**
+The flip gesture now uses **velocity detection** and is **mutually exclusive** with slide dragging:
+
+1. **Slide drag and flip are mutually exclusive** - Flip only works when slide is stationary
+2. **Velocity-based detection** - Requires high vertical velocity (600+ pt/sec)
+3. **No mutex needed** - No `isFlipping` state blocking the slide drag
+4. **Only checks on `onEnded`** - No interference during gesture
 
 ### Implementation: `SideView.swift`
 
 ```swift
 // Constants
-private static let verticalSwipeThreshold: CGFloat = 50
+private static let flipMinVelocity: CGFloat = 600  // pt/sec
+private static let flipMinDistance: CGFloat = 30   // pt
 
 // State
 @State private var hasTriggeredFlip: Bool = false
-@Environment(\.hapticService) private var haptics
+@State private var isSlideDragActive: Bool = false  // Tracks active slide drag
 
-// Gesture
-.simultaneousGesture(
-    DragGesture(minimumDistance: 30, coordinateSpace: .local)
+// Slide Drag Gesture marks itself active
+.gesture(
+    DragGesture(minimumDistance: 0, coordinateSpace: .global)
         .onChanged { gesture in
-            guard !hasTriggeredFlip, onFlip != nil else { return }
+            isSlideDragActive = true  // Block flip gesture
+            gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
+        }
+        .onEnded { gesture in
+            isSlideDragActive = false  // Allow flip gesture
+            gestureHandler?.handleSlideDragEnded(gesture, isPrecision: false)
+        }
+)
+
+// Flip Gesture only triggers when slide is NOT active
+#if os(iOS)
+.simultaneousGesture(
+    DragGesture(minimumDistance: 20, coordinateSpace: .local)
+        .onEnded { gesture in
+            // CRITICAL: Only allow flip when slide is NOT being dragged
+            guard !isSlideDragActive else { return }
+            guard currentZoomScale <= 1.0 else { return }
+            guard !hasTriggeredFlip, gestureHandler != nil else { return }
             
+            // Extract velocity (points/second)
+            let verticalVelocity = abs(gesture.velocity.height)
+            let horizontalVelocity = abs(gesture.velocity.width)
             let verticalDistance = abs(gesture.translation.height)
             let horizontalDistance = abs(gesture.translation.width)
             
-            // Require vertical motion to dominate horizontal
-            if verticalDistance > Self.verticalSwipeThreshold &&
-               verticalDistance > horizontalDistance * 1.5 {
+            // Require ALL conditions for flip:
+            let hasHighVelocity = verticalVelocity > Self.flipMinVelocity
+            let isVelocityVertical = verticalVelocity > horizontalVelocity * 2.0
+            let hasMinDistance = verticalDistance > Self.flipMinDistance
+            let isDistanceVertical = verticalDistance > horizontalDistance * 1.5
+            
+            if hasHighVelocity && isVelocityVertical && hasMinDistance && isDistanceVertical {
                 hasTriggeredFlip = true
                 haptics.fire(.flip)
-                onFlip?()
+                gestureHandler?.handleFlip()
             }
-        }
-        .onEnded { _ in
             hasTriggeredFlip = false
         }
 )
+#endif
 ```
 
-### Key Design Decisions
+### Key Design Decisions (v2.1)
 
 | Decision | Rationale |
 |----------|-----------|
-| 50pt threshold | Prevents accidental triggers from slight finger movements |
-| 1.5× vertical ratio | Ensures intentional vertical motion, not diagonal slide drags |
-| `hasTriggeredFlip` flag | Prevents multiple flips during a single gesture |
-| `simultaneousGesture` | Allows coexistence with slide drag gesture |
+| 600 pt/sec velocity threshold | Quick flicks generate 800-2000+ pt/sec; slow pans ~100 pt/sec |
+| 2× velocity ratio | Vertical velocity must dominate horizontal to prevent diagonal triggers |
+| 30pt minimum distance | Prevents tiny accidental gestures |
+| `isSlideDragActive` flag | Ensures flip and slide are mutually exclusive |
+| No `onChanged` handler | Eliminates mutex interference with slide drag |
+| Only on `onEnded` | Velocity is meaningful only at gesture completion |
+
+### Slide Sticking Bug Fix (v2.1)
+
+**Root Cause:** The v2.0 `isFlipping` mutex was too aggressive. When `onChanged` detected `vertical > horizontal` (even by a small amount during end-of-drag finger drift), it would set `isFlipping=true` which disabled `isSlideDragEnabled`, causing the slide to "stick."
+
+**Solution:** Removed the `isFlipping` mutex entirely. The new design makes flip and slide gestures **mutually exclusive by design**:
+- If slide drag is active (`isSlideDragActive=true`), flip is blocked
+- If slide is stationary, flip can trigger (but only with high velocity)
+
+**Diagnostic Logging (DEBUG):**
+```
+🔵 [Slide.NormalDrag.onChanged] side=front translation=(...)
+🚫 [FlipGesture] BLOCKED - slide drag is active
+✅ [FlipGesture] TRIGGERED! velocity=850 pt/sec
+❌ [FlipGesture] NOT triggered: highVel=false velVertical=true ...
+```
 
 ### Callback Chain
 
 ```mermaid
 flowchart TD
-    A[SideView.onFlip] --> B[DynamicSlideRuleContent.handleFlip]
-    B --> C[SlideRuleDetailView.handleFlip]
-    C --> D["ContentView.handleFlip() → toggles viewMode"]
-    D --> E[".front ↔ .back"]
+    A[SideView vertical flick] --> B{isSlideDragActive?}
+    B -->|Yes| C[BLOCKED - slide is moving]
+    B -->|No| D{High velocity flick?}
+    D -->|No| E[BLOCKED - too slow]
+    D -->|Yes| F["haptics.fire(.flip)"]
+    F --> G["gestureHandler?.handleFlip()"]
+    G --> H["ContentView.handleFlip() → toggles viewMode"]
+    H --> I[".front ↔ .back"]
 ```
 
 ---
@@ -1284,7 +1353,7 @@ func resetZoom() {
 | [`Models/SlideRuleViewModel.swift`](../TheElectricSlide/Models/SlideRuleViewModel.swift) | **Zoom, pan, and slide state management** with hot/cold property pattern |
 | [`Components/SlideRuleDetailView.swift`](../TheElectricSlide/Components/SlideRuleDetailView.swift) | **Pinch zoom gesture** via `MagnificationGesture`, scroll wheel zoom |
 | [`Components/StatorView.swift`](../TheElectricSlide/Components/StatorView.swift) | **Pan gesture** (when zoomed), triple-tap reset |
-| [`Components/SideView.swift`](../TheElectricSlide/Components/SideView.swift) | **Vertical swipe**, **slide drag** (normal + precision) |
+| [`Components/SideView.swift`](../TheElectricSlide/Components/SideView.swift) | **Vertical flick** (velocity-based), **slide drag** (normal + precision) |
 | [`Components/SlideView.swift`](../TheElectricSlide/Components/SlideView.swift) | Slide rendering (gestures are on SideView container) |
 | [`Cursor/CursorOverlay.swift`](../TheElectricSlide/Cursor/CursorOverlay.swift) | **Cursor drag** (normal + precision), tick haptic callbacks |
 | [`Cursor/CursorState.swift`](../TheElectricSlide/Cursor/CursorState.swift) | Cursor position normalization, drag offset tracking |

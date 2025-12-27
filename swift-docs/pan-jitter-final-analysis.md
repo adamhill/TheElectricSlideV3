@@ -1,5 +1,12 @@
 # Pan Gesture Jitter - Final Root Cause Analysis
 
+> **Version:** 1.0.1  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Resolved  
+> **Changelog:**
+> - v1.0.1 (2025-12-26): Verified compatibility with velocity-based flip gesture (v2.1)
+> - v1.0.0 (2025-12): Initial analysis and fix implementation
+
 ## Executive Summary
 
 **ROOT CAUSE IDENTIFIED:** The pan gesture jitter is caused by `.coordinateSpace(.local)` combined with `.scaleEffect()` applied at different levels of the view hierarchy.

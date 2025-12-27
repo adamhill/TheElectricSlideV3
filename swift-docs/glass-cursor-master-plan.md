@@ -1,9 +1,15 @@
 # Glass Cursor Master Plan: Slidable Liquid Glass Cursor Feature
 
+> **Version:** 2.0.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Core functionality complete; Liquid Glass material pending  
+> **Changelog:**
+> - v2.0.0 (2025-12-26): Cursor readings display and update issues resolved; Observable hot/cold pattern optimized
+> - v1.0.0 (2025-10): Initial implementation with activeDragOffset pattern
+
 **Project**: The Electric Slide V3  
 **Feature**: Interactive Glass Cursor with Apple Liquid Glass Material  
 **Date**: October 26, 2025  
-**Status**: Ready for Implementation  
 **Author**: Architecture & Planning Team
 
 ---

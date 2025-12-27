@@ -1,7 +1,12 @@
 # Current Gesture System Analysis
 
-> Analysis of the existing gesture system implementation in "The Electric Slide" app
-> Date: December 2025
+> **Version:** 1.1.0  
+> **Last Updated:** December 26, 2025  
+> **Changelog:**
+> - v1.1.0 (2025-12-26): Updated flip gesture to velocity-based detection; removed `isFlipping` mutex
+> - v1.0.0 (2025-12): Initial analysis document
+
+Analysis of the existing gesture system implementation in "The Electric Slide" app
 
 ## 1. Current Architecture
 
@@ -21,7 +26,7 @@ graph TB
     end
     
     subgraph "Component Layer - Gesture Attachment"
-        SV["SideView.swift<br/>• Slide drag (normal + precision)<br/>• Vertical swipe to flip"]
+        SV["SideView.swift<br/>• Slide drag (normal + precision)<br/>• Velocity-based vertical flick to flip"]
         CO["CursorOverlay.swift<br/>• Cursor drag (normal + precision)<br/>• Triple-tap zoom reset"]
         StV["StatorView.swift<br/>• Pan gesture (when zoomed)<br/>• Triple-tap zoom reset"]
         SRDV["SlideRuleDetailView.swift<br/>• MagnificationGesture (pinch zoom)<br/>• Scroll wheel zoom (macOS)"]
@@ -51,7 +56,7 @@ graph TB
 | `LongPressGesture.sequenced(before: DragGesture)` | Precision mode activation | [`SideView.swift:146`](../../TheElectricSlide/Components/SideView.swift:146), [`CursorOverlay.swift:183`](../../TheElectricSlide/Cursor/CursorOverlay.swift:183) |
 | `MagnificationGesture` | Pinch-to-zoom | [`SlideRuleDetailView.swift`](../../TheElectricSlide/Components/SlideRuleDetailView.swift) |
 | `TapGesture(count: 3)` | Triple-tap zoom reset | [`SideView.swift:115`](../../TheElectricSlide/Components/SideView.swift:115), [`CursorOverlay.swift:121`](../../TheElectricSlide/Cursor/CursorOverlay.swift:121) |
-| `DragGesture + vertical threshold` | Flip between front/back | [`SideView.swift:220-243`](../../TheElectricSlide/Components/SideView.swift:220) |
+| `DragGesture` (velocity-based) | Flip between front/back | [`SideView.swift`](../../TheElectricSlide/Components/SideView.swift) - v2.1 uses `gesture.velocity` for detection |
 
 ### 1.3 State Management Pattern
 
@@ -118,7 +123,7 @@ graph TB
 | **Pinch Zoom** | Two-finger pinch | 1.0× to 4.0×, snaps to 1.0× if zoomed out |
 | **Pan Zoomed Content** | Drag on stators when zoomed | Uses `withTransaction(animation: nil)` for jitter-free |
 | **Precision Mode** | Long-press (1s) + drag | 5× sensitivity reduction, haptic confirmation |
-| **Vertical Flip** | Vertical swipe (>50pt, >1.5× horizontal) | Toggles front/back on iPhone |
+| **Vertical Flick** | Quick vertical swipe (≥600 pt/sec velocity, >30pt distance, slide stationary) | Toggles front/back on iPhone. v2.1 velocity-based detection prevents slide sticking. |
 | **Zoom Reset** | Triple-tap anywhere | Animated spring return to 1.0× |
 
 ### 2.2 Region-Based Gesture Discrimination
@@ -139,14 +144,15 @@ flowchart TD
     SL --> |gesture + simultaneousGesture| SLIDE[Slide drag + Precision]
     CU --> |gesture + simultaneousGesture| CURSOR[Cursor drag + Precision]
     
-    ALL[All Components] --> |simultaneousGesture| VERT[Vertical Swipe]
+    ALL[All Components] --> |simultaneousGesture| VERT[Vertical Flick]
 ```
 
 **Priority Resolution:**
 - `.highPriorityGesture()` on stators for pan
 - `.gesture()` for primary interactions
-- `.simultaneousGesture()` for vertical swipe and precision mode
+- `.simultaneousGesture()` for vertical flick and precision mode
 - Explicit `guard !isPrecisionSequenceActive` checks block normal gestures during precision mode
+- **Mutual exclusion via `isSlideDragActive`**: Flip gesture requires slide to be stationary
 
 ### 2.3 Momentum/Velocity Usage
 
@@ -208,7 +214,8 @@ graph TB
    - Could pan content completely off-screen
 
 3. **Hardcoded Constants**
-   - Vertical swipe threshold: `50` points ([`SideView.swift:41`](../../TheElectricSlide/Components/SideView.swift:41))
+   - Flip minimum velocity: `600` pt/sec ([`SideView.swift`](../../TheElectricSlide/Components/SideView.swift))
+   - Flip minimum distance: `30` points ([`SideView.swift`](../../TheElectricSlide/Components/SideView.swift))
    - Precision factor: `5.0` ([`PrecisionDragConstants`](../../TheElectricSlide/Utilities/TickHapticCoordinator.swift))
    - Not configurable per user preference
 

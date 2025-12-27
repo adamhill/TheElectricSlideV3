@@ -1,5 +1,12 @@
 # SwiftUI Slide Rule Rendering Performance Improvements
 
+> **Version:** 2.0.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Solutions 1-5 Implemented  
+> **Changelog:**
+> - v2.0.0 (2025-12-26): Added batched tick rendering (Step 2 from optimizations-after-colorways.md); CGContext anti-alias control
+> - v1.0.0 (2025-12): Initial 5 solutions implemented (onGeometryChange, pre-computed ticks, Equatable, drawingGroup)
+
 ## Executive Summary
 
 The ContentView.swift rendering pipeline has significant performance issues, especially when rendering LL1, LL2, and LL3 scales (which have 200+ tick marks each). The main problems are:

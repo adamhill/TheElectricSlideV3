@@ -1,5 +1,12 @@
 # Slide Rule Performance Optimization Decisions and Journey
 
+> **Version:** 2.0.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Phase 1 Stable; Additional optimizations in branch 96-optimize  
+> **Changelog:**
+> - v2.0.0 (2025-12-26): Added batched tick rendering, CGContext anti-alias control, Observable dependency isolation
+> - v1.0.0 (2025-12): Initial hot/cold property pattern achieving 85% hitch reduction
+
 ## Executive Summary
 
 This document chronicles the performance optimization journey for [`ContentView.swift`](../TheElectricSlide/ContentView.swift), detailing successful optimizations, failed experiments, and key learnings. The primary focus was eliminating unnecessary view updates during drag gestures while maintaining smooth, responsive interaction.

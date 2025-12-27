@@ -1,9 +1,12 @@
 # PDF Generation System Implementation Plan
 
-**Document Status:** Updated to reflect current implementation as of 2024-12-23
+> **Version:** 2.1.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Implemented (refactored to PDFOutput/)  
+> **Changelog:**
+> - v2.1.0 (2025-12-26): Removed legacy CoreGraphics PDF export; refactored to PDFOutput/ directory with PostScript alignment
+> - v2.0.0 (2024-12-23): Initial implementation with dual font system
 
-**Version:** 2.0  
-**Date:** 2024-12-23  
 **Target:** TheElectricSlide macOS Application
 
 ---

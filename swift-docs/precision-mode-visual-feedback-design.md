@@ -1,5 +1,13 @@
 # Precision Mode Visual Feedback Design
 
+> **Version:** 2.1.0  
+> **Last Updated:** December 26, 2025  
+> **Status:** ✅ Implemented  
+> **Changelog:**
+> - v2.1.0 (2025-12-26): Centralized precision colors in `SlideRuleColorScheme.swift` (precisionOverlayColor, cursorPrecisionColor)
+> - v2.0.0 (2025-12): Visual feedback system implemented with manufacturer-specific gradients
+> - v1.0.0 (2025-11): Initial design specification
+
 ## Overview
 
 This document specifies the visual feedback system for precision gesture activation in The Electric Slide. The design provides clear, non-intrusive visual indicators during long-press activation and while precision mode is active, working seamlessly at extreme zoom levels.

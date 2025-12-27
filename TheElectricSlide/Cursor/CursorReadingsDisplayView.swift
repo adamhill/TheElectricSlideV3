@@ -8,6 +8,10 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// Enable detailed cursor debugging (disabled by default to reduce log noise)
+// Uncomment this line to enable verbose cursor reading logs during development
+// #define DEBUG_CURSOR_READINGS
+
 /// Displays cursor readings for one side of the slide rule in a horizontal block format
 struct CursorReadingsDisplayView: View, Equatable {
     /// Array of readings to display
@@ -35,7 +39,7 @@ struct CursorReadingsDisplayView: View, Equatable {
     }
     
     var body: some View {
-        #if DEBUG
+        #if DEBUG && DEBUG_CURSOR_READINGS
         let _ = print("📊 CursorReadingsDisplayView[\(side.rawValue)]: \(readings.count) readings, first scaleName: \(readings.first?.scaleName ?? "none"), first displayValue: \(readings.first?.displayValue ?? "none")")
         #endif
         

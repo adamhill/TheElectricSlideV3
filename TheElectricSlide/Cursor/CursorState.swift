@@ -8,6 +8,10 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// Enable detailed cursor debugging (disabled by default to reduce log noise)
+// Uncomment this line to enable verbose cursor reading logs during development
+// #define DEBUG_CURSOR_READINGS
+
 @Observable
 final class CursorState {
     // MARK: - Core State Properties
@@ -58,6 +62,10 @@ final class CursorState {
     
     /// Whether to enable automatic reading updates
     var enableReadings: Bool = true
+    
+    // Debug logging throttle - only log every Nth update to reduce noise
+    @ObservationIgnored private var _debugLogCounter: Int = 0
+    @ObservationIgnored private static let debugLogInterval = 10
     
     /// Reference to slide rule data provider
     private var slideRuleProvider: SlideRuleProvider?
@@ -145,14 +153,20 @@ final class CursorState {
     /// Update readings for a specific position (used during drag)
     /// - Parameter position: The position to calculate readings for (0.0-1.0)
     func updateReadings(at position: Double) {
-        #if DEBUG
-        print("📊 updateReadings(at: \(position)) - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil ? "set" : "nil")")
+        #if DEBUG && DEBUG_CURSOR_READINGS
+        // Throttled logging: only log every Nth call to reduce noise during drag
+        _debugLogCounter += 1
+        if _debugLogCounter % Self.debugLogInterval == 0 {
+            print("📊 updateReadings(at: \(position)) - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil ? "set" : "nil")")
+        }
         #endif
         
         guard enableReadings,
               let provider = slideRuleProvider else {
-            #if DEBUG
-            print("📊 updateReadings: GUARD FAILED - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil)")
+            #if DEBUG && DEBUG_CURSOR_READINGS
+            if _debugLogCounter % Self.debugLogInterval == 0 {
+                print("📊 updateReadings: GUARD FAILED - enableReadings=\(enableReadings), provider=\(slideRuleProvider != nil)")
+            }
             #endif
             currentReadings = nil
             return
@@ -210,9 +224,9 @@ final class CursorState {
             currentReadings = newReadings
         }
         
-        // Debug: Print sample readings for verification
-        #if DEBUG
-        if let readings = currentReadings {
+        // Debug: Print sample readings for verification (throttled to reduce log noise)
+        #if DEBUG && DEBUG_CURSOR_READINGS
+        if _debugLogCounter % Self.debugLogInterval == 0, let readings = currentReadings {
             print("📍 Cursor hairline at position: \(String(format: "%.3f", readings.cursorPosition))")
             if let cReading = readings.reading(forScale: "C", side: .front) {
                 print("  C scale: \(cReading.displayValue) (value: \(String(format: "%.4f", cReading.value)))")
@@ -236,8 +250,10 @@ final class CursorState {
     ) -> [ScaleReading] {
         var readings: [ScaleReading] = []
         
-        #if DEBUG
-        print("📊 queryScales[\(side.rawValue)]: topStator=\(topStator.scales.count), slide=\(slide.scales.count), bottomStator=\(bottomStator.scales.count), scaleWidth=\(scaleWidth)")
+        #if DEBUG && DEBUG_CURSOR_READINGS
+        if _debugLogCounter % Self.debugLogInterval == 0 {
+            print("📊 queryScales[\(side.rawValue)]: topStator=\(topStator.scales.count), slide=\(slide.scales.count), bottomStator=\(bottomStator.scales.count), scaleWidth=\(scaleWidth)")
+        }
         #endif
         
         // Read top stator scales (fixed, no offset needed)

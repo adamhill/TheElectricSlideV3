@@ -58,13 +58,13 @@ extension EnvironmentValues {
 // MARK: - CursorState Environment Key
 
 private struct CursorStateKey: EnvironmentKey {
-    static let defaultValue: CursorState? = nil
+    static let defaultValue: CursorState = CursorState()
 }
 
 extension EnvironmentValues {
     /// The cursor state for tracking cursor position and readings.
     /// Views access this to trigger sticky readings without prop drilling.
-    var cursorState: CursorState? {
+    var cursorState: CursorState {
         get { self[CursorStateKey.self] }
         set { self[CursorStateKey.self] = newValue }
     }

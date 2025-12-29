@@ -425,9 +425,25 @@ struct PickettN16ESTests {
         let scale = N16ESScaleBuilder.createPhaseAngleScale()
         
         #expect(scale.name == "Θ")
-        #expect(scale.beginValue == 0)
-        #expect(scale.endValue == 90)
-        #expect(scale.labelFormatter != nil)
+        // THETA scale covers extreme angles: left half (5.71° → 0.57°) and right half (89.43° → 84.29°)
+        // The middle range (5.71° to 84.29°) is covered by the ALPHA (α) scale
+        #expect(scale.beginValue == 5.71)
+        #expect(scale.endValue == 84.29)
+        // Dual labels are set at subsection level, not scale level
+        #expect(scale.subsections.count > 0)
+    }
+    
+    @Test("Alpha phase angle scale creation")
+    func testAlphaPhaseAngleScaleCreation() async throws {
+        let scale = StandardScales.phaseAngleAlphaScale()
+        
+        #expect(scale.name == "α")
+        // ALPHA scale covers the middle range: 84.29° → 45° → 5.71° (descending)
+        // This is the complementary scale to THETA
+        #expect(scale.beginValue == 84.29)
+        #expect(scale.endValue == 5.71)
+        #expect(scale.tickDirection == .down)  // Ticks point down (away from THETA)
+        #expect(scale.subsections.count > 0)
     }
     
     @Test("Cosine phase scale creation - -3dB marker")

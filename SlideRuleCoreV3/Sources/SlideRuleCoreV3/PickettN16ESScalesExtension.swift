@@ -546,12 +546,13 @@ extension StandardScales {
             .build()
     }
     
-    // MARK: - Pickett N-16 ES Filter Response Scales (Coordinated Triple Reading)
+    // MARK: - THIS IS THE DEPRICATED ONE
+    // Pickett N-16 ES Filter Response Scales (Coordinated Triple Reading)
     
     /// Θ - Phase angle scale for RC/RL circuits (0° to 90°)
     /// Used with: cos(Θ) and dB scales for simultaneous filter analysis
     /// Applications: Audio equalizers, communications filters
-    public static func phaseAngleThetaScale(length: Distance = 250.0) -> ScaleDefinition {
+    /* public static func phaseAngleThetaScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Θ")
             .withFormula("α = cot⁻¹(2πfRC)")
@@ -575,7 +576,7 @@ extension StandardScales {
                 }
             }
             .build()
-    }
+    } */
     
     /// cos(Θ) - Relative gain and power factor (0 to 1)
     /// Formula: cos(θ) = 1/√(1 + (1/(2πfRC))²) for filters

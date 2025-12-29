@@ -1797,6 +1797,7 @@ public enum StandardScales {
         
         // Filter response scales (coordinated triple reading)
         case "THETA", "Θ", "θ": return phaseAngleThetaScale(length: length)
+        case "ALPHA", "Α", "α": return phaseAngleAlphaScale(length: length)
         case "COS", "COSTHETA", "COSΘ", "COSθ": return cosinePowerFactorScale(length: length)
         case "DB", "DECIBEL": return decibelPowerScale(length: length)
         case "DBV", "DECIBELV": return decibelVoltageScale(length: length)

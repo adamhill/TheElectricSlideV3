@@ -24,7 +24,8 @@ struct SlideRuleLibrary {
     /// Version 10: Added Faber-Castell 62/83 N with W scale aliases (W1→R1, W2→R2, W1'→SQ1, W2'→SQ2)
     /// Version 11: Implemented Pickett N-16 ES pickettF (PF) Scale (frequency in MHz, 0.1-10 MHz range)
     /// Version 12: Added manufacturer field for colorway support (Pickett, Faber-Castell, K&E, Hemmi)
-    static let libraryVersion = 12
+    /// Version 13: Added α (Alpha) phase angle scale to Pickett N-16 ES back top stator (complements Θ scale)
+    static let libraryVersion = 13
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -105,7 +106,7 @@ struct SlideRuleLibrary {
                 Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
                 phase/gain/dB scales for complete filter characterization from single cursor position.
                 """,
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,

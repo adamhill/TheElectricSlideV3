@@ -92,7 +92,12 @@ extension StandardScales {
             .withRange(begin: 6.0, end: 0.57)  // CORRECTED: Center at 0.57° (NOT 0°!)
             .withLength(length)
             .withTickDirection(.up)
-            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
+            .withDefaultTickStyles([
+                .absolutelyNone,     // Level 0 (1.0°): Not rendered
+                .medium,              // Level 1 (0.5°): 0.75 height
+                .minor,               // Level 2 (0.1°): 0.5 height
+                TickStyle(relativeLength: 0.40, shouldLabel: false, lineWidth: 0.45)  // Level 3 (0.05°)
+            ])
             .withSubsections([
                 // 5.71° → 5°: First major mark - LABEL at 5.7° only
                 ScaleSubsection(startValue: 5.71, tickIntervals: [0.1], labelLevels: [0],
@@ -137,21 +142,32 @@ extension StandardScales {
     /// **Physical Structure:**
     /// - Tick marks point UP (toward top edge of stator)
     /// - Shares baseline with ALPHA scale below
-    /// - RIGHT HALF of the physical THETA scale: 89.43° → 84.29° (BLACK decreasing)
+    /// - RIGHT HALF of the physical THETA scale: 0.57° → 5.71° (MIRRORING Θ₁)
+    ///
+    /// **MIRROR PATTERN:**
+    /// - This scale EXACTLY MIRRORS ThetaSmall (Θ₁) but in REVERSE order
+    /// - Θ₁: 5.71° → 0.57° with intervals [0.1], [1.0, 0.5, 0.1, 0.05], etc.
+    /// - Θ₂: 0.57° → 5.71° with SAME intervals [0.59], [0.1, 0.05], [1.0, 0.5, 0.1, 0.05], etc.
+    /// - Creates a symmetric fold at the center point (0.57°)
     ///
     /// **Dual Labeling (same pattern as S scale):**
     /// - BLACK label: LEFT side of tick mark (primary angle)
     /// - RED label: RIGHT side of tick mark with ">" (complementary, 90° - primary)
     ///
     /// **Physical Meaning (from Chan Street manual):**
-    /// "Phase shift angle (voltage with respect to current) of circuits whose
+    /// "Phase shift angl
+    /// 
+    /// 
+    /// 
+    /// e (voltage with respect to current) of circuits whose
     /// phase increases with DECREASING frequency (reads against frequency F scale)"
     ///
-    /// **Range:** 89.43° → 84.29° (center to right edge)
+    /// **Range:** 0.01° → 5.71° (center to right edge, mirroring Θ₁)
     ///
     /// **Transform:** position = 2 - log₁₀(tan(θ))
-    /// - At θ = 89.43°: tan = 100, log = 2, position = 0
-    /// - At θ = 84.29°: tan = 10, log = 1, position = 1
+    /// - At θ = 0.01°: tan ≈ 0.0001746, log ≈ -3.758, position ≈ 5.758 (off scale)
+    /// - At θ = 0.59°: tan ≈ 0.0103, log ≈ -1.987, position ≈ 3.987 (near start)
+    /// - At θ = 5.71°: tan = 0.1, log = -1, position = 3.0 (physical position 1.0 after normalization)
     ///
     public static func phaseAngleThetaLargeScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
@@ -159,42 +175,62 @@ extension StandardScales {
             //.withAliases(["THETA-LARGE", "θ₂"])
             .withFormula("2 - log₁₀(tan(θ))")
             .withFunction(ThetaLargeScaleFunction())
-            .withRange(begin: 89.43, end: 84.29)
+            .withRange(begin: 0.01, end: 5.71)  // MIRRORING Θ₁: center → edge
             .withLength(length)
             .withTickDirection(.up)
-            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
+            .withDefaultTickStyles([
+                .absolutelyNone,     // Level 0 (1.0°): Not rendered
+                .medium,              // Level 1 (0.5°): 0.75 height
+                .minor,               // Level 2 (0.1°): 0.5 height
+                TickStyle(relativeLength: 0.40, shouldLabel: false, lineWidth: 0.45)  // Level 3 (0.05°)
+            ])
             .withSubsections([
-                // 89.43° → 89.4°: Leftmost (largest angles)
-                ScaleSubsection(startValue: 89.43, tickIntervals: [0.1, 0.05, 0.02], labelLevels: [0],
+                // ═══════════════════════════════════════════════════════════════════════
+                // MIRROR PATTERN: Θ₂ subsections EXACTLY REVERSE Θ₁ intervals
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.01° → 0.6°: From unlabeled center - MIRROR of Θ₁ #8
+                // [0.59] → 1 tick (KEEP AS IS - baseline from center)
+                ScaleSubsection(startValue: 0.01, tickIntervals: [0.59], labelLevels: [],
+                               dualLabelFormatter: nil),
+                
+                // 0.6° → 0.8°: MIRROR of Θ₁ #7 (0.8° → 0.6°)
+                // [0.1, 0.05] → 3 ticks
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 89.4° → 89.2°
-                ScaleSubsection(startValue: 89.4, tickIntervals: [0.2, 0.1, 0.05, 0.02], labelLevels: [0],
+                // 0.8° → 1°: MIRROR of Θ₁ #6 (1° → 0.8°)
+                // [0.1, 0.05] → 3 ticks
+                ScaleSubsection(startValue: 0.8, tickIntervals: [0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 89.2° → 89°
-                ScaleSubsection(startValue: 89.2, tickIntervals: [0.2, 0.1, 0.05, 0.02], labelLevels: [0],
+                // 1° → 2°: MIRROR of Θ₁ #5 (2° → 1°)
+                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 89° → 88°: Contracting space
-                ScaleSubsection(startValue: 89.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
+                // 2° → 3°: MIRROR of Θ₁ #4 (3° → 2°)
+                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
+                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 88° → 87°
-                ScaleSubsection(startValue: 88.0, tickIntervals: [1.0, 0.5, 0.2, 0.1], labelLevels: [0],
+                // 3° → 4°: MIRROR of Θ₁ #3 (4° → 3°)
+                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 87° → 86°
-                ScaleSubsection(startValue: 87.0, tickIntervals: [1.0, 0.5, 0.2, 0.1], labelLevels: [0],
+                // 4° → 5°: MIRROR of Θ₁ #2 (5° → 4°)
+                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
+                ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 86° → 85°
-                ScaleSubsection(startValue: 86.0, tickIntervals: [1.0, 0.5, 0.2, 0.1], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
-                
-                // 85° → 84.29°: Right edge
-                ScaleSubsection(startValue: 85.0, tickIntervals: [1.0, 0.5, 0.2, 0.1], labelLevels: [0],
+                // 5° → 5.71°: MIRROR of Θ₁ #1 (5.71° → 5°)
+                // [0.1] → 6 ticks
+                ScaleSubsection(startValue: 5.0, tickIntervals: [0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual)
+            ])
+            .withConstants([
+                ScaleConstant(value: 5.71, label: "5.7", style: .medium)
             ])
             .build()
     }
@@ -534,19 +570,23 @@ public struct AlphaScaleFunction: ScaleFunction, Sendable {
 //
 // THETA LARGE SCALE (Θ₂) - Independent Right Half, TICK MARKS UP
 // Formula: position = 2 - log₁₀(tan(θ))
-// Range: 89.43° → 84.29° maps to position 0 → 1
+// Range: 0.01° → 5.71° maps to position 0 → 1 (MIRRORS Θ₁)
+//
+// **MIRROR PATTERN:** Θ₂ intervals EXACTLY REVERSE Θ₁
+// Θ₁: [0.1], [1.0, 0.5, 0.1, 0.05], ..., [0.1, 0.05], [0.1, 0.05], [0.6]
+// Θ₂: [0.59], [0.1, 0.05], [0.1, 0.05], [1.0, 0.5, 0.1, 0.05], ..., [0.1]
 //
 // | BLACK (L) | tan(θ)  | log₁₀   | Position | RED (R)  |
 // |-----------|---------|---------|----------|----------|
-// | 89.43°    | 100.0   | 2.000   | 0.000    | .57°>    |
-// | 89.4°     | 95.49   | 1.980   | 0.020    | .6°>     |
-// | 89.2°     | 71.62   | 1.855   | 0.145    | .8°>     |
-// | 89°       | 57.29   | 1.758   | 0.242    | 1°>      |
-// | 88°       | 28.64   | 1.457   | 0.543    | 2°>      |
-// | 87°       | 19.08   | 1.281   | 0.719    | 3°>      |
-// | 86°       | 14.30   | 1.156   | 0.844    | 4°>      |
-// | 85°       | 11.43   | 1.058   | 0.942    | 5°>      |
-// | 84.29°    | 10.00   | 1.000   | 1.000    | 5.71°>   |
+// | 0.59°     | 0.0103  | -1.987  | ~3.987   | 89.41°>  |
+// | 0.6°      | 0.0105  | -1.980  | ~3.980   | 89.4°>   |
+// | 0.8°      | 0.0140  | -1.855  | ~3.855   | 89.2°>   |
+// | 1°        | 0.0175  | -1.757  | ~3.757   | 89°>     |
+// | 2°        | 0.0349  | -1.457  | ~3.457   | 88°>     |
+// | 3°        | 0.0524  | -1.281  | ~3.281   | 87°>     |
+// | 4°        | 0.0699  | -1.156  | ~3.156   | 86°>     |
+// | 5°        | 0.0875  | -1.058  | ~3.058   | 85°>     |
+// | 5.71°     | 0.100   | -1.000  | 3.000    | 84.29°>  |
 //
 // ALPHA SCALE (α) - Standard Descending, TICK MARKS DOWN
 // Formula: position = 0.5 - 0.5 × log₁₀(tan(α))
@@ -571,6 +611,11 @@ public struct AlphaScaleFunction: ScaleFunction, Sendable {
 // They share the same baseline and tick direction (UP), and both use dual
 // BLACK/RED complementary angle labeling.
 //
+// **MIRROR SYMMETRY:** Θ₂ subsections EXACTLY MIRROR Θ₁ subsections in REVERSE:
+//   Θ₁: [0.1], [1.0, 0.5, 0.1, 0.05](×4), [0.1, 0.05](×2), [0.6]
+//   Θ₂: [0.59], [0.1, 0.05](×2), [1.0, 0.5, 0.1, 0.05](×4), [0.1]
+// This creates a symmetric fold at the center point (0.57°/0.59°).
+//
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // MARK: - Scale Rendering Notes
@@ -587,13 +632,16 @@ public struct AlphaScaleFunction: ScaleFunction, Sendable {
 //    - Tick marks point UP
 //    - Dual labels: BLACK left, RED right
 //    - Baseline SHARED with ALPHA at Y = baseline_y
-//    - Independent scale: 5.71° → 0.57° (left half of physical THETA)
+//    - Independent scale: 5.71° → 0.57° (mirrored left half)
+//    - Tick intervals: [0.1], [1.0, 0.5, 0.1, 0.05](×4), [0.1, 0.05](×2), [0.6]
 //
 // 3. Render Θ₂ (THETA LARGE) third (upper right):
 //    - Tick marks point UP
 //    - Dual labels: BLACK left, RED right
 //    - Baseline SHARED with ALPHA at Y = baseline_y
-//    - Independent scale: 89.43° → 84.29° (right half of physical THETA)
+//    - Independent scale: 0.01° → 5.71° (mirrored right half)
+//    - Tick intervals: [0.59], [0.1, 0.05](×2), [1.0, 0.5, 0.1, 0.05](×4), [0.1]
+//    - **MIRRORS Θ₁ exactly but in REVERSE order**
 //
 // 4. Labels will never overlap because:
 //    - THETA labels are ABOVE the shared baseline
@@ -603,4 +651,4 @@ public struct AlphaScaleFunction: ScaleFunction, Sendable {
 // The visual result matches the physical N-16 ES where these scales appear as
 // a "sandwich" with tick marks pointing away from each other. The THETA scale
 // visually appears as one continuous scale but is implemented as two independent
-// scales (Θ₁ and Θ₂) to avoid the rendering gap issue in the disconnected middle.
+// scales (Θ₁ and Θ₂) with symmetric tick patterns that create a fold at center.

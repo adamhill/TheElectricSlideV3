@@ -101,7 +101,7 @@ struct StatorView: View, Equatable {
             TapGesture(count: 1)
                 .onEnded { _ in
                     // Mark stator as touched (sticky readings)
-                    cursorState?.setStatorTouched()
+                    cursorState.setStatorTouched()
                 }
         )
         .accessibilityIdentifier("stator-view-root")

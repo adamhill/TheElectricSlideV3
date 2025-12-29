@@ -245,6 +245,7 @@ final class GestureHandler: GestureHandlerProtocol {
             // Reset direction lock
             currentSlideGestureDirection = nil
             viewModel.setPanningSlideActive(false)
+            cursorState.updateReadings()
             return
         }
         

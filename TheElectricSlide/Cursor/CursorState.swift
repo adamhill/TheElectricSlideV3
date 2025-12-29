@@ -218,10 +218,10 @@ final class CursorState {
         _internalReadings = newReadings
         _updateCounter += 1
         
-        // Only update observable property when display values actually changed AND throttled
+        // Only update observable property when display values actually changed OR on throttled interval
         // The %3 throttle reduces UI updates during gross slide dragging (for show, not precision)
         // Precision work happens at slow speeds where throttling has minimal impact
-        if newReadings != currentReadings && _updateCounter % 3 == 0 {
+        if _updateCounter % 3 == 0 || newReadings != currentReadings {
             currentReadings = newReadings
         }
         

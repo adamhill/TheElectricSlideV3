@@ -460,13 +460,22 @@ public enum N16ESScaleBuilder {
         StandardScales.eefoScale(length: scaleLengthInPoints)
     }
     
-    /// Create phase angle (Θ) scale for filter response
-    public static func createPhaseAngleScale(
+    /// Create phase angle (Θ₁) small angles scale for filter response
+    public static func createPhaseAngleSmallScale(
         scaleLengthInPoints: Double = 250.0,
         layout: ScaleLayout = .linear,
         tickDirection: TickDirection = .up
     ) -> ScaleDefinition {
-        StandardScales.phaseAngleThetaScale(length: scaleLengthInPoints)
+        StandardScales.phaseAngleThetaSmallScale(length: scaleLengthInPoints)
+    }
+    
+    /// Create phase angle (Θ₂) large angles scale for filter response
+    public static func createPhaseAngleLargeScale(
+        scaleLengthInPoints: Double = 250.0,
+        layout: ScaleLayout = .linear,
+        tickDirection: TickDirection = .up
+    ) -> ScaleDefinition {
+        StandardScales.phaseAngleThetaLargeScale(length: scaleLengthInPoints)
     }
     
     /// Create cos(Θ) scale for relative gain

@@ -1796,7 +1796,9 @@ public enum StandardScales {
         case "LAMBDA", "Λ", "λ": return wavelengthLambdaScale(length: length)
         
         // Filter response scales (coordinated triple reading)
-        case "THETA", "Θ", "θ": return phaseAngleThetaScale(length: length)
+        case "THETA", "Θ", "θ": return phaseAngleThetaSmallScale(length: length) // Legacy: returns small angles
+        case "THETA1", "Θ₁", "θ₁": return phaseAngleThetaSmallScale(length: length)
+        case "THETA2", "Θ₂", "θ₂": return phaseAngleThetaLargeScale(length: length)
         case "ALPHA", "Α", "α": return phaseAngleAlphaScale(length: length)
         case "COS", "COSTHETA", "COSΘ", "COSθ": return cosinePowerFactorScale(length: length)
         case "DB", "DECIBEL": return decibelPowerScale(length: length)

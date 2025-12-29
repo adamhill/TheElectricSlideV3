@@ -335,8 +335,17 @@ enum CommonScales {
         StandardScales.wavelengthLambdaScale(length: length)
     }
     
+    static func phaseAngleThetaSmall(length: Double = 250.0) -> ScaleDefinition {
+        StandardScales.phaseAngleThetaSmallScale(length: length)
+    }
+    
+    static func phaseAngleThetaLarge(length: Double = 250.0) -> ScaleDefinition {
+        StandardScales.phaseAngleThetaLargeScale(length: length)
+    }
+    
+    // Legacy accessor returns small angles scale
     static func phaseAngleTheta(length: Double = 250.0) -> ScaleDefinition {
-        StandardScales.phaseAngleThetaScale(length: length)
+        StandardScales.phaseAngleThetaSmallScale(length: length)
     }
     
     static func cosinePowerFactor(length: Double = 250.0) -> ScaleDefinition {

@@ -323,6 +323,13 @@ public struct ScaleCalculator: Sendable {
             
             // 6. Boundary check using normalized bounds; exclusive upper when not last subsection
             let inside: Bool = {
+                // ALWAYS include the first tick at startValue for a subsection
+                // This ensures labels at subsection boundaries are never filtered out
+                let isFirstTick = abs(tickValue - subsection.startValue) < (0.01 * finestInterval)
+                if isFirstTick {
+                    return true
+                }
+                
                 if bounds.includeUpper {
                     return (tickValue >= bounds.lower && tickValue <= bounds.upper)
                 } else {

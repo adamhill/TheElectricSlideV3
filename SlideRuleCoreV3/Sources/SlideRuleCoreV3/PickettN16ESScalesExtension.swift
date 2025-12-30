@@ -546,7 +546,9 @@ extension StandardScales {
             .build()
     }
     
-    // MARK: - THIS IS THE DEPRICATED ONE
+    // MARK: - DEPRECATED FILTER RESPONSE VARIANT
+    // TODO: Remove this legacy Θ phase-angle implementation once the current Pickett N-16 ES
+    //       filter response scales are finalized and fully tested.
     // Pickett N-16 ES Filter Response Scales (Coordinated Triple Reading)
     
     /// Θ - Phase angle scale for RC/RL circuits (0° to 90°)

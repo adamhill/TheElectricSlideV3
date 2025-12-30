@@ -36,7 +36,7 @@ struct CursorReadingsContainer: View, Equatable {
     /// Compares display values, not raw readings, to minimize updates
     static func == (lhs: CursorReadingsContainer, rhs: CursorReadingsContainer) -> Bool {
         lhs.viewMode == rhs.viewMode &&
-        lhs.$cursorReadingCycleMode.wrappedValue == rhs.$cursorReadingCycleMode.wrappedValue &&
+        lhs.cursorReadingCycleMode == rhs.cursorReadingCycleMode &&
         lhs.hasBackSide == rhs.hasBackSide &&
         lhs.currentReadings == rhs.currentReadings  // Uses CursorReadings.== which compares displayValue strings
     }

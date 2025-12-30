@@ -155,11 +155,7 @@ extension StandardScales {
     /// - RED label: RIGHT side of tick mark with ">" (complementary, 90° - primary)
     ///
     /// **Physical Meaning (from Chan Street manual):**
-    /// "Phase shift angl
-    /// 
-    /// 
-    /// 
-    /// e (voltage with respect to current) of circuits whose
+    /// "Phase shift angle (voltage with respect to current) of circuits whose
     /// phase increases with DECREASING frequency (reads against frequency F scale)"
     ///
     /// **Range:** 0.01° → 5.71° (center to right edge, mirroring Θ₁)

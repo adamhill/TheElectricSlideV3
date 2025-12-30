@@ -73,8 +73,19 @@ internal enum ModuloTickGenerationUtilities {
 public struct ScaleCalculator: Sendable {
     
     // MARK: - Position Calculation
-    
     /// Calculate the normalized position (0.0 to 1.0) for a value on a scale
+    ///
+    /// For split scales, this method applies the formula offset and maps to the
+    /// appropriate physical range. The algorithm follows the PostScript slide rule engine:
+    /// 1. Calculate base normalized position (0...1) using scale function
+    /// 2. Apply formula offset (e.g., {1 sub} shifts by -1.0)
+    /// 3. Map to physical range (left=0.0...0.5, right=0.5...1.0)
+    ///
+    /// ## Split Scale Example
+    /// For a split D scale with left segment (1→√10) and right segment (√10→10):
+    /// - Left:  normalizedPos in 0...1 → physicalPos in 0.0...0.5
+    /// - Right: normalizedPos in 0...1, offset -1.0 → physicalPos in 0.5...1.0
+    ///
     /// - Parameters:
     ///   - value: The value to locate on the scale
     ///   - definition: The scale definition
@@ -99,11 +110,33 @@ public struct ScaleCalculator: Sendable {
             return 0.0
         }
         
-        // Normalized position formula from mathematical foundations
-        // This works for BOTH linear and circular scales!
-        let normalizedPosition = (fx - fL) / denominator
+        // Step 1: Calculate base normalized position (0...1) in scale's value range
+        // This is the position before applying any split scale transformations
+        let baseNormalizedPosition = (fx - fL) / denominator
         
-        return normalizedPosition
+        // Step 2-4: Apply split scale transformations if present
+        if let segment = definition.splitSegment {
+            // Step 2: Apply formula offset
+            // NOTE: For most split scales, formulaOffset should be 0.0
+            // Formula-level shifting should be done in the ScaleFunction itself (e.g., HyperbolicSineFunction offset parameter)
+            // The formulaOffset parameter is mainly for edge cases not covered by function parameters
+            let adjustedPosition = baseNormalizedPosition + segment.formulaOffset
+            
+            // Step 3: Get physical range for this segment
+            let physicalRange = segment.physicalRange
+            let rangeWidth = physicalRange.upperBound - physicalRange.lowerBound
+            
+            //Step 4: Map adjusted position to fractional physical space
+            // Formula: physical = rangeStart + (adjusted × rangeWidth)
+            // Left example (offset=0.0):  0.0 + (0.5 × 0.5) = 0.25 (midpoint of left half)
+            // Right example (offset=0.0): 0.5 + (0.5 × 0.5) = 0.75 (midpoint of right half)
+            let physicalPosition = physicalRange.lowerBound + (adjustedPosition * rangeWidth)
+            
+            return physicalPosition
+        } else {
+            // No split: return base position (full 0...1 range)
+            return baseNormalizedPosition
+        }
     }
     
     /// Calculate the absolute distance in points for a value on a linear scale
@@ -268,6 +301,12 @@ public struct ScaleCalculator: Sendable {
             allTicks.append(tick)
         }
         
+        // BOUNDARY TICK INJECTION: For split segments, ensure domain boundaries have ticks
+        if let splitSegment = definition.splitSegment {
+            // Inject boundary ticks for split scales
+            allTicks.append(contentsOf: generateBoundaryTicks(for: definition, splitSegment: splitSegment))
+        }
+        
         // Sort by position (should already be sorted, but ensure it)
         allTicks.sort { $0.normalizedPosition < $1.normalizedPosition }
         
@@ -374,6 +413,61 @@ public struct ScaleCalculator: Sendable {
         }
         
         return ticks
+    }
+    
+    /// Generate boundary ticks for split segments to ensure seamless continuity
+    /// For split scales, we inject ticks at both domain boundaries (beginValue and endValue)
+    /// This ensures the split segments have matching ticks at their meeting point
+    private static func generateBoundaryTicks(
+        for definition: ScaleDefinition,
+        splitSegment: SplitSegment
+    ) -> [TickMark] {
+        var boundaryTicks: [TickMark] = []
+        
+        // Determine style for boundary ticks (use the major tick style)
+        let boundaryStyle = definition.defaultTickStyles.first ?? TickStyle.major
+        
+        // Always add tick at domain start (beginValue)
+        let beginPosition = normalizedPosition(for: definition.beginValue, on: definition)
+        let beginAngularPos = definition.isCircular ? beginPosition * 360.0 : nil
+        
+        // Format label for boundary tick
+        let beginLabel = formatLabel(
+            value: definition.beginValue,
+            subsectionFormatter: definition.subsections.first?.labelFormatter,
+            scaleFormatter: definition.labelFormatter
+        )
+        
+        let beginTick = TickMark(
+            value: definition.beginValue,
+            normalizedPosition: beginPosition,
+            angularPosition: beginAngularPos,
+            style: boundaryStyle,
+            label: beginLabel
+        )
+        boundaryTicks.append(beginTick)
+        
+        // Always add tick at domain end (endValue)
+        let endPosition = normalizedPosition(for: definition.endValue, on: definition)
+        let endAngularPos = definition.isCircular ? endPosition * 360.0 : nil
+        
+        // Format label for boundary tick
+        let endLabel = formatLabel(
+            value: definition.endValue,
+            subsectionFormatter: definition.subsections.last?.labelFormatter,
+            scaleFormatter: definition.labelFormatter
+        )
+        
+        let endTick = TickMark(
+            value: definition.endValue,
+            normalizedPosition: endPosition,
+            angularPosition: endAngularPos,
+            style: boundaryStyle,
+            label: endLabel
+        )
+        boundaryTicks.append(endTick)
+        
+        return boundaryTicks
     }
     
     /// Calculate normalized subsection boundaries (handles ascending and descending domains)

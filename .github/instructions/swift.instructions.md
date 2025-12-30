@@ -15,7 +15,7 @@ applyTo: "**/*.swift"
 - **Explicit types on public APIs** - avoid type inference in function signatures
 - **Sendable compliance** - mark closure parameters `@Sendable` for Swift 6 concurrency
 - All types should conform to `Sendable` where possible
-
+- Type erasure (aka, AnyView) for SwiftUI pieces ONLY WHEN ABSOLUTELY NECESSARY.
 ## String Formatting
 - Use Unicode directly for mathematical notation: `"x²"`, `"x³"`, `"e⁰·⁰¹ˣ"`, `"100/x²"`
 - `ScaleDefinition` `name` and `formula` properties are `String` (not `AttributedString`)

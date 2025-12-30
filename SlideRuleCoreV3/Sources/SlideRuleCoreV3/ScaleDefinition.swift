@@ -1,5 +1,72 @@
 import Foundation
 
+// MARK: - Split Scale Support
+
+/// Represents a segment of a split scale
+///
+/// Split scales divide a physical scale into two segments, typically left and right halves,
+/// each displaying a different portion of the mathematical range. This concept originates
+/// from PostScript slide rule implementations where physical space constraints required
+/// dividing scales across the rule length.
+///
+/// ## Physical Layout
+/// - **Left segment**: occupies physical positions 0.0...0.5 (left half of rule)
+/// - **Right segment**: occupies physical positions 0.5...1.0 (right half of rule)
+///
+/// ## Formula Offset
+/// The `formulaOffset` parameter specifies where the segment's mathematical range begins
+/// relative to the scale's full range. For example, a split D scale might have:
+/// - Left segment:  formulaOffset = 0.0, displays values 1-√10 (physical 0.0-0.5)
+/// - Right segment: formulaOffset = 0.5, displays values √10-10 (physical 0.5-1.0)
+///
+/// ## PostScript Heritage
+/// This design matches PostScript slide rule engines where split scales were implemented
+/// using offset and length adjustments to map different mathematical ranges onto fixed
+/// physical positions.
+public enum SplitSegment: Sendable, Equatable, Hashable {
+    /// Left segment of a split scale
+    /// - Parameter formulaOffset: Starting position in the scale's full mathematical range (typically 0.0)
+    case left(formulaOffset: Double)
+    
+    /// Right segment of a split scale
+    /// - Parameter formulaOffset: Starting position in the scale's full mathematical range (typically 0.5)
+    case right(formulaOffset: Double)
+    
+    /// The physical range this segment occupies on the slide rule
+    ///
+    /// - Left segment: `0.0...0.5` (left half)
+    /// - Right segment: `0.5...1.0` (right half)
+    public var physicalRange: ClosedRange<Double> {
+        switch self {
+        case .left:
+            return 0.0...0.5
+        case .right:
+            return 0.5...1.0
+        }
+    }
+    
+    /// Zero-based index of this segment
+    ///
+    /// - Left segment: `0`
+    /// - Right segment: `1`
+    public var segmentIndex: Int {
+        switch self {
+        case .left:
+            return 0
+        case .right:
+            return 1
+        }
+    }
+    
+    /// The formula offset for this segment
+    public var formulaOffset: Double {
+        switch self {
+        case .left(let offset), .right(let offset):
+            return offset
+        }
+    }
+}
+
 // MARK: - Cursor Precision
 
 /// Defines how cursor reading precision is determined
@@ -116,6 +183,15 @@ public struct ScaleDefinition: Sendable {
     /// - > 1.0 = looser/expanded spacing
     public let formulaTracking: Double
     
+    /// Optional split segment configuration
+    ///
+    /// When `nil`, the scale occupies the full physical width (0.0...1.0).
+    /// When set, the scale represents only the specified segment (left or right half).
+    ///
+    /// - Note: This property enables split scale support without breaking existing code.
+    ///   All existing scales default to `nil` (full width).
+    public let splitSegment: SplitSegment?
+    
     public init(
         name: String,
         formula: String = ScaleDefinition.defaultFormula,
@@ -135,7 +211,8 @@ public struct ScaleDefinition: Sendable {
         showBaseline: Bool = false,
         hasBottomSeparator: Bool = false,
         formulaTracking: Double = 1.0,
-        displayName: String? = nil
+        displayName: String? = nil,
+        splitSegment: SplitSegment? = nil
     ) {
         self.name = name
         self.displayName = displayName
@@ -156,6 +233,7 @@ public struct ScaleDefinition: Sendable {
         self.showBaseline = showBaseline
         self.hasBottomSeparator = hasBottomSeparator
         self.formulaTracking = formulaTracking
+        self.splitSegment = splitSegment
     }
     
     /// Whether this is a circular scale
@@ -204,6 +282,7 @@ public struct ScaleBuilder {
     private var constants: [ScaleConstant] = []
     private var showBaseline: Bool = false
     private var formulaTracking: Double = 1.0
+    private var splitSegment: SplitSegment?
     
     public init() {}
     
@@ -316,6 +395,15 @@ public struct ScaleBuilder {
         return copy
     }
     
+    /// Sets the split segment configuration for this scale
+    /// - Parameter segment: The split segment (left or right), or nil for full-width scale
+    /// - Returns: Updated builder
+    public func withSplitSegment(_ segment: SplitSegment?) -> ScaleBuilder {
+        var copy = self
+        copy.splitSegment = segment
+        return copy
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -338,7 +426,8 @@ public struct ScaleBuilder {
             constants: constants,
             showBaseline: showBaseline,
             formulaTracking: formulaTracking,
-            displayName: displayName
+            displayName: displayName,
+            splitSegment: splitSegment
         )
     }
 }
@@ -657,5 +746,58 @@ extension ScaleDefinition {
         
         // Standard decimal formatting
         return String(format: "%.\(places)f", value)
+    }
+}
+
+// MARK: - Split Scale Physical Position
+
+extension ScaleDefinition {
+    /// Convert normalized position (0.0...1.0) to physical position
+    /// accounting for split segments.
+    ///
+    /// For regular scales: normalizedPosition × length
+    /// For split scales: maps to the segment's fractional physical range
+    ///
+    /// - Parameter normalizedPosition: Position within this scale (0.0...1.0)
+    /// - Returns: Physical position in points
+    public func physicalPosition(from normalizedPosition: Double) -> Double {
+        guard let segment = splitSegment else {
+            // Regular scale: full width
+            return normalizedPosition * scaleLengthInPoints
+        }
+        
+        let range = segment.physicalRange
+        let rangeWidth = range.upperBound - range.lowerBound
+        let physicalOffset = range.lowerBound * scaleLengthInPoints
+        
+        #if DEBUG && SPLIT_SCALES
+        print("[SplitScale] \(name): normalizedPos=\(normalizedPosition) -> physicalOffset=\(physicalOffset) + \(normalizedPosition) * \(rangeWidth) * \(scaleLengthInPoints) = \(physicalOffset + (normalizedPosition * rangeWidth * scaleLengthInPoints))")
+        #endif
+        
+        return physicalOffset + (normalizedPosition * rangeWidth * scaleLengthInPoints)
+    }
+    
+    /// Convert normalized position to fraction of total scale width
+    /// accounting for split segments.
+    ///
+    /// This is a convenience for renderers that work in normalized coordinates.
+    ///
+    /// - Parameter normalizedPosition: Position within this scale (0.0...1.0)
+    /// - Returns: Fraction of total scale width (0.0...1.0)
+    public func physicalFraction(from normalizedPosition: Double) -> Double {
+        guard let segment = splitSegment else {
+            // Regular scale: maps directly
+            return normalizedPosition
+        }
+        
+        let range = segment.physicalRange
+        let rangeWidth = range.upperBound - range.lowerBound
+        
+        #if DEBUG && SPLIT_SCALES
+        let result = range.lowerBound + (normalizedPosition * rangeWidth)
+        print("[SplitScale] \(name): physicalFraction normalizedPos=\(normalizedPosition) -> \(result)")
+        #endif
+        
+        return range.lowerBound + (normalizedPosition * rangeWidth)
     }
 }

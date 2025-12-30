@@ -1,7 +1,9 @@
 # AI Coding Agent Instructions for The Electric Slide
 
 ## Project Overview
-A modern macOS/iOS slide rule application with a **strict separation** between calculation engine (`SlideRuleCoreV3` Swift package) and SwiftUI rendering (`TheElectricSlide` app). The calculation engine is a pure functional implementation based on PostScript slide rule algorithms and mathematical foundations.
+A modern macOS/iOS slide rule application with a **strict separation** between calculation engine (`SlideRuleCoreV3` Swift package) and SwiftUI rendering (`TheElectricSlide` app). The calculation engine is a pure functional implementation based on PostScript slide rule program and mathematical foundations.
+
+## Physical Makeup of a Slide Rule
 
 ## Agent Capabilities: Local vs Remote
 

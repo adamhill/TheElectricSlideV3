@@ -351,6 +351,7 @@ public struct RuleDefinitionParser {
         var currentTarget: ScaleTarget = .topStator
         var inBrackets = false
         var nextScaleNoLineBreak = false  // Track if next scale should have noLineBreak
+        var splitGroupAccumulator: [GeneratedScale] = []  // Accumulate scales for split processing
         
         // Tokenize by spaces and brackets
         let tokens = tokenize(sideDefinition)
@@ -525,13 +526,44 @@ public struct RuleDefinitionParser {
                 )
                 nextScaleNoLineBreak = false  // Reset flag after use
                 
-                switch currentTarget {
-                case .topStator:
-                    topScales.append(generated)
-                case .slide:
-                    slideScales.append(generated)
-                case .bottomStator:
-                    bottomScales.append(generated)
+                // Handle split group accumulation
+                // If this scale has noLineBreak (from ^), add to accumulator
+                if noLineBreak {
+                    splitGroupAccumulator.append(generated)
+                } else {
+                    // This scale completes a split group (or is standalone)
+                    if !splitGroupAccumulator.isEmpty {
+                        // We have accumulated scales - this is the final scale in the group
+                        splitGroupAccumulator.append(generated)
+                        
+                        // Process the split group: assign split segments
+                        let processedGroup = processSplitGroup(splitGroupAccumulator)
+                        
+                        // Append all processed scales to appropriate target
+                        for scale in processedGroup {
+                            switch currentTarget {
+                            case .topStator:
+                                topScales.append(scale)
+                            case .slide:
+                                slideScales.append(scale)
+                            case .bottomStator:
+                                bottomScales.append(scale)
+                            }
+                        }
+                        
+                        // Clear accumulator
+                        splitGroupAccumulator = []
+                    } else {
+                        // Standalone scale (no split group)
+                        switch currentTarget {
+                        case .topStator:
+                            topScales.append(generated)
+                        case .slide:
+                            slideScales.append(generated)
+                        case .bottomStator:
+                            bottomScales.append(generated)
+                        }
+                    }
                 }
             }
         }
@@ -540,10 +572,91 @@ public struct RuleDefinitionParser {
             throw ParseError.missingBrackets
         }
         
+        // Handle any remaining scales in split accumulator (shouldn't happen in valid input)
+        if !splitGroupAccumulator.isEmpty {
+            // Malformed: scales with ^ but no final scale
+            // Process them anyway as a group
+            let processedGroup = processSplitGroup(splitGroupAccumulator)
+            for scale in processedGroup {
+                switch currentTarget {
+                case .topStator:
+                    topScales.append(scale)
+                case .slide:
+                    slideScales.append(scale)
+                case .bottomStator:
+                    bottomScales.append(scale)
+                }
+            }
+        }
+        
         return ParsedComponents(
             topScales: topScales,
             slideScales: slideScales,
             bottomScales: bottomScales
+        )
+    }
+    
+    /// Process a split scale group and assign split segments
+    /// For 2-segment splits: first = left(0.0), second = right(-1.0)
+    /// For 3+ segments: evenly distribute (currently unsupported, will log warning)
+    private static func processSplitGroup(_ group: [GeneratedScale]) -> [GeneratedScale] {
+        guard group.count >= 2 else {
+            // Single scale shouldn't be in a split group, but return as-is
+            return group
+        }
+        
+        if group.count == 2 {
+            // Standard 2-segment split
+            let leftScale = updateScaleWithSplitSegment(
+                group[0],
+                segment: .left(formulaOffset: 0.0)
+            )
+            let rightScale = updateScaleWithSplitSegment(
+                group[1],
+                segment: .right(formulaOffset: -1.0)
+            )
+            return [leftScale, rightScale]
+        } else {
+            // 3+ segment splits are not yet supported in Phase 2
+            // Log warning and return without split segments
+            #if canImport(os)
+            parserLogger.warning("Split groups with more than 2 segments are not yet supported. Found \(group.count) segments.")
+            #endif
+            return group
+        }
+    }
+    
+    /// Helper to create a copy of a GeneratedScale with splitSegment set
+    private static func updateScaleWithSplitSegment(
+        _ generated: GeneratedScale,
+        segment: SplitSegment
+    ) -> GeneratedScale {
+        let updatedDefinition = ScaleDefinition(
+            name: generated.definition.name,
+            formula: generated.definition.formula,
+            function: generated.definition.function,
+            beginValue: generated.definition.beginValue,
+            endValue: generated.definition.endValue,
+            scaleLengthInPoints: generated.definition.scaleLengthInPoints,
+            height: generated.definition.height,
+            layout: generated.definition.layout,
+            tickDirection: generated.definition.tickDirection,
+            subsections: generated.definition.subsections,
+            defaultTickStyles: generated.definition.defaultTickStyles,
+            labelFormatter: generated.definition.labelFormatter,
+            labelColor: generated.definition.labelColor,
+            colorApplication: generated.definition.colorApplication,
+            constants: generated.definition.constants,
+            showBaseline: generated.definition.showBaseline,
+            hasBottomSeparator: generated.definition.hasBottomSeparator,
+            formulaTracking: generated.definition.formulaTracking,
+            displayName: generated.definition.displayName,
+            splitSegment: segment
+        )
+        
+        return GeneratedScale(
+            definition: updatedDefinition,
+            noLineBreak: generated.noLineBreak
         )
     }
     

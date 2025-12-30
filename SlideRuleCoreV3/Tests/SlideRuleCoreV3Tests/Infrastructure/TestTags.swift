@@ -24,6 +24,9 @@ extension Tag {
     @Tag public static var tickGeneration: Self
     @Tag public static var labelLevels: Self
     @Tag public static var density: Self
+    @Tag public static var splitScales: Self
+    @Tag public static var rendering: Self
+    @Tag public static var debugging: Self
     
     // MARK: - Scale-Specific Tags
     @Tag public static var bScale: Self

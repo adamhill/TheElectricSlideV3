@@ -123,6 +123,7 @@ struct ScaleTickRenderer {
         }
         
         // Calculate horizontal position
+        // Note: tick.normalizedPosition already includes split segment mapping from ScaleCalculator
         let xPos = tick.normalizedPosition * size.width
         
         // Calculate tick height based on relativeLength
@@ -200,6 +201,7 @@ struct ScaleTickRenderer {
             }
             
             // Calculate geometry
+            // Note: tick.normalizedPosition already includes split scale transformation from ScaleCalculator
             let xPos = tick.normalizedPosition * size.width
             let tickHeight = tick.style.relativeLength * (size.height * Self.kHeightMultiplier)
             let lineWidth = tick.style.lineWidth * Self.kWidthMultiplier
@@ -255,6 +257,7 @@ struct ScaleTickRenderer {
     
     /// Calculate tick geometry without drawing (useful for label-only operations)
     func tickGeometry(for tick: TickMark, size: CGSize) -> (xPos: CGFloat, tickHeight: CGFloat) {
+        // Note: tick.normalizedPosition already includes split scale transformation from ScaleCalculator
         let xPos = tick.normalizedPosition * size.width
         let tickHeight = tick.style.relativeLength * (size.height * Self.kHeightMultiplier)
         return (xPos, tickHeight)

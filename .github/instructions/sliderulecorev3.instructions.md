@@ -8,7 +8,7 @@ applyTo: "SlideRuleCoreV3/**/*.swift"
 Pure calculation engine for scale creation, manipulation, tick mark calculations, and value-from-position lookups. **NO drawing/rendering code by design.**
 
 ## Platform Compatibility
-- **iOS 18+, macOS 15+, Swift 6**
+- **iOS 18+, macOS 15+, Swift 6.2**
 - **Linux Compatible**: Package builds and tests run on Linux runners (Swift 6.2+)
 - Use `swift build` to compile, `swift test` to run tests
 - Remote agents can fully develop and test this package in CI/CD environments

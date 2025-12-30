@@ -9,7 +9,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 **Full Access** - Can build, run, and test everything:
 - ✅ **App Development**: Use Xcodebuild MCP server to list simulators, build, and run `TheElectricSlide` app
   - List available simulators: `mcp_xcodebuildmcp_list_sims`
-  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
+  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_mac_sim` or iOS target
   - Interactive testing with UI feedback
   - **Recommended test devices:**
     - iOS: iPhone 17 Pro Max
@@ -43,7 +43,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 
 **Location:** `SlideRuleCoreV3/Sources/SlideRuleCoreV3/`  
 **Type:** Local Swift Package (modifiable by agents)  
-**Platform:** iOS 18+, macOS 15+, Swift 6  
+**Platform:** iOS 18+, macOS 15+, Swift 6.2  
 **Purpose:** Pure calculation engine for scale creation, manipulation, tick mark calculations, and value-from-position lookups - **NO drawing/rendering code by design**
 
 **⚠️ AGENT CAPABILITY:** This package is where remote agents should focus their work. You can:
@@ -66,6 +66,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 2. **Electrical Engineering Scales** (`ElectricalEngineeringScalesExtension.swift`) - Specialized but complete
 3. **Hyperbolic Scales** (`HyperbolicScalesExtension.swift`) - Advanced mathematical functions
 4. **Circular Scales** - ⚠️ Not yet implemented (future work, see `circularSpec` in models)
+5. **Various Specialty Scales** - (`PickettN16ES-Theta-AlphaScalesExtension.swift`) Named after the specific manufacturer and scale sometimes - There may be more later on
 
 **Key Pattern - Pre-computed Tick Marks:**
 ```swift
@@ -383,8 +384,9 @@ swift test --filter .fast
 ## Reference Materials
 
 **In-Repo Documentation:**
-- `reference/postscript-rule-engine-explainer.md` - Original PostScript algorithm (1000+ lines)
-- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory
+- `reference/postscript-rule-engine.ps - Original PostScript scale and slide rule defintion system (2000+ lines)
+- `reference/postscript-rule-engine-explainer.md - Explanation of the  PostScript engine functions and operation(1100+ lines)
+- `reference/manthematical-foundations-of-the-slide-rule.md` - **CRITICAL** Mathematical theory of the abstracttion of using physical lengths to do complex calculations with the properties of logarithms and a sliding rule and cursor
 - `swift-docs/swift-sliderule-rendering-improvements.md` - Performance optimization guide
 - `swift-docs/swift-testing-playbook.md` - Testing best practices
 - `swift-docs/responsive-margin-implementation.md` - Responsive layout system
@@ -418,7 +420,7 @@ swift test --filter .fast
 4. **Testing patterns:** Check existing tests in `SlideRuleCoreV3Tests/` for @Suite/@Test examples
 5. **Rendering flow:** Trace `ContentView.swift` → `StatorView`/`SlideView` → `ScaleView` → Canvas
 6. **Interactive testing workflow:**
-   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim_name_proj` with "iPhone 17 Pro Max"
+   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_mac_sim_name_proj` with "My Mac"
    - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
    - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
    - Verify: Take another screenshot to confirm expected behavior

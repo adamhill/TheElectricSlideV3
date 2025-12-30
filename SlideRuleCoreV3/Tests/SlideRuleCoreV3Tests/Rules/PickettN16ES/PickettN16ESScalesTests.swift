@@ -425,10 +425,10 @@ struct PickettN16ESTests {
         let scale = N16ESScaleBuilder.createPhaseAngleScale()
         
         #expect(scale.name == "Θ")
-        // THETA scale covers extreme angles: left half (5.71° → 0.57°) and right half (89.43° → 84.29°)
-        // The middle range (5.71° to 84.29°) is covered by the ALPHA (α) scale
-        #expect(scale.beginValue == 5.71)
-        #expect(scale.endValue == 84.29)
+        // THETA small scale covers extreme low angles: 6.0° → 0.57°
+        // The middle range (≈5.71° to 84.29°) is covered by the ALPHA (α) scale
+        #expect(scale.beginValue == 6.0)
+        #expect(scale.endValue == 0.57)
         // Dual labels are set at subsection level, not scale level
         #expect(scale.subsections.count > 0)
     }

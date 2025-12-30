@@ -1,77 +1,78 @@
-#!/usr/bin/env swift
-
+import Testing
+@testable import SlideRuleCoreV3
 import Foundation
 
-// Add SlideRuleCoreV3 path
-import SlideRuleCoreV3
+@Suite("THETA Small Scale Debug Analysis")
+struct ThetaSmallScaleDebugSuite {
+    @Test("Debug THETA small scale label generation")
+    func debugThetaSmallScaleLabels() {
+        // Test the THETA small scale label generation
 
-// Test the THETA small scale label generation
-print("=== THETA Small Scale Debug Analysis ===\n")
+        // Generate the scale
+        let thetaSmall = StandardScales.phaseAngleThetaSmallScale(length: 250.0)
+        let ticks = ScaleCalculator.generateTickMarks(for: thetaSmall)
 
-// Generate the scale
-let thetaSmall = StandardScales.phaseAngleThetaSmallScale(length: 250.0)
-let ticks = ScaleCalculator.generateTickMarks(for: thetaSmall)
+        print("Scale Configuration:")
+        print("  Range: \(thetaSmall.beginValue)° → \(thetaSmall.endValue)°")
+        print("  Number of subsections: \(thetaSmall.subsections.count)")
+        print("  Total ticks generated: \(ticks.count)\n")
 
-print("Scale Configuration:")
-print("  Range: \(thetaSmall.beginValue)° → \(thetaSmall.endValue)°")
-print("  Number of subsections: \(thetaSmall.subsections.count)")
-print("  Total ticks generated: \(ticks.count)\n")
+        // Analyze subsections
+        print("=== Subsection Configuration ===")
+        for (i, subsection) in thetaSmall.subsections.enumerated() {
+            let nextStart = (i < thetaSmall.subsections.count - 1)
+                ? thetaSmall.subsections[i + 1].startValue
+                : thetaSmall.endValue
 
-// Analyze subsections
-print("=== Subsection Configuration ===")
-for (i, subsection) in thetaSmall.subsections.enumerated() {
-    let nextStart = (i < thetaSmall.subsections.count - 1) 
-        ? thetaSmall.subsections[i + 1].startValue 
-        : thetaSmall.endValue
-    
-    print("\nSubsection \(i): \(subsection.startValue)° → \(nextStart)°")
-    print("  Intervals: \(subsection.tickIntervals)")
-    print("  Label Levels: \(subsection.labelLevels)")
-    print("  Has dual formatter: \(subsection.dualLabelFormatter != nil)")
-}
-
-// Check for ticks at 5.71° and 5.0°
-print("\n=== Critical Ticks Check ===")
-let tick571 = ticks.first { abs($0.value - 5.71) < 0.01 }
-let tick5 = ticks.first { abs($0.value - 5.0) < 0.01 }
-
-if let tick = tick571 {
-    print("\n✓ Tick at 5.71°:")
-    print("  Value: \(tick.value)")
-    print("  Position: \(tick.normalizedPosition)")
-    print("  Has labels: \(!tick.labels.isEmpty)")
-    if !tick.labels.isEmpty {
-        for label in tick.labels {
-            print("    - '\(label.text)' (\(label.color), \(label.position))")
+            print("\nSubsection \(i): \(subsection.startValue)° → \(nextStart)°")
+            print("  Intervals: \(subsection.tickIntervals)")
+            print("  Label Levels: \(subsection.labelLevels)")
+            print("  Has dual formatter: \(subsection.dualLabelFormatter != nil)")
         }
-    } else {
-        print("    ❌ NO LABELS")
-    }
-} else {
-    print("\n❌ NO TICK at 5.71°")
-}
 
-if let tick = tick5 {
-    print("\n✓ Tick at 5.0°:")
-    print("  Value: \(tick.value)")
-    print("  Position: \(tick.normalizedPosition)")
-    print("  Has labels: \(!tick.labels.isEmpty)")
-    if !tick.labels.isEmpty {
-        for label in tick.labels {
-            print("    - '\(label.text)' (\(label.color), \(label.position))")
+        // Check for ticks at 5.71° and 5.0°
+        print("\n=== Critical Ticks Check ===")
+        let tick571 = ticks.first { abs($0.value - 5.71) < 0.01 }
+        let tick5 = ticks.first { abs($0.value - 5.0) < 0.01 }
+
+        if let tick = tick571 {
+            print("\n✓ Tick at 5.71°:")
+            print("  Value: \(tick.value)")
+            print("  Position: \(tick.normalizedPosition)")
+            print("  Has labels: \(!tick.labels.isEmpty)")
+            if !tick.labels.isEmpty {
+                for label in tick.labels {
+                    print("    - '\(label.text)' (\(label.color), \(label.position))")
+                }
+            } else {
+                print("    ❌ NO LABELS")
+            }
+        } else {
+            print("\n❌ NO TICK at 5.71°")
         }
-    } else {
-        print("    ❌ NO LABELS")
+
+        if let tick = tick5 {
+            print("\n✓ Tick at 5.0°:")
+            print("  Value: \(tick.value)")
+            print("  Position: \(tick.normalizedPosition)")
+            print("  Has labels: \(!tick.labels.isEmpty)")
+            if !tick.labels.isEmpty {
+                for label in tick.labels {
+                    print("    - '\(label.text)' (\(label.color), \(label.position))")
+                }
+            } else {
+                print("    ❌ NO LABELS")
+            }
+        } else {
+            print("\n❌ NO TICK at 5.0°")
+        }
+
+        // Show all labeled ticks
+        print("\n=== All Labeled Ticks  (sorted by value) ===")
+        let labeledTicks = ticks.filter { !$0.labels.isEmpty }
+        print("Found \(labeledTicks.count) labeled ticks:\n")
     }
-} else {
-    print("\n❌ NO TICK at 5.0°")
 }
-
-// Show all labeled ticks
-print("\n=== All Labeled Ticks  (sorted by value) ===")
-let labeledTicks = ticks.filter { !$0.labels.isEmpty }
-print("Found \(labeledTicks.count) labeled ticks:\n")
-
 for tick in labeledTicks.sorted(by: { $0.value > $1.value }) {
     let labels = tick.labels.map { "\($0.text)" }.joined(separator: " / ")
     print("  \(String(format: "%6.2f", tick.value))° at pos \(String(format: "%.6f", tick.normalizedPosition)): \(labels)")

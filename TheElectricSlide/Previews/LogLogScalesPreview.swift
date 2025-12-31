@@ -2,18 +2,16 @@
 //  LogLogScalesPreview.swift
 //  TheElectricSlide
 //
-//  MINIMAL TEST CONFIGURATION for troubleshooting preview rendering issues
-//  Shows only TWO scales: LL00 (reciprocal) and LL0 (positive) with C reference scales
-//  This configuration isolates potential build/linking issues by reducing complexity
+//  Preview of paired Log-Log scales using ScalePairTestComponent
+//  Shows LL00 + C and LL0 + C scale pairs with boundary markers and debug info
 //
 
 import SwiftUI
 import SlideRuleCoreV3
 
-// MARK: - Faber-Castell 62/83 N Log-Log Scales Preview (Minimal)
+// MARK: - Faber-Castell 62/83 N Log-Log Scales Preview
 
-/// Preview displaying minimal LL scale configuration for troubleshooting
-/// Layout from top to bottom: LL00 (RED reciprocal), C, LL0 (BLACK positive), C
+/// Preview displaying LL scale pairs: LL00+C and LL0+C
 struct LogLogScalesPreview: View {
     // MARK: - Properties
     
@@ -21,8 +19,6 @@ struct LogLogScalesPreview: View {
     let scaleHeight: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let nameFontSize: CGFloat
-    let formulaFontSize: CGFloat
     
     // MARK: - Initialization
     
@@ -30,37 +26,15 @@ struct LogLogScalesPreview: View {
         scaleLength: CGFloat = 800,
         scaleHeight: CGFloat = 40,
         leftMarginWidth: CGFloat = 60,
-        rightMarginWidth: CGFloat = 80,
-        nameFontSize: CGFloat = 14,
-        formulaFontSize: CGFloat = 12
+        rightMarginWidth: CGFloat = 80
     ) {
         self.scaleLength = scaleLength
         self.scaleHeight = scaleHeight
         self.leftMarginWidth = leftMarginWidth
         self.rightMarginWidth = rightMarginWidth
-        self.nameFontSize = nameFontSize
-        self.formulaFontSize = formulaFontSize
     }
     
-    // MARK: - Generated Scales (Minimal Configuration)
-    
-    /* COMMENTED OUT FOR MINIMAL TEST - LL03 Reciprocal Scale
-    private var ll03: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll03Scale(length: scaleLength))
-    }
-    */
-    
-    /* COMMENTED OUT FOR MINIMAL TEST - LL02 Reciprocal Scale
-    private var ll02: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll02Scale(length: scaleLength))
-    }
-    */
-    
-    /* COMMENTED OUT FOR MINIMAL TEST - LL01 Reciprocal Scale
-    private var ll01: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll01Scale(length: scaleLength))
-    }
-    */
+    // MARK: - Generated Scales
     
     // LL00: RED reciprocal scale (e^-0.01 to e^-0.001)
     private var ll00: GeneratedScale {
@@ -72,41 +46,11 @@ struct LogLogScalesPreview: View {
         GeneratedScale(definition: StandardScales.ll0Scale(length: scaleLength))
     }
     
-    /* COMMENTED OUT FOR MINIMAL TEST - LL1 Positive Scale
-    private var ll1: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll1Scale(length: scaleLength))
-    }
-    */
-    
-    /* COMMENTED OUT FOR MINIMAL TEST - LL2 Positive Scale
-    private var ll2: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll2Scale(length: scaleLength))
-    }
-    */
-    
-    /* COMMENTED OUT FOR MINIMAL TEST - LL3 Positive Scale
-    private var ll3: GeneratedScale {
-        GeneratedScale(definition: StandardScales.ll3Scale(length: scaleLength))
-    }
-    */
-    
     // C scale with downward ticks for reference
     private var cWithDownTicks: GeneratedScale {
-        let cBuilder = ScaleBuilder()
-            .withName("C")
-            .withFormula("x")
-            .withFunction(LogarithmicFunction())
-            .withRange(begin: 1.0, end: 10.0)
-            .withLength(scaleLength)
+        let cDef = ScaleBuilder(from: StandardScales.cScale(length: scaleLength))
             .withTickDirection(.down)
-        
-        // Copy subsections from standard C scale
-        let standardC = StandardScales.cScale(length: scaleLength)
-        let cDef = cBuilder
-            .withSubsections(standardC.subsections)
-            .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
             .build()
-        
         return GeneratedScale(definition: cDef)
     }
     
@@ -114,90 +58,33 @@ struct LogLogScalesPreview: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .center, spacing: 24) {
                 // Title
-                Text("Minimal Log-Log Preview: LL00 + LL0")
+                Text("Log-Log Scale Pairs Preview")
                     .font(.system(size: 24, weight: .bold))
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 12)
                 
-                // Minimal scale layout: LL00, C, LL0, C (4 scales total with 1pt spacing)
-                VStack(spacing: 1) {
-                    // LL00 (RED reciprocal)
-                    ScaleView(
-                        generatedScale: ll00,
-                        width: scaleLength,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,
-                        nameFont: .system(size: nameFontSize, weight: .medium).monospacedDigit(),
-                        formulaFont: .system(size: formulaFontSize).monospacedDigit()
-                    )
-                    .frame(height: scaleHeight)
-                    
-                    // C reference (downward ticks)
-                    ScaleView(
-                        generatedScale: cWithDownTicks,
-                        width: scaleLength,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,  // Hide formula
-                        nameFont: .system(size: nameFontSize, weight: .medium).monospacedDigit(),
-                        formulaFont: .system(size: formulaFontSize).monospacedDigit()
-                    )
-                    .frame(height: scaleHeight)
-                    
-                    // LL0 (BLACK positive)
-                    ScaleView(
-                        generatedScale: ll0,
-                        width: scaleLength,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,
-                        nameFont: .system(size: nameFontSize, weight: .medium).monospacedDigit(),
-                        formulaFont: .system(size: formulaFontSize).monospacedDigit()
-                    )
-                    .frame(height: scaleHeight)
-                    
-                    // C reference (downward ticks)
-                    ScaleView(
-                        generatedScale: cWithDownTicks,
-                        width: scaleLength,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,  // Hide formula
-                        nameFont: .system(size: nameFontSize, weight: .medium).monospacedDigit(),
-                        formulaFont: .system(size: formulaFontSize).monospacedDigit()
-                    )
-                    .frame(height: scaleHeight)
-                    
-                    /* COMMENTED OUT FOR MINIMAL TEST - Additional LL Scales
-                    
-                    // LL01, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    // LL02, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    // LL03, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    // LL1, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    // LL2, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    // LL3, C pair
-                    ScaleView(...)
-                    ScaleView(...)
-                    
-                    */
-                }
+                // Pair 1: LL00 + C
+                ScalePairTestComponent(
+                    scales: [ll00, cWithDownTicks],
+                    title: "Pair 1: LL00 + C",
+                    description: "LL00 (upward ticks) paired with C scale (downward ticks)",
+                    scaleLength: scaleLength,
+                    scaleHeight: scaleHeight,
+                    leftMarginWidth: leftMarginWidth,
+                    rightMarginWidth: rightMarginWidth
+                )
+                
+                // Pair 2: LL0 + C
+                ScalePairTestComponent(
+                    scales: [ll0, cWithDownTicks],
+                    title: "Pair 2: LL0 + C",
+                    description: "LL0 (upward ticks) paired with C scale (downward ticks)",
+                    scaleLength: scaleLength,
+                    scaleHeight: scaleHeight,
+                    leftMarginWidth: leftMarginWidth,
+                    rightMarginWidth: rightMarginWidth
+                )
             }
             .padding()
         }
@@ -222,9 +109,7 @@ struct LogLogScalesPreview: View {
         scaleLength: 600,
         scaleHeight: 35,
         leftMarginWidth: 50,
-        rightMarginWidth: 60,
-        nameFontSize: 12,
-        formulaFontSize: 10
+        rightMarginWidth: 60
     )
     .preferredColorScheme(.light)
 }
@@ -234,9 +119,7 @@ struct LogLogScalesPreview: View {
         scaleLength: 1000,
         scaleHeight: 50,
         leftMarginWidth: 70,
-        rightMarginWidth: 100,
-        nameFontSize: 16,
-        formulaFontSize: 14
+        rightMarginWidth: 100
     )
     .preferredColorScheme(.light)
 }

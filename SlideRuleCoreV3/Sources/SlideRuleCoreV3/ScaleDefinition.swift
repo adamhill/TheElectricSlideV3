@@ -286,6 +286,30 @@ public struct ScaleBuilder {
     
     public init() {}
     
+    /// Initialize ScaleBuilder from existing ScaleDefinition for modification
+    /// Allows fluent modification of existing scale definitions
+    /// - Parameter definition: Existing scale definition to clone
+    public init(from definition: ScaleDefinition) {
+        self.name = definition.name
+        self.displayName = definition.displayName
+        self.formula = definition.formula
+        self.function = definition.function
+        self.beginValue = definition.beginValue
+        self.endValue = definition.endValue
+        self.scaleLengthInPoints = definition.scaleLengthInPoints
+        self.layout = definition.layout
+        self.tickDirection = definition.tickDirection
+        self.subsections = definition.subsections
+        self.defaultTickStyles = definition.defaultTickStyles
+        self.labelFormatter = definition.labelFormatter
+        self.labelColor = definition.labelColor
+        self.colorApplication = definition.colorApplication
+        self.constants = definition.constants
+        self.showBaseline = definition.showBaseline
+        self.formulaTracking = definition.formulaTracking
+        self.splitSegment = definition.splitSegment
+    }
+    
     public func withName(_ name: String) -> ScaleBuilder {
         var copy = self
         copy.name = name

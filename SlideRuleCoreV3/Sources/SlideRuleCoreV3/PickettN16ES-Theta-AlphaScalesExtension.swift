@@ -1,33 +1,43 @@
 import Foundation
 
-// MARK: - Pickett N-16 ES Phase Angle Scales (Θ and α)
-// ═══════════════════════════════════════════════════════════════════════════════
+// MARK: - Pickett N16-ES THETA and ALPHA Scales
 //
-// CURRENT RENDERING LIMITATION:
-// ─────────────────────────────────────────────────────────────────────────────
-// The THETA scales (Θ₁ and Θ₂) currently render as two full-width independent
-// scales instead of being properly split at the center of a single physical scale.
+// ## Implementation Status: ✅ COMPLETE
 //
-// ARCHITECTURAL CONSTRAINT:
-// The SlideRuleCoreV3 engine does not currently support fractional physical
-// positioning. Both Θ₁ and Θ₂ map their entire value ranges to the full 0→1
-// position range, meaning they each render across the complete physical length
-// of the slide rule.
+// This file implements the THETA (Θ₁, Θ₂) and ALPHA (α) scales for the
+// Pickett N16-ES Electronic slide rule.
 //
-// PROPER IMPLEMENTATION WOULD REQUIRE:
-// - Θ₁ (small angles): withPhysicalRange(0.0→0.5) to constrain to left half
-// - Θ₂ (large angles): withPhysicalRange(0.5→1.0) to constrain to right half
+// ## Split Scale Architecture
 //
-// This would allow both scales to share the same baseline while occupying
-// distinct physical regions, matching the actual Pickett N-16 ES hardware where
-// THETA appears as a single continuous scale that splits at center.
+// The THETA scales use the split scale system to share one physical scale line:
+// - Θ₁ (phaseAngleThetaSmallScale): Left half (0-50%)
+//   - Domain: 6.0° → 0.0° (unlabeled boundary at 6.0°)
+//   - First labeled tick: 5.7° (~2-3mm inset from left edge)
+//   - Split segment: .left(formulaOffset: 0.0)
 //
-// WORKAROUND:
-// The two THETA scales are currently implemented as independent full-width scales.
-// Rendering systems should position them appropriately or use layout constraints
-// to achieve the split-scale appearance. The transform functions are correct;
-// only the physical positioning capability is missing from the core engine.
-// ═══════════════════════════════════════════════════════════════════════════════
+// - Θ₂ (phaseAngleThetaLargeScale): Right half (50-100%)
+//   - Domain: 0.0° → 5.71°
+//   - Split segment: .right(formulaOffset: 0.0)
+//
+// - α (alphaScale): Full width, ticks point DOWN
+//   - Domain: 84.29° → 5.71°
+//   - Complementary scale to THETA
+//
+// ## Dual Label Formatting
+//
+// Both THETA and ALPHA use dual label formatters that show:
+// - Primary angle (black, left-aligned)
+// - Complementary angle (red, right-aligned with ">")
+//
+// ## Label Suppression
+//
+// The 6.0° tick on Θ₁ is unlabeled to match the physical Pickett N-16 ES,
+// which has the 5.7° label (~2-3mm) inset from the left edge.
+// This is handled in thetaScaleDual() formatter.
+//
+// ## References
+// - split-scales-implementation-plan.md
+// - postscript-caret-symbol-no-linebreak.md (PostScript heritage)
 //
 // PHYSICAL LAYOUT (from actual N-16 ES specimen):
 //
@@ -89,9 +99,10 @@ extension StandardScales {
             //.withAliases(["THETA-SMALL", "θ₁"])
             .withFormula("-1 - log₁₀(tan(θ))")
             .withFunction(ThetaSmallScaleFunction())
-            .withRange(begin: 6.0, end: 0.57)  // CORRECTED: Center at 0.57° (NOT 0°!)
+            .withRange(begin: 6.0, end: 0.0)  // End at 0° for visual continuity with Θ₂
             .withLength(length)
             .withTickDirection(.up)
+            .withSplitSegment(.left(formulaOffset: 0.0))  // LEFT half of split scale
             .withDefaultTickStyles([
                 .absolutelyNone,     // Level 0 (1.0°): Not rendered
                 .medium,              // Level 1 (0.5°): 0.75 height
@@ -171,9 +182,10 @@ extension StandardScales {
             //.withAliases(["THETA-LARGE", "θ₂"])
             .withFormula("2 - log₁₀(tan(θ))")
             .withFunction(ThetaLargeScaleFunction())
-            .withRange(begin: 0.01, end: 5.71)  // MIRRORING Θ₁: center → edge
+            .withRange(begin: 0.0, end: 5.71)  // Start at 0° for visual continuity with Θ₁
             .withLength(length)
             .withTickDirection(.up)
+            .withSplitSegment(.right(formulaOffset: 0.0))  // FIX: Add RIGHT half split segment
             .withDefaultTickStyles([
                 .absolutelyNone,     // Level 0 (1.0°): Not rendered
                 .medium,              // Level 1 (0.5°): 0.75 height
@@ -185,9 +197,9 @@ extension StandardScales {
                 // MIRROR PATTERN: Θ₂ subsections EXACTLY REVERSE Θ₁ intervals
                 // ═══════════════════════════════════════════════════════════════════════
                 
-                // 0.01° → 0.6°: From unlabeled center - MIRROR of Θ₁ #8
-                // [0.59] → 1 tick (KEEP AS IS - baseline from center)
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.59], labelLevels: [],
+                // 0.0° → 0.6°: From unlabeled center - MIRROR of Θ₁ #8
+                // [0.6] → 1 tick (starts at 0° for visual continuity)
+                ScaleSubsection(startValue: 0.0, tickIntervals: [0.6], labelLevels: [],
                                dualLabelFormatter: nil),
                 
                 // 0.6° → 0.8°: MIRROR of Θ₁ #7 (0.8° → 0.6°)
@@ -340,7 +352,16 @@ extension StandardLabelFormatter {
     /// - Left label (BLACK): Primary angle reading
     /// - Right label (RED with ">"): Complementary angle (90° - primary)
     ///
+    /// NOTE: On physical Pickett N-16 ES, the 6.0° mark is unlabeled,
+    /// with first labeled mark (5.7°) appearing ~2-3mm inset from left edge.
+    /// This creates visual alignment with other scale starts.
+    ///
     public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
+        // Suppress label at 6.0° to match physical Pickett N-16 ES layout
+        if abs(value - 6.0) < 0.01 {
+            return []
+        }
+        
         let primary = value
         let complementary = 90.0 - value
         

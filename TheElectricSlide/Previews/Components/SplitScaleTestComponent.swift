@@ -93,28 +93,64 @@ struct SplitScaleTestComponent: View {
     
     // MARK: - Component Views
     
-    /// Debug card with selectable monospace text and pass/fail indicator
+    /// Debug card with selectable monospace text and pass/fail indicator for BOTH segments
     private var debugCard: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("🔍 Debug Info:")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.purple)
             
-            let debugText = """
-Right segment domain: \(String(format: "%.3f", rightScale.definition.beginValue)) → \(String(format: "%.1f", rightScale.definition.endValue))
-First tick value: \(String(format: "%.4f", actualFirstTickValue))
-First tick position: \(String(format: "%.4f", actualBoundaryPosition)) (expected: \(String(format: "%.2f", expectedBoundaryPosition)))
-Status: \(statusIndicator)
+            // LEFT segment debug info
+            let leftFirstTick = leftScale.tickMarks.first
+            let leftLastTick = leftScale.tickMarks.last
+            let leftDebugText = """
+LEFT segment (\(leftScale.definition.name)):
+  Domain: \(String(format: "%.3f", leftScale.definition.beginValue)) → \(String(format: "%.3f", leftScale.definition.endValue))
+  First tick: value=\(String(format: "%.4f", leftFirstTick?.value ?? 0)), pos=\(String(format: "%.4f", leftFirstTick?.normalizedPosition ?? 0))
+  Last tick: value=\(String(format: "%.4f", leftLastTick?.value ?? 0)), pos=\(String(format: "%.4f", leftLastTick?.normalizedPosition ?? 0))
+  Expected: pos 0.00→0.50 (left half)
 """
             
-            Text(debugText)
+            Text(leftDebugText)
                 .font(.system(size: 10, weight: .medium).monospaced())
-                .foregroundColor(statusColor)
+                .foregroundColor(.green)
                 .textSelection(.enabled)
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.white.opacity(0.5))
                 .cornerRadius(4)
+            
+            // RIGHT segment debug info
+            let rightFirstTick = rightScale.tickMarks.first
+            let rightLastTick = rightScale.tickMarks.last
+            let rightDebugText = """
+RIGHT segment (\(rightScale.definition.name)):
+  Domain: \(String(format: "%.3f", rightScale.definition.beginValue)) → \(String(format: "%.3f", rightScale.definition.endValue))
+  First tick: value=\(String(format: "%.4f", rightFirstTick?.value ?? 0)), pos=\(String(format: "%.4f", rightFirstTick?.normalizedPosition ?? 0))
+  Last tick: value=\(String(format: "%.4f", rightLastTick?.value ?? 0)), pos=\(String(format: "%.4f", rightLastTick?.normalizedPosition ?? 0))
+  Expected: pos 0.50→1.00 (right half)
+"""
+            
+            Text(rightDebugText)
+                .font(.system(size: 10, weight: .medium).monospaced())
+                .foregroundColor(.orange)
+                .textSelection(.enabled)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.5))
+                .cornerRadius(4)
+            
+            // Validation summary
+            let leftPassed = (leftLastTick?.normalizedPosition ?? 0) <= 0.52 // tolerance for 0.50
+            let rightPassed = (rightFirstTick?.normalizedPosition ?? 0) >= 0.48 // tolerance for 0.50
+            let leftStatus = leftPassed ? "✓" : "✗"
+            let rightStatus = rightPassed ? "✓" : "✗"
+            let overallPassed = leftPassed && rightPassed
+            
+            Text("Validation: Left \(leftStatus), Right \(rightStatus) → \(overallPassed ? "✓ PASS" : "✗ FAIL")")
+                .font(.system(size: 10, weight: .bold).monospaced())
+                .foregroundColor(overallPassed ? .green : .red)
+                .padding(.top, 4)
         }
         .padding(12)
         .background(Color.purple.opacity(0.15))

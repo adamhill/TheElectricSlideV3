@@ -1,7 +1,7 @@
 # Split Scales Implementation Summary
 
-**Status**: Phases 1-4 Complete  
-**Date**: December 30, 2025  
+**Status**: Phases 1-5 Complete
+**Date**: December 31, 2025
 **Project**: SlideRuleCoreV3 - TheElectricSlide
 
 ## Overview
@@ -584,22 +584,161 @@ Split scales infrastructure is complete and tested with C scale examples.
 
 ---
 
-## Conclusion
+## Phase 5: THETA Scale Implementation ✅
 
-The split scales implementation successfully achieved its core goals:
+**Date**: December 31, 2025
 
-✅ **Clean Architecture** - Single property approach with computed values  
-✅ **Parser Integration** - Explicit `^` syntax working correctly  
-✅ **Rendering Accuracy** - Boundary tick injection solves visual gaps  
-✅ **Debug Tooling** - Visual preview enables rapid iteration  
-✅ **Extensibility** - Ready for THETA scales and future enhancements  
+Phase 5 successfully applied the split scales architecture to implement the Pickett N-16 ES THETA (Θ₁ and Θ₂) scales.
 
-**Key Success Factor:** Methodical debugging with visual feedback revealed the actual issue (missing boundary ticks) vs. the assumed issue (formula problems).
+### Issue Identified
 
-**Ready for Phase 5:** THETA scale implementation can now proceed with confidence in the underlying infrastructure.
+Debug output from [`PickettN16ESPreview.swift`](TheElectricSlide/Previews/PickettN16ESPreview.swift) showed:
+
+```
+Right segment domain: 0.000 → 5.7
+First tick value: 0.0000
+First tick position: 0.0000 (expected: 0.50)
+Status: ✗ FAIL
+```
+
+### Root Causes
+
+1. **Missing Split Segment on Θ₂** - The Θ₂ (THETA LARGE) scale was missing the `.withSplitSegment(.right(formulaOffset: 0.0))` configuration
+2. **Incorrect Domain Start** - The domain began at 0.0° instead of 0.01°, causing ticks to cluster at the left edge
+
+### Fixes Applied
+
+In [`PickettN16ES-Theta-AlphaScalesExtension.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/PickettN16ES-Theta-AlphaScalesExtension.swift):
+
+```swift
+// Line 95: Θ₁ now correctly configured as LEFT split segment
+.withSplitSegment(.left(formulaOffset: 0.0))
+
+// Line 175: Θ₂ domain now starts at 0.0 for visual continuity
+.withRange(begin: 0.0, end: 5.71)
+
+// Line 178: FIX - Added missing RIGHT split segment
+.withSplitSegment(.right(formulaOffset: 0.0))
+
+// Line 192: Subsection starts at 0.0 for continuity
+ScaleSubsection(startValue: 0.0, tickIntervals: [0.6], ...)
+```
+
+### Result
+
+The THETA scales now correctly:
+- **Θ₁ (Left)**: Renders 6.0° → 0.57° in physical positions 0.0...0.5
+- **Θ₂ (Right)**: Renders 0.01° → 5.71° in physical positions 0.5...1.0
+- Share a common baseline with ticks pointing UP
+- Create a symmetric fold at the center point
 
 ---
 
-**Document Version**: 1.0  
-**Date**: December 30, 2025  
+## Reusable Preview Components
+
+### SplitScaleTestComponent
+
+A reusable SwiftUI component for testing split scale rendering with enhanced visual debugging:
+
+**Location**: [`TheElectricSlide/Previews/Components/SplitScaleTestComponent.swift`](TheElectricSlide/Previews/Components/SplitScaleTestComponent.swift)
+
+**Features**:
+- Debug panel showing LEFT and RIGHT segment information
+- Domain ranges, first/last tick values and positions
+- Color-coded validation: GREEN for left segment, ORANGE for right segment
+- Pass/Fail indicators with tolerance-based validation
+- Colored background highlighting (green=left half, orange=right half)
+- Dual-unit measurement ruler (percentage + SwiftUI points)
+
+**Usage**:
+```swift
+SplitScaleTestComponent(
+    leftScale: thetaSmall,
+    rightScale: thetaLarge,
+    title: "THETA Scales (Θ₁ ^ Θ₂)",
+    segmentDescription: "Left: Θ₁ (6.0°→0.57°), Right: Θ₂ (0.01°→5.71°)",
+    expectedDescription: "Expected: Both segments share baseline...",
+    expectedBoundaryPosition: 0.5,
+    actualBoundaryPosition: thetaLarge.tickMarks.first?.normalizedPosition ?? 0.0,
+    actualFirstTickValue: thetaLarge.tickMarks.first?.value ?? 0.0,
+    scaleLength: scaleLength,
+    scaleHeight: scaleHeight,
+    leftMarginWidth: leftMarginWidth,
+    rightMarginWidth: rightMarginWidth
+)
+```
+
+### ScalePairTestComponent
+
+A companion component for testing non-split scale pairs (vertically stacked scales):
+
+**Location**: [`TheElectricSlide/Previews/Components/ScalePairTestComponent.swift`](TheElectricSlide/Previews/Components/ScalePairTestComponent.swift)
+
+**Features**:
+- Displays 1+ scales vertically stacked
+- Debug card with scale information
+- Boundary markers at 0% (red) and 100% (blue)
+- Dual-unit measurement ruler
+
+**Usage**:
+```swift
+ScalePairTestComponent(
+    scales: [ll00, cWithDownTicks],
+    title: "Pair 1: LL00 + C",
+    description: "LL00 (upward ticks) paired with C scale (downward ticks)",
+    scaleLength: scaleLength,
+    scaleHeight: scaleHeight,
+    leftMarginWidth: leftMarginWidth,
+    rightMarginWidth: rightMarginWidth
+)
+```
+
+---
+
+## Updated Files List
+
+### Phase 5 Additions
+
+6. **[`PickettN16ES-Theta-AlphaScalesExtension.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/PickettN16ES-Theta-AlphaScalesExtension.swift)**
+   - Fixed Θ₂ to include `.withSplitSegment(.right(formulaOffset: 0.0))`
+   - Corrected domain ranges for proper split behavior
+
+7. **[`SplitScaleTestComponent.swift`](TheElectricSlide/Previews/Components/SplitScaleTestComponent.swift)** (New File)
+   - Reusable debug component for split scale testing
+   - Dual-segment debug output (LEFT and RIGHT)
+   - Visual validation with colored backgrounds
+
+8. **[`ScalePairTestComponent.swift`](TheElectricSlide/Previews/Components/ScalePairTestComponent.swift)** (New File)
+   - Reusable debug component for paired scale testing
+   - Boundary markers at 0% and 100%
+
+9. **[`LogLogScalesPreview.swift`](TheElectricSlide/Previews/LogLogScalesPreview.swift)** (New File)
+   - Uses `ScalePairTestComponent` for LL00+C and LL0+C pairs
+
+10. **[`PickettN16ESPreview.swift`](TheElectricSlide/Previews/PickettN16ESPreview.swift)** (New File)
+    - Uses `SplitScaleTestComponent` for THETA scales
+    - Uses `ScalePairTestComponent` for ALPHA scale
+
+---
+
+## Conclusion
+
+The split scales implementation successfully achieved all core goals:
+
+✅ **Clean Architecture** - Single property approach with computed values
+✅ **Parser Integration** - Explicit `^` syntax working correctly
+✅ **Rendering Accuracy** - Boundary tick injection solves visual gaps
+✅ **Debug Tooling** - Visual preview enables rapid iteration
+✅ **Extensibility** - Ready for THETA scales and future enhancements
+✅ **Phase 5 Complete** - THETA scales (Θ₁ ^ Θ₂) now render correctly as split scales
+✅ **Reusable Components** - SplitScaleTestComponent and ScalePairTestComponent for future debugging
+
+**Key Success Factor:** Methodical debugging with visual feedback revealed the actual issue (missing `.withSplitSegment()` on Θ₂) vs. the assumed issue (formula problems).
+
+**Key Lesson from Phase 5:** Always verify that BOTH segments of a split scale have their `.withSplitSegment()` configuration applied - it's easy to add `.left()` but forget `.right()`.
+
+---
+
+**Document Version**: 2.0
+**Date**: December 31, 2025
 **Author**: TheElectricSlide Development Team

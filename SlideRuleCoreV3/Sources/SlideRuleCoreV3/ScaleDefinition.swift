@@ -67,6 +67,184 @@ public enum SplitSegment: Sendable, Equatable, Hashable {
     }
 }
 
+// MARK: - Label Configuration (Future Enhancement)
+
+/// Configuration for manual label suppression and density control near split boundaries.
+///
+/// ## Purpose
+/// Split scales often have labels that crowd or overlap at their junction point.
+/// This struct provides manual configuration to:
+/// - Suppress specific labels that cause visual collision
+/// - Reduce label density in specific physical regions
+/// - Offset labels away from split boundaries
+///
+/// ## Design Philosophy
+/// - Manual configuration, NOT automatic collision detection
+/// - Scale designers explicitly specify which labels to suppress
+/// - Follows PostScript engine heritage where scale definitions include label customization
+///
+/// ## Status: SKELETON
+/// This struct defines the intended API. Implementation pending.
+///
+/// ## Reference
+/// See `split-scales-implementation-plan.md` Section 5 for full specification.
+public struct LabelConfiguration: Sendable, Equatable {
+    
+    // MARK: - Label Suppression
+    
+    /// Specific label values to suppress (not render) on this scale.
+    ///
+    /// ## Use Case
+    /// At split boundaries, adjacent scale segments may have labels that
+    /// visually overlap. Rather than automatic detection, scale designers
+    /// manually specify which labels to suppress.
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Suppress "6" label on Θ₁ scale (overlaps with Θ₂ start)
+    /// LabelConfiguration(suppressedLabels: ["6"])
+    /// ```
+    ///
+    /// ## Implementation Notes (TODO)
+    /// - Matching should be exact string comparison
+    /// - Consider supporting regex patterns for range suppression
+    /// - Should work with both numeric and text labels
+    public let suppressedLabels: Set<String>?
+    
+    // MARK: - Density Override
+    
+    /// Regions where label density should be reduced.
+    ///
+    /// ## Use Case
+    /// Near split boundaries, even without direct collision, labels may be
+    /// too dense for comfortable reading. This allows reducing density
+    /// in specific normalized position ranges.
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Reduce density in last 20% of left segment
+    /// LabelConfiguration(
+    ///     densityOverride: [
+    ///         DensityOverride(range: 0.8...1.0, density: .sparse)
+    ///     ]
+    /// )
+    /// ```
+    ///
+    /// ## Implementation Notes (TODO)
+    /// - `range` is normalized position (0.0...1.0) within scale's physical extent
+    /// - For split scales, this is relative to the segment, not full scale
+    /// - Multiple overrides can be specified for different regions
+    public let densityOverride: [DensityOverride]?
+    
+    // MARK: - Boundary Offset
+    
+    /// Offset (in points) to push labels away from split boundary.
+    ///
+    /// ## Use Case
+    /// When labels are close to but not overlapping the split boundary,
+    /// a small offset can improve visual separation without suppression.
+    ///
+    /// ## Example
+    /// ```swift
+    /// // Offset labels 2mm away from boundary
+    /// LabelConfiguration(boundaryOffset: 2.0 * 2.83464567) // mm to points
+    /// ```
+    ///
+    /// ## Implementation Notes (TODO)
+    /// - Positive offset pushes labels toward scale center
+    /// - Only affects labels within a threshold distance of boundary
+    /// - Should consider left vs right segment direction
+    public let boundaryOffset: Double?
+    
+    // MARK: - Initialization
+    
+    /// Creates a label configuration with the specified options.
+    ///
+    /// All parameters are optional; `nil` means no modification for that aspect.
+    public init(
+        suppressedLabels: Set<String>? = nil,
+        densityOverride: [DensityOverride]? = nil,
+        boundaryOffset: Double? = nil
+    ) {
+        self.suppressedLabels = suppressedLabels
+        self.densityOverride = densityOverride
+        self.boundaryOffset = boundaryOffset
+    }
+    
+    // MARK: - Query Methods (Stubs)
+    
+    /// Checks if a label should be rendered at the given position.
+    ///
+    /// ## Parameters
+    /// - label: The label text to check
+    /// - normalizedPosition: Position within scale (0.0...1.0)
+    ///
+    /// ## Returns
+    /// `true` if label should be rendered, `false` if suppressed
+    ///
+    /// ## Implementation Notes (TODO)
+    /// - Check suppressedLabels set first
+    /// - If not suppressed, check density override regions
+    /// - Return true if no configuration affects this label
+    public func shouldRenderLabel(_ label: String, at normalizedPosition: Double) -> Bool {
+        // STUB: Always returns true until implemented
+        // TODO: Implement suppression and density checks
+        return true
+    }
+    
+    /// Calculates adjusted position for a label near the boundary.
+    ///
+    /// ## Parameters
+    /// - originalPosition: Original label position (0.0...1.0)
+    /// - isLeftSegment: Whether this is the left segment of a split
+    ///
+    /// ## Returns
+    /// Adjusted position if offset applies, otherwise original position
+    ///
+    /// ## Implementation Notes (TODO)
+    /// - Only apply offset within threshold of boundary
+    /// - Direction depends on segment (left pushes left, right pushes right)
+    public func adjustedPosition(
+        for originalPosition: Double,
+        isLeftSegment: Bool
+    ) -> Double {
+        // STUB: Returns original position until implemented
+        // TODO: Apply boundaryOffset based on proximity to edge
+        return originalPosition
+    }
+}
+
+// MARK: - Supporting Types
+
+/// Density level for label rendering.
+///
+/// ## Implementation Notes (TODO)
+/// - Define what each level means in terms of skip patterns
+/// - Consider: `.normal` = every label, `.sparse` = every other, `.minimal` = majors only
+public enum LabelDensity: String, Sendable, Equatable {
+    case normal   // Default: render all labels
+    case sparse   // Reduced: skip some intermediate labels
+    case minimal  // Minimal: only render primary/major labels
+}
+
+/// Region-specific density override configuration.
+///
+/// ## Implementation Notes (TODO)
+/// - Used by LabelConfiguration.densityOverride
+/// - Range is normalized (0.0...1.0) within the scale segment
+public struct DensityOverride: Sendable, Equatable {
+    /// Normalized position range where override applies (0.0...1.0)
+    public let range: ClosedRange<Double>
+    
+    /// Density level to use within this range
+    public let density: LabelDensity
+    
+    public init(range: ClosedRange<Double>, density: LabelDensity) {
+        self.range = range
+        self.density = density
+    }
+}
+
 // MARK: - Cursor Precision
 
 /// Defines how cursor reading precision is determined
@@ -426,6 +604,21 @@ public struct ScaleBuilder {
         var copy = self
         copy.splitSegment = segment
         return copy
+    }
+    
+    /// Convenience: Configure as left segment of a 50/50 split scale.
+    /// - Returns: Builder configured with `.left(formulaOffset: 0.0)`
+    /// - Note: Left segment renders in physical range 0.0...0.5
+    public func leftSegment() -> ScaleBuilder {
+        return withSplitSegment(.left(formulaOffset: 0.0))
+    }
+    
+    /// Convenience: Configure as right segment of a 50/50 split scale.
+    /// - Returns: Builder configured with `.right(formulaOffset: -1.0)`
+    /// - Note: Right segment renders in physical range 0.5...1.0
+    /// - Note: Uses `-1.0` offset following PostScript `{1 sub}` pattern
+    public func rightSegment() -> ScaleBuilder {
+        return withSplitSegment(.right(formulaOffset: -1.0))
     }
     
     public func build() -> ScaleDefinition {

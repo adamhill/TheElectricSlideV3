@@ -613,8 +613,11 @@ public struct RuleDefinitionParser {
             )
             let rightScale = updateScaleWithSplitSegment(
                 group[1],
-                segment: .right(formulaOffset: -1.0)
+                segment: .right(formulaOffset: 0.0)
             )
+            #if DEBUG
+            print("[SplitScaleDebug] Processed group: \(group[0].definition.name) [\(group[0].definition.beginValue)→\(group[0].definition.endValue)] and \(group[1].definition.name) [\(group[1].definition.beginValue)→\(group[1].definition.endValue)]. Left offset: 0.0, Right offset: 0.0")
+            #endif
             return [leftScale, rightScale]
         } else {
             // 3+ segment splits are not yet supported in Phase 2

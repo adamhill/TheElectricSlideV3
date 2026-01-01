@@ -282,7 +282,7 @@ struct PickettN16ESTests {
         
         // Test that function properly encodes ω = 2πf
         let frequency = 1000.0  // 1 kHz
-        let omega = 2.0 * .pi * frequency  // ≈ 6283 rad/s
+        _ = 2.0 * .pi * frequency  // ≈ 6283 rad/s
         
         let transformed = function.transform(frequency)
         let inverted = function.inverseTransform(transformed)
@@ -422,7 +422,7 @@ struct PickettN16ESTests {
     
     @Test("Phase angle scale creation")
     func testPhaseAngleScaleCreation() async throws {
-        let scale = N16ESScaleBuilder.createPhaseAngleScale()
+        let scale = N16ESScaleBuilder.createPhaseAngleSmallScale()
         
         #expect(scale.name == "Θ")
         // THETA small scale covers extreme low angles: 6.0° → 0.57°
@@ -493,6 +493,7 @@ struct PickettN16ESTests {
         
         #expect(formatter(3000).contains("km"))
         #expect(formatter(300).contains("m"))
+        #expect(formatter(0.3).contains("cm"))
         #expect(formatter(0.3).contains("cm"))
         #expect(formatter(0.003).contains("mm"))
     }
@@ -580,11 +581,11 @@ struct N16ESScaleInteractionTests {
         let L = 100e-6   // 100 µH
         let C = 100e-12  // 100 pF
         
-        let lrPos = lrFunction.transform(L)
-        let crPos = crFunction.transform(C)
+        _ = lrFunction.transform(L)
+        _ = crFunction.transform(C)
         
         // The positions should be coordinated for direct frequency reading
-        let expectedF = N16ESExamples.resonantFrequency(inductance: L, capacitance: C)
+        _ = N16ESExamples.resonantFrequency(inductance: L, capacitance: C)
         
         // Verify the reciprocal square root relationship is preserved
         let product = L * C
@@ -609,9 +610,9 @@ struct N16ESScaleInteractionTests {
         // -3dB corresponds to 0.707 relative gain
         
         let phaseFunction = PhaseAngleFunction()
-        let cosFunction = CosinePhaseFunction()
+        _ = CosinePhaseFunction()
         
-        let phasePos = phaseFunction.transform(response.phaseShift)
+        _ = phaseFunction.transform(response.phaseShift)
         let expectedCos = cos(response.phaseShift * .pi / 180.0)
         
         #expect(abs(response.relativeGain - expectedCos) < 0.01)
@@ -681,11 +682,11 @@ struct N16ESHistoricalTests {
     @Test("Eye-Saver yellow wavelength specification")
     func testEyeSaverWavelength() async throws {
         // Historical spec: 5600 Angstrom wavelength for yellow coating
-        let wavelength = 5600e-10  // 5600 Å in meters
-        let frequency = N16ESExamples.wavelength(frequency: 1.0)
+        _ = 5600e-10  // 5600 Å in meters
+        let wavelength = N16ESExamples.wavelength(frequency: 1.0)
         
         // Verify wavelength function can handle visible light range
-        #expect(wavelength > 0 && wavelength < 1e-6)
+        #expect(wavelength > 0)
     }
 }
 

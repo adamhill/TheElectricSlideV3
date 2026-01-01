@@ -8,7 +8,7 @@ struct ThetaSmallTickCountTests {
     @Test("Count ticks by relativeLength between 5° and 4°")
     func countTicksByStyle() {
         // GIVEN: ThetaSmall scale with current configuration
-        let thetaSmall = PickettN16ESScales.thetaSmall(length: 250.0)
+        let thetaSmall = StandardScales.phaseAngleThetaSmallScale(length: 250.0)
         let generated = GeneratedScale(definition: thetaSmall)
         
         // Filter ticks in the 5°-4° range
@@ -49,7 +49,7 @@ struct ThetaSmallTickCountTests {
     
     @Test("Verify tick intervals configuration")
     func verifyIntervalConfiguration() {
-        let thetaSmall = PickettN16ESScales.thetaSmall(length: 250.0)
+        let thetaSmall = StandardScales.phaseAngleThetaSmallScale(length: 250.0)
         
         // Find the 5°-4° subsection
         let subsection = thetaSmall.subsections.first { $0.startValue == 5.0 }

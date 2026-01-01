@@ -132,6 +132,12 @@ public struct ScaleCalculator: Sendable {
             // Right example (offset=0.0): 0.5 + (0.5 × 0.5) = 0.75 (midpoint of right half)
             let physicalPosition = physicalRange.lowerBound + (adjustedPosition * rangeWidth)
             
+            #if DEBUG
+            if definition.name.contains("Θ") || definition.name.contains("Theta") {
+                print("[ThetaDebug] Scale: \(definition.name), Value: \(value), Base: \(baseNormalizedPosition), Offset: \(segment.formulaOffset), Adjusted: \(adjustedPosition), PhysicalRange: \(physicalRange), PhysicalResult: \(physicalPosition)")
+            }
+            #endif
+            
             return physicalPosition
         } else {
             // No split: return base position (full 0...1 range)

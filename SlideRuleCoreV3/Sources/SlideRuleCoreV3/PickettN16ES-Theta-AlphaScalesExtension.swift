@@ -238,78 +238,70 @@ extension StandardScales {
             // - Last VISIBLE tick mark is at 5.7° (rendered via ScaleConstant below)
             // This domain is REQUIRED for proper logarithmic positioning of all tick marks
             // ═══════════════════════════════════════════════════════════════════════════
-            .withRange(begin: 0.0, end: 6.0)  // Domain extends to 6.0° (no tick at 6.0°!)
+            .withRange(begin: 89.43, end: 84.29)  // Large angles 89.43° (center) → 84.29° (right edge)
             .withLength(length)
             .withTickDirection(.up)
-            .withSplitSegment(.right(formulaOffset: 0.0))  // RIGHT half of split scale
+            .rightSegment() // physical 0.5...1.0, formulaOffset: 0.0
             .withDefaultTickStyles([
-                .absolutelyNone,     // Level 0 (1.0°): Not rendered
-                .medium,              // Level 1 (0.5°): 0.75 height
-                .minor,               // Level 2 (0.1°): 0.5 height
+                .major,               // Level 0: Labeled marks (89, 88, 87, 86, 85)
+                .medium,              // Level 1: Half-degree marks
+                .minor,               // Level 2: Tenth-degree marks
                 TickStyle(relativeLength: 0.40, shouldLabel: false, lineWidth: 0.45)  // Level 3 (0.05°)
             ])
             .withSubsections([
                 // ═══════════════════════════════════════════════════════════════════════
                 // MIRROR PATTERN: Θ₂ subsections EXACTLY REVERSE Θ₁ intervals
-                //
-                // DOMAIN NOTE: Scale domain ends at 6.0° but NO tick mark at 6.0°!
-                // The 5.7° label is rendered via ScaleConstant (see .withConstants below)
                 // ═══════════════════════════════════════════════════════════════════════
                 
-                // 0.0° → 0.6°: From unlabeled center - MIRROR of Θ₁ #8
-                // [0.6] → 1 tick (starts at 0° for visual continuity)
-                ScaleSubsection(startValue: 0.0, tickIntervals: [0.6], labelLevels: [],
+                // 89.43° → 89.4°: MIRROR of Θ₁ #8 (0.6° → 0.57°)
+                // No intermediate ticks
+                ScaleSubsection(startValue: 89.43, tickIntervals: [0.6], labelLevels: [],
                                dualLabelFormatter: nil),
                 
-                // 0.6° → 0.8°: MIRROR of Θ₁ #7 (0.8° → 0.6°)
-                // [0.1, 0.05] → 3 ticks
-                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1, 0.05], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
-                
-                // 0.8° → 1°: MIRROR of Θ₁ #6 (1° → 0.8°)
-                // [0.1, 0.05] → 3 ticks
-                ScaleSubsection(startValue: 0.8, tickIntervals: [0.1, 0.05], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
-                
-                // 1° → 2°: MIRROR of Θ₁ #5 (2° → 1°)
+                                // 89.4° → 89.2°: MIRROR of Θ₁ #7 (0.8° → 0.6°)
+                                // [0.1, 0.05] → 3 ticks (89.35, 89.30, 89.25)
+                                // Labels: ".6°>" in RED (complement of 89.4)
+                                ScaleSubsection(startValue: 89.4, tickIntervals: [0.2, 0.1, 0.05], labelLevels: [0],
+                                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
+                                
+                                // 89.2° → 89.0°: MIRROR of Θ₁ #6 (1° → 0.8°)
+                                // [0.1, 0.05] → 3 ticks (89.15, 89.10, 89.05)
+                                // Labels: ".8°>" in RED (complement of 89.2)
+                                ScaleSubsection(startValue: 89.2, tickIntervals: [0.2, 0.1, 0.05], labelLevels: [0],
+                                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
+                // 89° → 88°: MIRROR of Θ₁ #5 (2° → 1°)
                 // [1.0, 0.5, 0.1, 0.05] → 19 ticks
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
+                ScaleSubsection(startValue: 89.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 2° → 3°: MIRROR of Θ₁ #4 (3° → 2°)
-                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
+                // 88° → 87°: MIRROR of Θ₁ #4 (3° → 2°)
+                ScaleSubsection(startValue: 88.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 3° → 4°: MIRROR of Θ₁ #3 (4° → 3°)
-                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
+                // 87° → 86°: MIRROR of Θ₁ #3 (4° → 3°)
+                ScaleSubsection(startValue: 87.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 4° → 5°: MIRROR of Θ₁ #2 (5° → 4°)
-                // [1.0, 0.5, 0.1, 0.05] → 19 ticks
-                ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
+                // 86° → 85°: MIRROR of Θ₁ #2 (5° → 4°)
+                ScaleSubsection(startValue: 86.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 5° → 5.7°: MIRROR of Θ₁ #1 (5.7° → 5°)
-                // ─────────────────────────────────────────────────────────────────────────
-                // EXACTLY 6 intermediate ticks at 0.1° intervals: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
-                // The "5.7°" label at the right edge is rendered via ScaleConstant below
-                // NOTE: Domain extends to 6.0° but there is NO tick at 6.0°
-                // ─────────────────────────────────────────────────────────────────────────
-                ScaleSubsection(startValue: 5.0, tickIntervals: [0.1], labelLevels: [0],
+                // 85° → 84.3°: MIRROR of Θ₁ #1 (5.7° → 5°)
+                // EXACTLY 6 intermediate ticks at 0.1° intervals: 84.9, 84.8, 84.7, 84.6, 84.5, 84.4
+                // The "84.3°" label at the right edge is rendered via ScaleConstant below
+                ScaleSubsection(startValue: 85.0, tickIntervals: [0.7, 0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual)
             ])
             // ═══════════════════════════════════════════════════════════════════════════
-            // FORCED "5.7°" LABEL at right edge of scale
+            // FORCED "84.3°" LABEL at right edge of scale
             // This is necessary because:
-            // - Domain extends to 6.0° for proper logarithmic positioning
-            // - But 6.0° has NO tick mark (matches physical Pickett N-16 ES)
-            // - 5.7° is the LAST VISIBLE labeled tick mark on the right
+            // - Domain extends to 84.29° for proper logarithmic positioning
+            // - But 84.29° has NO tick mark (matches physical Pickett N-16 ES)
+            // - 84.3° is the LAST VISIBLE labeled tick mark on the right
             // - Using ScaleConstant ensures the label appears without a subsection boundary issue
             // ═══════════════════════════════════════════════════════════════════════════
             .withConstants([
-                ScaleConstant(value: 5.7, label: "5.7", style: .medium)
+                ScaleConstant(value: 84.3, label: "84.3", style: .medium)
             ])
             .withBaseline(true)  // Shared baseline with ALPHA scale below
             .build()
@@ -425,37 +417,41 @@ extension StandardLabelFormatter {
     /// - Right label (RED with ">"): Complementary angle (90° - primary)
     ///
     /// Used for: 5°, 4°, 3°, 2°, 1° (whole degree marks that show complements)
-    ///
-    public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
-        let primary = value
-        let complementary = 90.0 - value
-        
-        // Format based on value magnitude
-        // Primary uses formatThetaLabel, complement uses formatThetaComplement (whole integers only)
-        let primaryText = formatThetaLabel(primary)
-        let complementaryText = formatThetaComplement(complementary) + ">"
-        
-        return [
-            // Left label: primary angle in BLACK
-            LabelConfig(
-                text: primaryText,
-                position: .left,
-                fontStyle: .regular,
-                color: .black,
-                fontSizeMultiplier: 1.0,
-                offset: Offset(horizontal: -1, vertical: 0)
-            ),
-            // Right label: complementary angle in RED with ">"
-            LabelConfig(
+        public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
+            let primary = value
+            let complementary = 90.0 - value
+            
+            var configs: [LabelConfig] = []
+            
+            // BLACK label (primary)
+            // PHYSICAL RULE: Angles > 89° on Theta Large don't show black primary labels
+            // because they would be redundant and crowd the starting edge.
+            if primary <= 89.001 {
+                let primaryText = formatThetaLabel(primary)
+                configs.append(LabelConfig(
+                    text: primaryText,
+                    position: .left,
+                    fontStyle: .regular,
+                    color: .black,
+                    fontSizeMultiplier: 1.0,
+                    offset: Offset(horizontal: -1, vertical: 0)
+                ))
+            }
+            
+            // RED label (complement)
+            // Always show for whole degrees, and for sub-degree complements (e.g., .6°>, .8°>)
+            let complementaryText = formatThetaComplement(complementary) + ">"
+            configs.append(LabelConfig(
                 text: complementaryText,
                 position: .right,
                 fontStyle: .regular,
                 color: .red,
                 fontSizeMultiplier: 1.0,
                 offset: Offset(horizontal: 1, vertical: 0)
-            )
-        ]
-    }
+            ))
+            
+            return configs
+        }
     
     /// THETA scale labeling WITHOUT complement (black label only)
     ///
@@ -539,20 +535,25 @@ extension StandardLabelFormatter {
             // Sub-degree: ".6" for 0.6°, ".8" for 0.8° (NO degree symbol on physical scale)
             let tenths = Int((angle * 10).rounded())
             return ".\(tenths)"
-        } else if angle < 6.0 {
-            // Whole degrees 1-5: "1°", "2°", etc.
+        } else if abs(angle - angle.rounded()) < 0.01 {
+            // Whole degrees: "1°", "89°", etc.
             return String(format: "%.0f°", angle.rounded())
         } else {
-            // First tick at 5.7: "5.7°"
+            // Decimal angles: "5.7°", "84.3°", etc.
             return String(format: "%.1f°", angle)
         }
     }
-    
-    /// Format THETA complement labels (for red labels on right side)
-    private static func formatThetaComplement(_ angle: Double) -> String {
-        // Complements are always whole degrees like "85°>", "86°>", etc.
-        return String(format: "%.0f°", angle.rounded())
-    }
+        /// Format THETA complement labels (for red labels on right side)
+        private static func formatThetaComplement(_ angle: Double) -> String {
+            if angle < 1.0 {
+                // Sub-degree complement: ".6°", ".8°"
+                let tenths = Int((angle * 10).rounded())
+                return ".\(tenths)°"
+            } else {
+                // Whole degree complement: "1°", "85°", etc.
+                return String(format: "%.0f°", angle.rounded())
+            }
+        }
     
     /// Format ALPHA scale labels (standard integer degrees)
     private static func formatAlphaLabel(_ angle: Double) -> String {

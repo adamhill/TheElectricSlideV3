@@ -614,11 +614,14 @@ public struct ScaleBuilder {
     }
     
     /// Convenience: Configure as right segment of a 50/50 split scale.
-    /// - Returns: Builder configured with `.right(formulaOffset: -1.0)`
+    /// - Returns: Builder configured with `.right(formulaOffset: 0.0)`
     /// - Note: Right segment renders in physical range 0.5...1.0
-    /// - Note: Uses `-1.0` offset following PostScript `{1 sub}` pattern
+    /// - Note: Uses `0.0` offset because modern scales are typically defined as independent segments
     public func rightSegment() -> ScaleBuilder {
-        return withSplitSegment(.right(formulaOffset: -1.0))
+        #if DEBUG
+        print("[SplitScaleDebug] ScaleBuilder.rightSegment() called - setting formulaOffset to 0.0")
+        #endif
+        return withSplitSegment(.right(formulaOffset: 0.0))
     }
     
     public func build() -> ScaleDefinition {

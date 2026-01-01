@@ -75,7 +75,7 @@ struct ScaleTickRenderer {
         context.stroke(
             baselinePath,
             with: .color(.black),
-            lineWidth: 2.0
+            lineWidth: 0.5
         )
     }
     

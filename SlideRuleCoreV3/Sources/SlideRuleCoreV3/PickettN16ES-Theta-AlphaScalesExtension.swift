@@ -75,6 +75,12 @@ extension StandardScales {
     /// - Shares baseline with ALPHA scale below
     /// - LEFT HALF of the physical THETA scale: 6.0° → 0.57° (BLACK decreasing toward center)
     ///
+    /// **CRITICAL DOMAIN SPECIFICATION:**
+    /// - Domain STARTS at 6.0° (left edge of scale) but 6.0° has NO tick mark or label
+    /// - FIRST VISIBLE tick mark and label is "5.7°" 
+    /// - This matches the physical Pickett N-16 ES where 5.7° is the leftmost labeled tick
+    /// - The 6.0° domain boundary is required for proper logarithmic positioning
+    ///
     /// **Dual Labeling (same pattern as S scale):**
     /// - BLACK label: LEFT side of tick mark (primary angle)
     /// - RED label: RIGHT side of tick mark with ">" (complementary, 90° - primary)
@@ -83,13 +89,13 @@ extension StandardScales {
     /// "Phase shift angle (voltage with respect to current) of circuits whose
     /// phase increases with DECREASING frequency (reads against frequency F scale)"
     ///
-    /// **Range:** 6.0° → 0.57° (position 0 → 1, CENTER tick at 0.57° is UNLABELED)
+    /// **Range:** 6.0° → 0.57° (6.0° is domain start with NO tick/label, 0.57° is CENTER boundary, also unlabeled)
     ///
-    /// **Labels:** ONLY at major angles: 5.7°, 5°, 4°, 3°, 2°, 1°, .8°, .6° (NOT at 0.57°)
+    /// **Labels:** ONLY at major angles: 5.7°, 5°, 4°, 3°, 2°, 1°, .8°, .6° (NOT at 6.0° or 0.57°)
     ///
     /// **Transform:** position = -1 - log₁₀(tan(θ))
-    /// - At θ = 6.0°: tan ≈ 0.1051, log ≈ -0.978, position ≈ -0.022 (slightly before 5.71°)
-    /// - At θ = 5.71°: tan = 0.1, log = -1, position = 0 (left edge)
+    /// - At θ = 6.0°: tan ≈ 0.1051, log ≈ -0.978, position ≈ -0.022 (domain start, NO tick)
+    /// - At θ = 5.71°: tan = 0.1, log = -1, position = 0 (near left edge)
     /// - At θ = 0.6°: tan ≈ 0.0105, log ≈ -1.98, position ≈ 0.98
     /// - At θ = 0.57°: tan = 0.01, log = -2, position = 1.0 (CENTER - unlabeled tick)
     ///
@@ -99,52 +105,89 @@ extension StandardScales {
             //.withAliases(["THETA-SMALL", "θ₁"])
             .withFormula("-1 - log₁₀(tan(θ))")
             .withFunction(ThetaSmallScaleFunction())
-            .withRange(begin: 6.0, end: 0.0)  // End at 0° for visual continuity with Θ₂
+            // ═══════════════════════════════════════════════════════════════════════════
+            // DOMAIN: 6.0° to 0.57°
+            // - 6.0° is the LEFT EDGE of the scale domain (NO tick mark or label here!)
+            // - First VISIBLE tick mark is at 5.7° (labeled "5.7°")
+            // - 0.57° is the CENTER boundary (unlabeled)
+            // This domain is REQUIRED for proper logarithmic positioning of all tick marks
+            // ═══════════════════════════════════════════════════════════════════════════
+            .withRange(begin: 6.0, end: 0.57)
             .withLength(length)
             .withTickDirection(.up)
             .withSplitSegment(.left(formulaOffset: 0.0))  // LEFT half of split scale
             .withDefaultTickStyles([
-                .absolutelyNone,     // Level 0 (1.0°): Not rendered
-                .medium,              // Level 1 (0.5°): 0.75 height
-                .minor,               // Level 2 (0.1°): 0.5 height
-                TickStyle(relativeLength: 0.40, shouldLabel: false, lineWidth: 0.45)  // Level 3 (0.05°)
+                // TICK PATTERN from physical Pickett N-16 ES (HUMAN COUNTED):
+                // 5.7→5: 6 ticks, 5→4/4→3/3→2/2→1: 19 ticks each, 1→.8/.8→.6: 3 ticks each
+                .major,               // Level 0: Labeled marks ONLY (5.7°, 5°, 4°, 3°, 2°, 1°, .8, .6)
+                .medium,              // Level 1: Half-degree marks (0.5°)
+                .minor,               // Level 2: Tenth-degree marks (0.1°)
+                TickStyle(relativeLength: 0.40, shouldLabel: false, lineWidth: 0.45)  // Level 3: 0.05° marks
             ])
             .withSubsections([
-                // 5.71° → 5°: First major mark - LABEL at 5.7° only
-                ScaleSubsection(startValue: 5.71, tickIntervals: [0.1], labelLevels: [0],
+                // ═══════════════════════════════════════════════════════════════════════
+                // TICK PATTERN from physical Pickett N-16 ES (HUMAN COUNTED on actual slide rule)
+                // 
+                // DOMAIN NOTE: Scale domain starts at 6.0° but NO tick mark at 6.0°!
+                // The subsections below define ONLY the visible tick marks starting at 5.7°
+                //
+                // LABELS: 5.7°, 5°, 4°, 3°, 2°, 1°, .8, .6 - NO intermediate labels!
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 5.7° → 5°: EXACTLY 6 intermediate ticks at 0.1° intervals
+                // ─────────────────────────────────────────────────────────────────────────
+                // FIRST VISIBLE TICK: "5.7°" label (NO complement - just black label)
+                // Intermediate ticks at: 5.6, 5.5, 5.4, 5.3, 5.2, 5.1 = EXACTLY 6 ticks
+                // NOTE: Domain starts at 6.0° but this subsection starts at 5.7° because
+                //       6.0° has NO tick mark - it's just the mathematical domain boundary
+                // Use 0.7 as level 0 so only 5.7 gets labeled (next 0.7 tick would be 5.0)
+                // ─────────────────────────────────────────────────────────────────────────
+                ScaleSubsection(startValue: 5.7, tickIntervals: [0.7, 0.1], labelLevels: [0],
+                               dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement),
+                
+                // 5° → 4°: 19 intermediate ticks
+                // Label: "5° 85°>" ONLY at 5° (dual label with complement)
+                // Use 1.0 as level 0 so only 5° gets labeled (not 4.5°)
+                // Pattern: 1 tick at 0.5° + 8 ticks at 0.1° + 10 ticks at 0.05° = 19 ticks
+                ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 5° → 4°: LABEL at 5° and 4° only (no intermediate labels)
-                ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.1], labelLevels: [0],
+                // 4° → 3°: 19 intermediate ticks  
+                // Label: "4° 86°>" ONLY at 4°
+                ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 4° → 3°: LABEL at 3° only
-                ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.1], labelLevels: [0],
+                // 3° → 2°: 19 intermediate ticks
+                // Label: "3° 87°>" ONLY at 3°
+                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 3° → 2°: LABEL at 2° only
-                ScaleSubsection(startValue: 3.0, tickIntervals: [1.0, 0.1], labelLevels: [0],
+                // 2° → 1°: 19 intermediate ticks
+                // Label: "2° 88°>" ONLY at 2°
+                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 2° → 1°: LABEL at 1° only (no label at 1.5°)
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.1], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
+                // 1° → 0.8°: 3 intermediate ticks at 0.05° intervals
+                // Label: "1° 89°>" ONLY at 1° (dual label with complement)
+                // Label: ".8" at 0.8° (NO complement - just black label, matches physical scale)
+                // Use 0.2 as level 0 for labeled ticks at 1.0 and 0.8
+                // Ticks at: 0.95, 0.90, 0.85 = 3 intermediate ticks
+                ScaleSubsection(startValue: 1.0, tickIntervals: [0.2, 0.1, 0.05], labelLevels: [0],
+                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDualExceptSubDegree),
                 
-                // 1° → 0.8°: LABEL at .8° only
-                ScaleSubsection(startValue: 1.0, tickIntervals: [0.1], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
+                // 0.8° → 0.6°: 3 intermediate ticks at 0.05° intervals
+                // Label: ".8" ONLY at 0.8° (NO complement - just black label)
+                // Use 0.2 as level 0 so only 0.8 gets labeled
+                // Ticks at: 0.75, 0.70, 0.65 = 3 ticks
+                ScaleSubsection(startValue: 0.8, tickIntervals: [0.2, 0.1, 0.05], labelLevels: [0],
+                               dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement),
                 
-                // 0.8° → 0.6°: LABEL at .6° only
-                ScaleSubsection(startValue: 0.8, tickIntervals: [0.1], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
-                
-                // 0.6° → 0.57°: NO LABEL at center tick (0.57° is unlabeled)
-                ScaleSubsection(startValue: 0.6, tickIntervals: [0.1], labelLevels: [],
-                               dualLabelFormatter: nil)
+                // 0.6° → boundary (0.57°): NO intermediate ticks
+                // Label: ".6" ONLY at 0.6° (NO complement), boundary tick UNLABELED
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.6], labelLevels: [0],
+                               dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement)
             ])
-            .withConstants([
-                ScaleConstant(value: 5.71, label: "5.7", style: .medium)
-            ])
+            .withBaseline(true)  // Shared baseline with ALPHA scale below
             .build()
     }
     
@@ -153,12 +196,18 @@ extension StandardScales {
     /// **Physical Structure:**
     /// - Tick marks point UP (toward top edge of stator)
     /// - Shares baseline with ALPHA scale below
-    /// - RIGHT HALF of the physical THETA scale: 0.57° → 5.71° (MIRRORING Θ₁)
+    /// - RIGHT HALF of the physical THETA scale: 0.57° → 6.0° (MIRRORING Θ₁)
+    ///
+    /// **CRITICAL DOMAIN SPECIFICATION:**
+    /// - Domain ENDS at 6.0° (right edge of scale) but 6.0° has NO tick mark or label
+    /// - LAST VISIBLE tick mark and label is "5.7°" (rendered via ScaleConstant)
+    /// - This matches the physical Pickett N-16 ES where 5.7° is the rightmost labeled tick
+    /// - The 6.0° domain boundary is required for proper logarithmic positioning
     ///
     /// **MIRROR PATTERN:**
     /// - This scale EXACTLY MIRRORS ThetaSmall (Θ₁) but in REVERSE order
-    /// - Θ₁: 5.71° → 0.57° with intervals [0.1], [1.0, 0.5, 0.1, 0.05], etc.
-    /// - Θ₂: 0.57° → 5.71° with SAME intervals [0.59], [0.1, 0.05], [1.0, 0.5, 0.1, 0.05], etc.
+    /// - Θ₁: 6.0° → 0.57° (left half, 6.0° unlabeled, first visible label at 5.7°)
+    /// - Θ₂: 0.57° → 6.0° (right half, 6.0° unlabeled, last visible label at 5.7°)
     /// - Creates a symmetric fold at the center point (0.57°)
     ///
     /// **Dual Labeling (same pattern as S scale):**
@@ -169,12 +218,12 @@ extension StandardScales {
     /// "Phase shift angle (voltage with respect to current) of circuits whose
     /// phase increases with DECREASING frequency (reads against frequency F scale)"
     ///
-    /// **Range:** 0.01° → 5.71° (center to right edge, mirroring Θ₁)
+    /// **Range:** 0.57° → 6.0° (0.57° is CENTER boundary unlabeled, 6.0° is RIGHT EDGE also unlabeled)
     ///
     /// **Transform:** position = 2 - log₁₀(tan(θ))
-    /// - At θ = 0.01°: tan ≈ 0.0001746, log ≈ -3.758, position ≈ 5.758 (off scale)
-    /// - At θ = 0.59°: tan ≈ 0.0103, log ≈ -1.987, position ≈ 3.987 (near start)
-    /// - At θ = 5.71°: tan = 0.1, log = -1, position = 3.0 (physical position 1.0 after normalization)
+    /// - At θ = 0.57°: tan = 0.01, log = -2, position = 0 (center boundary)
+    /// - At θ = 5.71°: tan = 0.1, log = -1, position ≈ 1.0 (near right edge)
+    /// - At θ = 6.0°: tan ≈ 0.1051, log ≈ -0.978, position ≈ 1.022 (domain end, NO tick)
     ///
     public static func phaseAngleThetaLargeScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
@@ -182,10 +231,17 @@ extension StandardScales {
             //.withAliases(["THETA-LARGE", "θ₂"])
             .withFormula("2 - log₁₀(tan(θ))")
             .withFunction(ThetaLargeScaleFunction())
-            .withRange(begin: 0.0, end: 5.71)  // Start at 0° for visual continuity with Θ₁
+            // ═══════════════════════════════════════════════════════════════════════════
+            // DOMAIN: 0.57° to 6.0°
+            // - 0.57° is the CENTER boundary (unlabeled, shared with Θ₁)
+            // - 6.0° is the RIGHT EDGE of the scale domain (NO tick mark or label here!)
+            // - Last VISIBLE tick mark is at 5.7° (rendered via ScaleConstant below)
+            // This domain is REQUIRED for proper logarithmic positioning of all tick marks
+            // ═══════════════════════════════════════════════════════════════════════════
+            .withRange(begin: 0.0, end: 6.0)  // Domain extends to 6.0° (no tick at 6.0°!)
             .withLength(length)
             .withTickDirection(.up)
-            .withSplitSegment(.right(formulaOffset: 0.0))  // FIX: Add RIGHT half split segment
+            .withSplitSegment(.right(formulaOffset: 0.0))  // RIGHT half of split scale
             .withDefaultTickStyles([
                 .absolutelyNone,     // Level 0 (1.0°): Not rendered
                 .medium,              // Level 1 (0.5°): 0.75 height
@@ -195,6 +251,9 @@ extension StandardScales {
             .withSubsections([
                 // ═══════════════════════════════════════════════════════════════════════
                 // MIRROR PATTERN: Θ₂ subsections EXACTLY REVERSE Θ₁ intervals
+                //
+                // DOMAIN NOTE: Scale domain ends at 6.0° but NO tick mark at 6.0°!
+                // The 5.7° label is rendered via ScaleConstant (see .withConstants below)
                 // ═══════════════════════════════════════════════════════════════════════
                 
                 // 0.0° → 0.6°: From unlabeled center - MIRROR of Θ₁ #8
@@ -232,14 +291,27 @@ extension StandardScales {
                 ScaleSubsection(startValue: 4.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual),
                 
-                // 5° → 5.71°: MIRROR of Θ₁ #1 (5.71° → 5°)
-                // [0.1] → 6 ticks
+                // 5° → 5.7°: MIRROR of Θ₁ #1 (5.7° → 5°)
+                // ─────────────────────────────────────────────────────────────────────────
+                // EXACTLY 6 intermediate ticks at 0.1° intervals: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
+                // The "5.7°" label at the right edge is rendered via ScaleConstant below
+                // NOTE: Domain extends to 6.0° but there is NO tick at 6.0°
+                // ─────────────────────────────────────────────────────────────────────────
                 ScaleSubsection(startValue: 5.0, tickIntervals: [0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual)
             ])
+            // ═══════════════════════════════════════════════════════════════════════════
+            // FORCED "5.7°" LABEL at right edge of scale
+            // This is necessary because:
+            // - Domain extends to 6.0° for proper logarithmic positioning
+            // - But 6.0° has NO tick mark (matches physical Pickett N-16 ES)
+            // - 5.7° is the LAST VISIBLE labeled tick mark on the right
+            // - Using ScaleConstant ensures the label appears without a subsection boundary issue
+            // ═══════════════════════════════════════════════════════════════════════════
             .withConstants([
-                ScaleConstant(value: 5.71, label: "5.7", style: .medium)
+                ScaleConstant(value: 5.7, label: "5.7", style: .medium)
             ])
+            .withBaseline(true)  // Shared baseline with ALPHA scale below
             .build()
     }
     
@@ -352,22 +424,16 @@ extension StandardLabelFormatter {
     /// - Left label (BLACK): Primary angle reading
     /// - Right label (RED with ">"): Complementary angle (90° - primary)
     ///
-    /// NOTE: On physical Pickett N-16 ES, the 6.0° mark is unlabeled,
-    /// with first labeled mark (5.7°) appearing ~2-3mm inset from left edge.
-    /// This creates visual alignment with other scale starts.
+    /// Used for: 5°, 4°, 3°, 2°, 1° (whole degree marks that show complements)
     ///
     public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
-        // Suppress label at 6.0° to match physical Pickett N-16 ES layout
-        if abs(value - 6.0) < 0.01 {
-            return []
-        }
-        
         let primary = value
         let complementary = 90.0 - value
         
         // Format based on value magnitude
+        // Primary uses formatThetaLabel, complement uses formatThetaComplement (whole integers only)
         let primaryText = formatThetaLabel(primary)
-        let complementaryText = formatThetaLabel(complementary) + ">"
+        let complementaryText = formatThetaComplement(complementary) + ">"
         
         return [
             // Left label: primary angle in BLACK
@@ -389,6 +455,42 @@ extension StandardLabelFormatter {
                 offset: Offset(horizontal: 1, vertical: 0)
             )
         ]
+    }
+    
+    /// THETA scale labeling WITHOUT complement (black label only)
+    ///
+    /// Used for: 5.7°, .8°, .6° (marks that don't show red complement on physical scale)
+    ///
+    public static func thetaScaleNoComplement(value: ScaleValue) -> [LabelConfig] {
+        let primaryText = formatThetaLabel(value)
+        
+        return [
+            // Single label: primary angle in BLACK (no complement)
+            LabelConfig(
+                text: primaryText,
+                position: .left,
+                fontStyle: .regular,
+                color: .black,
+                fontSizeMultiplier: 1.0,
+                offset: Offset(horizontal: -1, vertical: 0)
+            )
+        ]
+    }
+    
+    /// THETA scale dual labeling for whole degrees, but NO complement for sub-degree values
+    ///
+    /// Used for subsections that span both whole degrees (1°) and sub-degree values (0.8°)
+    /// - Whole degrees (≥1°): Dual label with complement (e.g., "1° 89°>")
+    /// - Sub-degree (<1°): Single black label only (e.g., ".8")
+    ///
+    public static func thetaScaleDualExceptSubDegree(value: ScaleValue) -> [LabelConfig] {
+        if value < 1.0 {
+            // Sub-degree: no complement, just black label
+            return thetaScaleNoComplement(value: value)
+        } else {
+            // Whole degree: dual label with complement
+            return thetaScaleDual(value: value)
+        }
     }
     
     /// ALPHA scale dual labeling: BLACK angle (left) and RED complement (right)
@@ -427,18 +529,29 @@ extension StandardLabelFormatter {
     // MARK: - Private Formatters for Theta/Alpha
     
     /// Format THETA scale labels (handles sub-degree values)
+    ///
+    /// Physical scale pattern from Pickett N-16 ES:
+    /// - "5.7°" at 5.7°
+    /// - "5° 85°>" through "1° 89°>" for whole degrees (with complement)
+    /// - ".8" and ".6" for sub-degree values (NO degree symbol, NO complement)
     private static func formatThetaLabel(_ angle: Double) -> String {
         if angle < 1.0 {
-            // Sub-degree: ".6" for 0.6°, ".8" for 0.8°
+            // Sub-degree: ".6" for 0.6°, ".8" for 0.8° (NO degree symbol on physical scale)
             let tenths = Int((angle * 10).rounded())
-            return ".\(tenths)°"
-        } else if angle < 10.0 {
-            // Single digit: "1°", "2°", etc.
+            return ".\(tenths)"
+        } else if angle < 6.0 {
+            // Whole degrees 1-5: "1°", "2°", etc.
             return String(format: "%.0f°", angle.rounded())
         } else {
-            // Two digit: "84°", "85°", "89°", etc.
-            return String(format: "%.0f°", angle.rounded())
+            // First tick at 5.7: "5.7°"
+            return String(format: "%.1f°", angle)
         }
+    }
+    
+    /// Format THETA complement labels (for red labels on right side)
+    private static func formatThetaComplement(_ angle: Double) -> String {
+        // Complements are always whole degrees like "85°>", "86°>", etc.
+        return String(format: "%.0f°", angle.rounded())
     }
     
     /// Format ALPHA scale labels (standard integer degrees)

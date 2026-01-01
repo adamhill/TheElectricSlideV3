@@ -58,7 +58,7 @@ extension ScaleTestData {
         ),
         ScaleTestData(
             name: "PhaseAngleTheta",
-            scaleFactory: { StandardScales.phaseAngleThetaScale(length: $0) },
+            scaleFactory: { StandardScales.phaseAngleThetaSmallScale(length: $0) },
             tolerance: TestTolerance.standard,
             testPositions: TestValues.positions,
             testValues: [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0]

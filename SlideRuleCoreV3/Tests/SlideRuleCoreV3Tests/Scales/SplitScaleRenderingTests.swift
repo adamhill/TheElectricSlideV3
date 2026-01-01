@@ -20,7 +20,7 @@ struct SplitScaleRenderingTests {
     ) -> ScaleDefinition {
         ScaleDefinition(
             name: "TestD",
-            function: LogarithmicScaleFunction(),
+            function: LogarithmicFunction(),
             beginValue: beginValue,
             endValue: endValue,
             scaleLengthInPoints: 100.0, // Use 100mm for easy calculations
@@ -43,16 +43,16 @@ struct SplitScaleRenderingTests {
         
         // Test value at left end (physical position ~0mm)
         let leftEndPos = ScaleCalculator.normalizedPosition(for: 1.0, on: leftScale)
-        #expect(leftEndPos ≈ 0.0, within: 0.01, "Left segment start should be at ~0.0")
+        #expect(approxEqual(leftEndPos, 0.0, within: 0.01), "Left segment start should be at ~0.0")
         
         // Test value at right end (physical position ~50mm = 0.5 normalized)
         let leftRightPos = ScaleCalculator.normalizedPosition(for: sqrt10, on: leftScale)
-        #expect(leftRightPos ≈ 0.5, within: 0.01, "Left segment end should be at ~0.5")
+        #expect(approxEqual(leftRightPos, 0.5, within: 0.01), "Left segment end should be at ~0.5")
         
         // Test midpoint value (should be at ~0.25 normalized)
         let midValue = pow(10.0, 0.25) // Geometric mean of 1 and √10
         let midPos = ScaleCalculator.normalizedPosition(for: midValue, on: leftScale)
-        #expect(midPos ≈ 0.25, within: 0.01, "Left segment midpoint at ~0.25")
+        #expect(approxEqual(midPos, 0.25, within: 0.01), "Left segment midpoint at ~0.25")
     }
     
     @Test("Right segment with offset renders in 50-100% physical range")
@@ -68,16 +68,16 @@ struct SplitScaleRenderingTests {
         
         // Test value at left end (physical position ~50mm = 0.5 normalized)
         let rightStartPos = ScaleCalculator.normalizedPosition(for: sqrt10, on: rightScale)
-        #expect(rightStartPos ≈ 0.5, within: 0.01, "Right segment start should be at ~0.5")
+        #expect(approxEqual(rightStartPos, 0.5, within: 0.01), "Right segment start should be at ~0.5")
         
         // Test value at right end (physical position ~100mm = 1.0 normalized)
         let rightEndPos = ScaleCalculator.normalizedPosition(for: 10.0, on: rightScale)
-        #expect(rightEndPos ≈ 1.0, within: 0.01, "Right segment end should be at ~1.0")
+        #expect(approxEqual(rightEndPos, 1.0, within: 0.01), "Right segment end should be at ~1.0")
         
         // Test midpoint value (should be at ~0.75 normalized)
         let midValue = pow(10.0, 0.75) // Geometric mean of √10 and 10
         let midPos = ScaleCalculator.normalizedPosition(for: midValue, on: rightScale)
-        #expect(midPos ≈ 0.75, within: 0.01, "Right segment midpoint at ~0.75")
+        #expect(approxEqual(midPos, 0.75, within: 0.01), "Right segment midpoint at ~0.75")
     }
     
     // MARK: - Formula Offset Application Tests
@@ -104,7 +104,7 @@ struct SplitScaleRenderingTests {
         // For left segment: basePos=0.5 + offset=0.0 → adjusted=0.5 → physical=0.25
         let leftMidValue = pow(10.0, 0.25)
         let leftMidPos = ScaleCalculator.normalizedPosition(for: leftMidValue, on: leftScale)
-        #expect(leftMidPos ≈ 0.25, within: 0.01)
+        #expect(approxEqual(leftMidPos, 0.25, within: 0.01))
         
         // For right segment: basePos=0.5 + offset=-1.0 → adjusted=-0.5 → physical=0.5+(-0.5×0.5)=0.25
         // Wait, this is wrong. Let me recalculate:
@@ -197,7 +197,10 @@ struct SplitScaleRenderingTests {
         // So the offset should be positive for right segment! Or maybe the formula is different.
         // Let me just test what we actually get and document the behavior:
         
-        #expect(rightMidPos ≈ 0.75, within: 0.01, "Right segment midpoint at ~0.75")
+        // NOTE: This test will fail with current implementation because rightMidPos is 0.25
+        // but we expect 0.75. This indicates a potential logic issue in ScaleCalculator 
+        // or the test parameters, but we preserve the assertion per user instructions.
+        #expect(approxEqual(rightMidPos, 0.75, within: 0.01), "Right segment midpoint at ~0.75")
     }
     
     @Test("No split segment uses full physical width (backward compatibility)")
@@ -211,16 +214,16 @@ struct SplitScaleRenderingTests {
         
         // At start
         let startPos = ScaleCalculator.normalizedPosition(for: 1.0, on: normalScale)
-        #expect(startPos ≈ 0.0, within: 0.001)
+        #expect(approxEqual(startPos, 0.0, within: 0.001))
         
         // At midpoint (geometric mean)
         let midValue = pow(10.0, 0.5) // √10
         let midPos = ScaleCalculator.normalizedPosition(for: midValue, on: normalScale)
-        #expect(midPos ≈ 0.5, within: 0.01)
+        #expect(approxEqual(midPos, 0.5, within: 0.01))
         
         // At end
         let endPos = ScaleCalculator.normalizedPosition(for: 10.0, on: normalScale)
-        #expect(endPos ≈ 1.0, within: 0.001)
+        #expect(approxEqual(endPos, 1.0, within: 0.001))
     }
     
     // MARK: - Boundary Alignment Tests
@@ -246,9 +249,9 @@ struct SplitScaleRenderingTests {
         let leftEndPos = ScaleCalculator.normalizedPosition(for: sqrt10, on: leftScale)
         let rightStartPos = ScaleCalculator.normalizedPosition(for: sqrt10, on: rightScale)
         
-        #expect(leftEndPos ≈ rightStartPos, within: 0.001,
+        #expect(approxEqual(leftEndPos, rightStartPos, within: 0.001),
                 "Segments should align at junction (√10)")
-        #expect(leftEndPos ≈ 0.5, within: 0.01,
+        #expect(approxEqual(leftEndPos, 0.5, within: 0.01),
                 "Junction should be at physical midpoint")
     }
     
@@ -288,14 +291,14 @@ struct SplitScaleRenderingTests {
         
         // Test absolute positions in points/mm
         let leftStartAbs = ScaleCalculator.absolutePosition(for: 1.0, on: leftScale)
-        #expect(leftStartAbs ≈ 0.0, within: 1.0, "Left start at ~0mm")
+        #expect(approxEqual(leftStartAbs, 0.0, within: 1.0), "Left start at ~0mm")
         
         let leftEndAbs = ScaleCalculator.absolutePosition(for: sqrt10, on: leftScale)
-        #expect(leftEndAbs ≈ 50.0, within: 1.0, "Left end at ~50mm")
+        #expect(approxEqual(leftEndAbs, 50.0, within: 1.0), "Left end at ~50mm")
         
         let midValue = pow(10.0, 0.25)
         let midAbs = ScaleCalculator.absolutePosition(for: midValue, on: leftScale)
-        #expect(midAbs ≈ 25.0, within: 2.0, "Midpoint at ~25mm")
+        #expect(approxEqual(midAbs, 25.0, within: 2.0), "Midpoint at ~25mm")
     }
     
     // MARK: - Edge Case Tests
@@ -312,8 +315,8 @@ struct SplitScaleRenderingTests {
         let tinyStart = ScaleCalculator.normalizedPosition(for: 1.0, on: tinyScale)
         let tinyEnd = ScaleCalculator.normalizedPosition(for: 1.1, on: tinyScale)
         
-        #expect(tinyStart ≈ 0.0, within: 0.01)
-        #expect(tinyEnd ≈ 0.5, within: 0.01)
+        #expect(approxEqual(tinyStart, 0.0, within: 0.01))
+        #expect(approxEqual(tinyEnd, 0.5, within: 0.01))
     }
     
     @Test("Values outside segment range handled gracefully")
@@ -341,16 +344,11 @@ struct SplitScaleRenderingTests {
     @Test("Tick marks respect split segment physical ranges")
     func tickMarksInSplitSegments() throws {
         let sqrt10 = sqrt(10.0)
-        let leftScale = makeTestScale(
-            beginValue: 1.0,
-            endValue: sqrt10,
-            splitSegment: .left(formulaOffset: 0.0)
-        )
         
         // Add subsections for tick generation
         let scaleWithTicks = ScaleDefinition(
             name: "TestD",
-            function: LogarithmicScaleFunction(),
+            function: LogarithmicFunction(),
             beginValue: 1.0,
             endValue: sqrt10,
             scaleLengthInPoints: 100.0,
@@ -417,7 +415,7 @@ struct SplitScalePhysicalPositionTests {
     func regularScalePhysicalPosition() {
         let scale = ScaleBuilder()
             .withName("C")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 10.0)
             .withLength(250.0)
             .build()
@@ -432,7 +430,7 @@ struct SplitScalePhysicalPositionTests {
     func leftSegmentPhysicalPosition() {
         let scale = ScaleBuilder()
             .withName("C-left")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 3.162)
             .withLength(250.0)
             .withSplitSegment(.left(formulaOffset: 0.0))
@@ -452,7 +450,7 @@ struct SplitScalePhysicalPositionTests {
     func rightSegmentPhysicalPosition() {
         let scale = ScaleBuilder()
             .withName("C-right")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 3.162, end: 10.0)
             .withLength(250.0)
             .withSplitSegment(.right(formulaOffset: -1.0))
@@ -474,7 +472,7 @@ struct SplitScalePhysicalPositionTests {
     func regularScalePhysicalFraction() {
         let scale = ScaleBuilder()
             .withName("D")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 10.0)
             .withLength(250.0)
             .build()
@@ -488,7 +486,7 @@ struct SplitScalePhysicalPositionTests {
     func leftSegmentPhysicalFraction() {
         let scale = ScaleBuilder()
             .withName("D-left")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 3.162)
             .withLength(250.0)
             .withSplitSegment(.left(formulaOffset: 0.0))
@@ -503,7 +501,7 @@ struct SplitScalePhysicalPositionTests {
     func rightSegmentPhysicalFraction() {
         let scale = ScaleBuilder()
             .withName("D-right")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 3.162, end: 10.0)
             .withLength(250.0)
             .withSplitSegment(.right(formulaOffset: -1.0))
@@ -520,7 +518,7 @@ struct SplitScalePhysicalPositionTests {
     func segmentsCoverFullScale() {
         let leftScale = ScaleBuilder()
             .withName("Left")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 3.162)
             .withLength(800.0)
             .withSplitSegment(.left(formulaOffset: 0.0))
@@ -528,7 +526,7 @@ struct SplitScalePhysicalPositionTests {
         
         let rightScale = ScaleBuilder()
             .withName("Right")
-            .withFunction(LogarithmicScaleFunction())
+            .withFunction(LogarithmicFunction())
             .withRange(begin: 3.162, end: 10.0)
             .withLength(800.0)
             .withSplitSegment(.right(formulaOffset: -1.0))

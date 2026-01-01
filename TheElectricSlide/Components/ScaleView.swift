@@ -17,6 +17,9 @@ import SlideRuleCoreV3
 /// Debug flag - set to true to enable scale rendering diagnostics
 private let DEBUG_SCALE_RENDERING = false
 
+/// Debug flag for split scale Canvas size diagnostics
+private let DEBUG_SPLIT_CANVAS = true
+
 /// Track Canvas redraw count
 private var canvasRedrawCount = 0
 
@@ -103,6 +106,14 @@ struct ScaleView: View, Equatable {
             ZStack(alignment: .topLeading) {
                 // Tick marks and labels
                 Canvas { context, size in
+                    // DEBUG: Log Canvas size for split scales
+                    if DEBUG_SPLIT_CANVAS && (generatedScale.definition.name.contains("Θ") || generatedScale.definition.name.contains("θ")) {
+                        print("🎨 [CANVAS] \(generatedScale.definition.name): size=(\(size.width), \(size.height)), passed height=\(height), tickDir=\(generatedScale.definition.tickDirection)")
+                        if let segment = generatedScale.definition.splitSegment {
+                            print("   splitSegment: \(segment)")
+                        }
+                    }
+                    
                     // ✅ OPTIMIZATION: Draw background gradient in Canvas instead of .background()
                     // This eliminates VStack preference propagation during drag updates
                     if let gradient = backgroundGradient {
@@ -120,8 +131,10 @@ struct ScaleView: View, Equatable {
                 .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
                 .accessibilityIdentifier("scale-canvas-\(generatedScale.definition.name)")
             }
-            .frame(width: width)
-            .frame(minHeight: height * 0.8, idealHeight: height, maxHeight: height)
+            // ✅ FIXED HEIGHT: Use fixed frame to ensure Canvas gets consistent size
+            // This is critical for split scale ZStack rendering where both scales
+            // must have identical Canvas dimensions for proper tick alignment
+            .frame(width: width, height: height)
             .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
             
             // Formula label on the right (left-aligned with responsive width)
@@ -132,6 +145,7 @@ struct ScaleView: View, Equatable {
                 .frame(width: rightMarginWidth, alignment: .leading)
                 .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
         }
+        .frame(height: height)  // Ensure consistent height for split scale ZStack alignment
         .accessibilityIdentifier("scaleview-\(generatedScale.definition.name)")
     }
     

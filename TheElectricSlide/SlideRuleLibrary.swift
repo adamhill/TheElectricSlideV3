@@ -28,8 +28,13 @@ struct SlideRuleLibrary {
     /// Version 14: Added Θ₁ and Θ₂ (Theta subscript) scales to Pickett N-16 ES back top stator (phase angle scales)
     /// Version 15: Added | to Θ₁ and Θ₂ to test out physical ranges (Theta subscript) scales to Pickett N-16 ES back top stator (phase angle scales)
     /// Version 16: Added - to Θ₂ to flip ticks to test out physical ranges (Theta subscript) scales to Pickett N-16 ES back top stator (phase angle scales)
+    /// Version 17: Changed Θ₁ | Θ₂ to Θ₁^ Θ₂ for split scale rendering (^ = split pair, | = visual separator)
+    /// Version 18: Enabled showBaseline=true for THETA scales (shared baseline with ALPHA)
+    /// Version 19: Fixed THETA domain: 6.0°→0.57°→6.0° with no tick at 6.0°, first/last visible tick at 5.7°
+    /// Version 20: Fixed Θ₂ tick direction: changed Θ₂- to Θ₂^ (both scales need ticks UP, not DOWN)
+    /// Version 21: Fixed ^ in the wrong place
 
-    static let libraryVersion = 16
+    static let libraryVersion = 21
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -110,7 +115,10 @@ struct SlideRuleLibrary {
                 Historical significance: First slide rule with embedded 2π factors in reactance scales and coordinated \
                 phase/gain/dB scales for complete filter characterization from single cursor position.
                 """,
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁ | Θ₂- α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            // NOTE: Θ₁^ Θ₂^ uses ^ (caret) for SPLIT SCALE - both render in same row
+            // BOTH scales must have ticks pointing UP to share baseline with ALPHA below
+            // Do NOT use - suffix on Θ₂ as that flips ticks DOWN (wrong direction!)
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,

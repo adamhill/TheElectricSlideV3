@@ -515,7 +515,11 @@ public struct RuleDefinitionParser {
                         showBaseline: finalDefinition.showBaseline,
                         hasBottomSeparator: false,  // Never set separator on the scale after |
                         formulaTracking: finalDefinition.formulaTracking,
-                        displayName: originalName
+                        displayName: originalName,
+                        suppressBeginBoundaryLabel: finalDefinition.suppressBeginBoundaryLabel,
+                        suppressBeginBoundaryTick: finalDefinition.suppressBeginBoundaryTick,
+                        suppressEndBoundaryLabel: finalDefinition.suppressEndBoundaryLabel,
+                        suppressEndBoundaryTick: finalDefinition.suppressEndBoundaryTick
                     )
                 }
                 
@@ -654,7 +658,11 @@ public struct RuleDefinitionParser {
             hasBottomSeparator: generated.definition.hasBottomSeparator,
             formulaTracking: generated.definition.formulaTracking,
             displayName: generated.definition.displayName,
-            splitSegment: segment
+            splitSegment: segment,
+            suppressBeginBoundaryLabel: generated.definition.suppressBeginBoundaryLabel,
+            suppressBeginBoundaryTick: generated.definition.suppressBeginBoundaryTick,
+            suppressEndBoundaryLabel: generated.definition.suppressEndBoundaryLabel,
+            suppressEndBoundaryTick: generated.definition.suppressEndBoundaryTick
         )
         
         return GeneratedScale(
@@ -759,7 +767,11 @@ public struct RuleDefinitionParser {
             showBaseline: definition.showBaseline,
             hasBottomSeparator: true,  // Set separator flag
             formulaTracking: definition.formulaTracking,
-            displayName: definition.displayName
+            displayName: definition.displayName,
+            suppressBeginBoundaryLabel: definition.suppressBeginBoundaryLabel,
+            suppressBeginBoundaryTick: definition.suppressBeginBoundaryTick,
+            suppressEndBoundaryLabel: definition.suppressEndBoundaryLabel,
+            suppressEndBoundaryTick: definition.suppressEndBoundaryTick
         )
     }
     
@@ -811,7 +823,11 @@ public struct RuleDefinitionParser {
             showBaseline: generated.definition.showBaseline,
             hasBottomSeparator: generated.definition.hasBottomSeparator,
             formulaTracking: generated.definition.formulaTracking,
-            displayName: generated.definition.displayName
+            displayName: generated.definition.displayName,
+            suppressBeginBoundaryLabel: generated.definition.suppressBeginBoundaryLabel,
+            suppressBeginBoundaryTick: generated.definition.suppressBeginBoundaryTick,
+            suppressEndBoundaryLabel: generated.definition.suppressEndBoundaryLabel,
+            suppressEndBoundaryTick: generated.definition.suppressEndBoundaryTick
         )
         
         // Preserve the noLineBreak flag when converting to circular

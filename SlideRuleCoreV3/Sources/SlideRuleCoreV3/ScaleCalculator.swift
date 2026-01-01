@@ -131,13 +131,6 @@ public struct ScaleCalculator: Sendable {
             // Left example (offset=0.0):  0.0 + (0.5 × 0.5) = 0.25 (midpoint of left half)
             // Right example (offset=0.0): 0.5 + (0.5 × 0.5) = 0.75 (midpoint of right half)
             let physicalPosition = physicalRange.lowerBound + (adjustedPosition * rangeWidth)
-            
-            #if DEBUG
-            if definition.name.contains("Θ") || definition.name.contains("Theta") {
-                print("[ThetaDebug] Scale: \(definition.name), Value: \(value), Base: \(baseNormalizedPosition), Offset: \(segment.formulaOffset), Adjusted: \(adjustedPosition), PhysicalRange: \(physicalRange), PhysicalResult: \(physicalPosition)")
-            }
-            #endif
-            
             return physicalPosition
         } else {
             // No split: return base position (full 0...1 range)
@@ -296,15 +289,32 @@ public struct ScaleCalculator: Sendable {
         for constant in definition.constants {
             let position = normalizedPosition(for: constant.value, on: definition)
             let angularPos = definition.isCircular ? position * 360.0 : nil
-            
-            let tick = TickMark(
-                value: constant.value,
-                normalizedPosition: position,
-                angularPosition: angularPos,
-                style: constant.style,
-                label: constant.label
-            )
-            allTicks.append(tick)
+                        let tick = TickMark(
+                            value: constant.value,
+                            normalizedPosition: position,
+                            angularPosition: angularPos,
+                            style: constant.style,
+                            label: constant.label
+                        )
+                        // Update source for constant markers
+                        let updatedTick = TickMark(
+                            value: tick.value,
+                            normalizedPosition: tick.normalizedPosition,
+                            angularPosition: tick.angularPosition,
+                            style: tick.style,
+                            labels: tick.labels.map { config in
+                                LabelConfig(
+                                    text: config.text,
+                                    position: config.position,
+                                    fontStyle: config.fontStyle,
+                                    color: config.color,
+                                    fontSizeMultiplier: config.fontSizeMultiplier,
+                                    offset: config.offset,
+                                    source: .constant
+                                )
+                            }
+                        )
+                        allTicks.append(updatedTick)
         }
         
         // BOUNDARY TICK INJECTION: For split segments, ensure domain boundaries have ticks
@@ -386,6 +396,19 @@ public struct ScaleCalculator: Sendable {
                 continue
             }
             
+            // Respect boundary tick suppression flags
+            let isAtBegin = abs(tickValue - definition.beginValue) < 1e-10
+            let isAtEnd = abs(tickValue - definition.endValue) < 1e-10
+            
+            if isAtBegin && definition.suppressBeginBoundaryTick {
+                tickInt += step
+                continue
+            }
+            if isAtEnd && definition.suppressEndBoundaryTick {
+                tickInt += step
+                continue
+            }
+            
             // 7. Determine hierarchy level using modulo
             guard let level = determineTickLevel(
                 position: tickInt,
@@ -429,49 +452,88 @@ public struct ScaleCalculator: Sendable {
         splitSegment: SplitSegment
     ) -> [TickMark] {
         var boundaryTicks: [TickMark] = []
-        
         // Determine style for boundary ticks (use the major tick style)
         let boundaryStyle = definition.defaultTickStyles.first ?? TickStyle.major
         
-        // Always add tick at domain start (beginValue)
-        let beginPosition = normalizedPosition(for: definition.beginValue, on: definition)
-        let beginAngularPos = definition.isCircular ? beginPosition * 360.0 : nil
+        // Add tick at domain start (beginValue) unless suppressed
+        if !definition.suppressBeginBoundaryTick {
+            let beginPosition = normalizedPosition(for: definition.beginValue, on: definition)
+            let beginAngularPos = definition.isCircular ? beginPosition * 360.0 : nil
+            
+            // Format label for boundary tick unless suppressed
+            let beginLabel = definition.suppressBeginBoundaryLabel ? nil : formatLabel(
+                value: definition.beginValue,
+                subsectionFormatter: definition.subsections.first?.labelFormatter,
+                scaleFormatter: definition.labelFormatter
+            )
+            
+            let beginTick = TickMark(
+                value: definition.beginValue,
+                normalizedPosition: beginPosition,
+                angularPosition: beginAngularPos,
+                style: boundaryStyle,
+                label: beginLabel
+            )
+            // Set source to .boundary
+            let beginTickWithSource = TickMark(
+                value: beginTick.value,
+                normalizedPosition: beginTick.normalizedPosition,
+                angularPosition: beginTick.angularPosition,
+                style: beginTick.style,
+                labels: beginTick.labels.map { config in
+                    LabelConfig(
+                        text: config.text,
+                        position: config.position,
+                        fontStyle: config.fontStyle,
+                        color: config.color,
+                        fontSizeMultiplier: config.fontSizeMultiplier,
+                        offset: config.offset,
+                        source: .boundary
+                    )
+                }
+            )
+            boundaryTicks.append(beginTickWithSource)
+        }
         
-        // Format label for boundary tick
-        let beginLabel = formatLabel(
-            value: definition.beginValue,
-            subsectionFormatter: definition.subsections.first?.labelFormatter,
-            scaleFormatter: definition.labelFormatter
-        )
-        
-        let beginTick = TickMark(
-            value: definition.beginValue,
-            normalizedPosition: beginPosition,
-            angularPosition: beginAngularPos,
-            style: boundaryStyle,
-            label: beginLabel
-        )
-        boundaryTicks.append(beginTick)
-        
-        // Always add tick at domain end (endValue)
-        let endPosition = normalizedPosition(for: definition.endValue, on: definition)
-        let endAngularPos = definition.isCircular ? endPosition * 360.0 : nil
-        
-        // Format label for boundary tick
-        let endLabel = formatLabel(
-            value: definition.endValue,
-            subsectionFormatter: definition.subsections.last?.labelFormatter,
-            scaleFormatter: definition.labelFormatter
-        )
-        
-        let endTick = TickMark(
-            value: definition.endValue,
-            normalizedPosition: endPosition,
-            angularPosition: endAngularPos,
-            style: boundaryStyle,
-            label: endLabel
-        )
-        boundaryTicks.append(endTick)
+        // Add tick at domain end (endValue) unless suppressed
+        if !definition.suppressEndBoundaryTick {
+            let endPosition = normalizedPosition(for: definition.endValue, on: definition)
+            let endAngularPos = definition.isCircular ? endPosition * 360.0 : nil
+            
+            // Format label for boundary tick unless suppressed
+            let endLabel = definition.suppressEndBoundaryLabel ? nil : formatLabel(
+                value: definition.endValue,
+                subsectionFormatter: definition.subsections.last?.labelFormatter,
+                scaleFormatter: definition.labelFormatter
+            )
+            
+            let endTick = TickMark(
+                value: definition.endValue,
+                normalizedPosition: endPosition,
+                angularPosition: endAngularPos,
+                style: boundaryStyle,
+                label: endLabel
+            )
+            // Set source to .boundary
+            let endTickWithSource = TickMark(
+                value: endTick.value,
+                normalizedPosition: endTick.normalizedPosition,
+                angularPosition: endTick.angularPosition,
+                style: endTick.style,
+                labels: endTick.labels.map { config in
+                    LabelConfig(
+                        text: config.text,
+                        position: config.position,
+                        fontStyle: config.fontStyle,
+                        color: config.color,
+                        fontSizeMultiplier: config.fontSizeMultiplier,
+                        offset: config.offset,
+                        source: .boundary
+                    )
+                }
+            )
+            boundaryTicks.append(endTickWithSource)
+        }
         
         return boundaryTicks
     }
@@ -553,7 +615,18 @@ public struct ScaleCalculator: Sendable {
         let style = definition.defaultTickStyles[styleIndex]
         
         // Determine if should have label
-        let shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
+        var shouldLabel = subsection.labelLevels.contains(level) || style.shouldLabel
+        
+        // Respect boundary suppression flags
+        let isAtBegin = abs(value - definition.beginValue) < 1e-10
+        let isAtEnd = abs(value - definition.endValue) < 1e-10
+        
+        if isAtBegin && definition.suppressBeginBoundaryLabel {
+            shouldLabel = false
+        }
+        if isAtEnd && definition.suppressEndBoundaryLabel {
+            shouldLabel = false
+        }
         
         // Support both single and dual label formatters
         if shouldLabel {

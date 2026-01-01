@@ -192,6 +192,15 @@ public enum ScaleLayout: Sendable, Equatable {
 
 // MARK: - Label Configuration
 
+/// Source system that generated a label (used for debugging)
+public enum LabelSource: Sendable, Equatable, Hashable {
+    case subsection    // Standard subsection tick generation
+    case boundary      // Boundary tick injection (begin/end of scale)
+    case constant      // ScaleConstant marker
+    case scaleName     // Scale name display
+    case unknown
+}
+
 /// Position of a label relative to its tick mark
 /// Corresponds to PostScript /Nright, /Nleft, /Ntop, /Nbottom positioning functions
 public enum LabelPosition: Sendable, Equatable, Hashable {
@@ -293,7 +302,6 @@ public enum ScaleColorPresets {
     /// No color applied to any element
     public static let none: ScaleColorApplication = (scaleName: false, scaleLabels: false, scaleTicks: false)
 }
-
 /// Configuration for a single label on a tick mark
 /// Supports PostScript's dual labeling system (plabelR, plabelL)
 public struct LabelConfig: Sendable, Equatable, Hashable {
@@ -315,13 +323,17 @@ public struct LabelConfig: Sendable, Equatable, Hashable {
     /// Fine-tuning offset from calculated position (in points)
     public let offset: Offset
     
+    /// Source system that generated this label
+    public let source: LabelSource
+    
     public init(
         text: String,
         position: LabelPosition = .centered,
         fontStyle: LabelFontStyle = .medium,
         color: LabelColor = .black,
         fontSizeMultiplier: Double = 1.0,
-        offset: Offset = .zero
+        offset: Offset = .zero,
+        source: LabelSource = .subsection
     ) {
         self.text = text
         self.position = position
@@ -329,6 +341,7 @@ public struct LabelConfig: Sendable, Equatable, Hashable {
         self.color = color
         self.fontSizeMultiplier = fontSizeMultiplier
         self.offset = offset
+        self.source = source
     }
 }
 
@@ -475,7 +488,7 @@ public struct TickMark: Sendable {
         self.style = style
         self.label = label
         // Convert simple label to LabelConfig for consistency
-        self.labels = label.map { [LabelConfig(text: $0)] } ?? []
+        self.labels = label.map { [LabelConfig(text: $0, source: .subsection)] } ?? []
     }
     
     /// Initialize with multiple configured labels (dual labeling support)

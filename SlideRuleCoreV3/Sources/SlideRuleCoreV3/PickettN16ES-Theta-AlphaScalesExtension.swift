@@ -113,6 +113,9 @@ extension StandardScales {
             // This domain is REQUIRED for proper logarithmic positioning of all tick marks
             // ═══════════════════════════════════════════════════════════════════════════
             .withRange(begin: 6.0, end: 0.57)
+            .withSuppressBeginBoundaryTick() // No tick at 6.0° (position 0.0)
+            .withSuppressBeginBoundaryLabel() // No label at 6.0°
+            .withSuppressEndBoundaryLabel() // No label at 0.57° (center boundary)
             .withLength(length)
             .withTickDirection(.up)
             .withSplitSegment(.left(formulaOffset: 0.0))  // LEFT half of split scale
@@ -142,7 +145,7 @@ extension StandardScales {
                 //       6.0° has NO tick mark - it's just the mathematical domain boundary
                 // Use 0.7 as level 0 so only 5.7 gets labeled (next 0.7 tick would be 5.0)
                 // ─────────────────────────────────────────────────────────────────────────
-                ScaleSubsection(startValue: 5.7, tickIntervals: [0.7, 0.1], labelLevels: [0],
+                ScaleSubsection(startValue: 5.7, tickIntervals: [5.7, 0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement),
                 
                 // 5° → 4°: 19 intermediate ticks
@@ -183,9 +186,9 @@ extension StandardScales {
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement),
                 
                 // 0.6° → boundary (0.57°): NO intermediate ticks
-                // Label: ".6" ONLY at 0.6° (NO complement), boundary tick UNLABELED
-                ScaleSubsection(startValue: 0.6, tickIntervals: [0.6], labelLevels: [0],
-                               dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement)
+                // Label: NONE (0.6° is too close to center boundary)
+                ScaleSubsection(startValue: 0.6, tickIntervals: [0.6], labelLevels: [],
+                                 dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement)
             ])
             .withBaseline(true)  // Shared baseline with ALPHA scale below
             .build()
@@ -239,6 +242,9 @@ extension StandardScales {
             // This domain is REQUIRED for proper logarithmic positioning of all tick marks
             // ═══════════════════════════════════════════════════════════════════════════
             .withRange(begin: 89.43, end: 84.29)  // Large angles 89.43° (center) → 84.29° (right edge)
+            .withSuppressBeginBoundaryLabel()     // No label at center (89.43°)
+            .withSuppressEndBoundaryTick()        // No tick at 84.29° (handled by constant 84.3°)
+            .withSuppressEndBoundaryLabel()       // No label at 84.29°
             .withLength(length)
             .withTickDirection(.up)
             .rightSegment() // physical 0.5...1.0, formulaOffset: 0.0
@@ -289,7 +295,8 @@ extension StandardScales {
                 // 85° → 84.3°: MIRROR of Θ₁ #1 (5.7° → 5°)
                 // EXACTLY 6 intermediate ticks at 0.1° intervals: 84.9, 84.8, 84.7, 84.6, 84.5, 84.4
                 // The "84.3°" label at the right edge is rendered via ScaleConstant below
-                ScaleSubsection(startValue: 85.0, tickIntervals: [0.7, 0.1], labelLevels: [0],
+                // Use 1.0 as major interval to label 85.0 and avoid mislabeling 84.7 (which is a multiple of 0.7)
+                ScaleSubsection(startValue: 85.0, tickIntervals: [1.0, 0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleDual)
             ])
             // ═══════════════════════════════════════════════════════════════════════════
@@ -417,41 +424,43 @@ extension StandardLabelFormatter {
     /// - Right label (RED with ">"): Complementary angle (90° - primary)
     ///
     /// Used for: 5°, 4°, 3°, 2°, 1° (whole degree marks that show complements)
-        public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
-            let primary = value
-            let complementary = 90.0 - value
-            
-            var configs: [LabelConfig] = []
-            
-            // BLACK label (primary)
-            // PHYSICAL RULE: Angles > 89° on Theta Large don't show black primary labels
-            // because they would be redundant and crowd the starting edge.
-            if primary <= 89.001 {
-                let primaryText = formatThetaLabel(primary)
-                configs.append(LabelConfig(
-                    text: primaryText,
-                    position: .left,
-                    fontStyle: .regular,
-                    color: .black,
-                    fontSizeMultiplier: 1.0,
-                    offset: Offset(horizontal: -1, vertical: 0)
-                ))
-            }
-            
-            // RED label (complement)
-            // Always show for whole degrees, and for sub-degree complements (e.g., .6°>, .8°>)
-            let complementaryText = formatThetaComplement(complementary) + ">"
+    public static func thetaScaleDual(value: ScaleValue) -> [LabelConfig] {
+        let primary = value
+        let complementary = 90.0 - value
+        
+        var configs: [LabelConfig] = []
+        
+        // BLACK label (primary)
+        // PHYSICAL RULE: Angles > 89° on Theta Large don't show black primary labels
+        // because they would be redundant and crowd the starting edge.
+        if primary <= 89.001 {
+            let primaryText = formatThetaLabel(primary)
             configs.append(LabelConfig(
-                text: complementaryText,
-                position: .right,
+                text: primaryText,
+                position: .left,
                 fontStyle: .regular,
-                color: .red,
+                color: .black,
                 fontSizeMultiplier: 1.0,
-                offset: Offset(horizontal: 1, vertical: 0)
+                offset: Offset(horizontal: -1, vertical: 0),
+                source: .subsection
             ))
-            
-            return configs
         }
+        
+        // RED label (complement)
+        // Always show for whole degrees, and for sub-degree complements (e.g., .6°>, .8°>)
+        let complementaryText = formatThetaComplement(complementary) + ">"
+        configs.append(LabelConfig(
+            text: complementaryText,
+            position: .right,
+            fontStyle: .regular,
+            color: .red,
+            fontSizeMultiplier: 1.0,
+            offset: Offset(horizontal: 1, vertical: 0),
+            source: .subsection
+        ))
+        
+        return configs
+    }
     
     /// THETA scale labeling WITHOUT complement (black label only)
     ///
@@ -468,7 +477,8 @@ extension StandardLabelFormatter {
                 fontStyle: .regular,
                 color: .black,
                 fontSizeMultiplier: 1.0,
-                offset: Offset(horizontal: -1, vertical: 0)
+                offset: Offset(horizontal: -1, vertical: 0),
+                source: .subsection
             )
         ]
     }
@@ -508,7 +518,8 @@ extension StandardLabelFormatter {
                 fontStyle: .regular,
                 color: .black,
                 fontSizeMultiplier: 1.0,
-                offset: Offset(horizontal: -1, vertical: 0)
+                offset: Offset(horizontal: -1, vertical: 0),
+                source: .subsection
             ),
             // Right label: complementary angle in RED with ">"
             LabelConfig(
@@ -517,7 +528,8 @@ extension StandardLabelFormatter {
                 fontStyle: .regular,
                 color: .red,
                 fontSizeMultiplier: 1.0,
-                offset: Offset(horizontal: 1, vertical: 0)
+                offset: Offset(horizontal: 1, vertical: 0),
+                source: .subsection
             )
         ]
     }
@@ -543,17 +555,18 @@ extension StandardLabelFormatter {
             return String(format: "%.1f°", angle)
         }
     }
-        /// Format THETA complement labels (for red labels on right side)
-        private static func formatThetaComplement(_ angle: Double) -> String {
-            if angle < 1.0 {
-                // Sub-degree complement: ".6°", ".8°"
-                let tenths = Int((angle * 10).rounded())
-                return ".\(tenths)°"
-            } else {
-                // Whole degree complement: "1°", "85°", etc.
-                return String(format: "%.0f°", angle.rounded())
-            }
+    
+    /// Format THETA complement labels (for red labels on right side)
+    private static func formatThetaComplement(_ angle: Double) -> String {
+        if angle < 1.0 {
+            // Sub-degree complement: ".6°", ".8°"
+            let tenths = Int((angle * 10).rounded())
+            return ".\(tenths)°"
+        } else {
+            // Whole degree complement: "1°", "85°", etc.
+            return String(format: "%.0f°", angle.rounded())
         }
+    }
     
     /// Format ALPHA scale labels (standard integer degrees)
     private static func formatAlphaLabel(_ angle: Double) -> String {

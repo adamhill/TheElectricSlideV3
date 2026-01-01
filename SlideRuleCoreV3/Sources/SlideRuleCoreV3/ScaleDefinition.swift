@@ -361,6 +361,18 @@ public struct ScaleDefinition: Sendable {
     /// - > 1.0 = looser/expanded spacing
     public let formulaTracking: Double
     
+    /// Whether to suppress the label at the beginning of the scale range
+    public let suppressBeginBoundaryLabel: Bool
+    
+    /// Whether to suppress the tick mark at the beginning of the scale range
+    public let suppressBeginBoundaryTick: Bool
+    
+    /// Whether to suppress the label at the end of the scale range
+    public let suppressEndBoundaryLabel: Bool
+    
+    /// Whether to suppress the tick mark at the end of the scale range
+    public let suppressEndBoundaryTick: Bool
+    
     /// Optional split segment configuration
     ///
     /// When `nil`, the scale occupies the full physical width (0.0...1.0).
@@ -390,7 +402,11 @@ public struct ScaleDefinition: Sendable {
         hasBottomSeparator: Bool = false,
         formulaTracking: Double = 1.0,
         displayName: String? = nil,
-        splitSegment: SplitSegment? = nil
+        splitSegment: SplitSegment? = nil,
+        suppressBeginBoundaryLabel: Bool = false,
+        suppressBeginBoundaryTick: Bool = false,
+        suppressEndBoundaryLabel: Bool = false,
+        suppressEndBoundaryTick: Bool = false
     ) {
         self.name = name
         self.displayName = displayName
@@ -412,6 +428,10 @@ public struct ScaleDefinition: Sendable {
         self.hasBottomSeparator = hasBottomSeparator
         self.formulaTracking = formulaTracking
         self.splitSegment = splitSegment
+        self.suppressBeginBoundaryLabel = suppressBeginBoundaryLabel
+        self.suppressBeginBoundaryTick = suppressBeginBoundaryTick
+        self.suppressEndBoundaryLabel = suppressEndBoundaryLabel
+        self.suppressEndBoundaryTick = suppressEndBoundaryTick
     }
     
     /// Whether this is a circular scale
@@ -450,6 +470,7 @@ public struct ScaleBuilder {
     private var beginValue: ScaleValue = 1.0
     private var endValue: ScaleValue = 10.0
     private var scaleLengthInPoints: Distance = 250.0
+    private var height: Distance = 36.0
     private var layout: ScaleLayout = .linear
     private var tickDirection: TickDirection = .up
     private var subsections: [ScaleSubsection] = []
@@ -459,8 +480,13 @@ public struct ScaleBuilder {
     private var colorApplication: ScaleColorApplication = ScaleColorPresets.all
     private var constants: [ScaleConstant] = []
     private var showBaseline: Bool = false
+    private var hasBottomSeparator: Bool = false
     private var formulaTracking: Double = 1.0
     private var splitSegment: SplitSegment?
+    private var suppressBeginBoundaryLabel: Bool = false
+    private var suppressBeginBoundaryTick: Bool = false
+    private var suppressEndBoundaryLabel: Bool = false
+    private var suppressEndBoundaryTick: Bool = false
     
     public init() {}
     
@@ -475,6 +501,7 @@ public struct ScaleBuilder {
         self.beginValue = definition.beginValue
         self.endValue = definition.endValue
         self.scaleLengthInPoints = definition.scaleLengthInPoints
+        self.height = definition.height
         self.layout = definition.layout
         self.tickDirection = definition.tickDirection
         self.subsections = definition.subsections
@@ -484,8 +511,13 @@ public struct ScaleBuilder {
         self.colorApplication = definition.colorApplication
         self.constants = definition.constants
         self.showBaseline = definition.showBaseline
+        self.hasBottomSeparator = definition.hasBottomSeparator
         self.formulaTracking = definition.formulaTracking
         self.splitSegment = definition.splitSegment
+        self.suppressBeginBoundaryLabel = definition.suppressBeginBoundaryLabel
+        self.suppressBeginBoundaryTick = definition.suppressBeginBoundaryTick
+        self.suppressEndBoundaryLabel = definition.suppressEndBoundaryLabel
+        self.suppressEndBoundaryTick = definition.suppressEndBoundaryTick
     }
     
     public func withName(_ name: String) -> ScaleBuilder {
@@ -605,7 +637,6 @@ public struct ScaleBuilder {
         copy.splitSegment = segment
         return copy
     }
-    
     /// Convenience: Configure as left segment of a 50/50 split scale.
     /// - Returns: Builder configured with `.left(formulaOffset: 0.0)`
     /// - Note: Left segment renders in physical range 0.0...0.5
@@ -622,6 +653,30 @@ public struct ScaleBuilder {
         print("[SplitScaleDebug] ScaleBuilder.rightSegment() called - setting formulaOffset to 0.0")
         #endif
         return withSplitSegment(.right(formulaOffset: 0.0))
+    }
+
+    public func withSuppressBeginBoundaryLabel(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressBeginBoundaryLabel = suppress
+        return copy
+    }
+
+    public func withSuppressBeginBoundaryTick(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressBeginBoundaryTick = suppress
+        return copy
+    }
+
+    public func withSuppressEndBoundaryLabel(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressEndBoundaryLabel = suppress
+        return copy
+    }
+
+    public func withSuppressEndBoundaryTick(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressEndBoundaryTick = suppress
+        return copy
     }
     
     public func build() -> ScaleDefinition {
@@ -647,7 +702,11 @@ public struct ScaleBuilder {
             showBaseline: showBaseline,
             formulaTracking: formulaTracking,
             displayName: displayName,
-            splitSegment: splitSegment
+            splitSegment: splitSegment,
+            suppressBeginBoundaryLabel: suppressBeginBoundaryLabel,
+            suppressBeginBoundaryTick: suppressBeginBoundaryTick,
+            suppressEndBoundaryLabel: suppressEndBoundaryLabel,
+            suppressEndBoundaryTick: suppressEndBoundaryTick
         )
     }
 }
@@ -799,7 +858,8 @@ public enum StandardLabelFormatter {
                 fontStyle: .italic,
                 color: .black,
                 fontSizeMultiplier: 1.25,
-                offset: Offset(horizontal: 2, vertical: -2)
+                offset: Offset(horizontal: 2, vertical: -2),
+                source: .subsection
             ),
             // Left label: cosine (complementary) in italic red (PostScript: NumFontLi)
             LabelConfig(
@@ -808,7 +868,8 @@ public enum StandardLabelFormatter {
                 fontStyle: .italic,
                 color: .red,
                 fontSizeMultiplier: 1.25,
-                offset: Offset(horizontal: -2, vertical: -2)
+                offset: Offset(horizontal: -2, vertical: -2),
+                source: .subsection
             )
         ]
     }
@@ -827,7 +888,8 @@ public enum StandardLabelFormatter {
                 position: position,
                 fontStyle: fontStyle,
                 color: color,
-                offset: offset
+                offset: offset,
+                source: .subsection
             )]
         }
     }

@@ -363,4 +363,3 @@ struct ScaleLabelRenderer {
         }
     }
 }
-

@@ -270,4 +270,3 @@ struct ScaleView: View, Equatable {
         context.fill(Path(rect), with: shading)
     }
 }
-

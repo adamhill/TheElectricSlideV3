@@ -1,7 +1,7 @@
 # Split Scales Implementation Summary
 
-**Status**: Phases 1-5 Complete
-**Date**: December 31, 2025
+**Status**: Phases 1-6 Complete (THETA LARGE Debugging Resolved)
+**Date**: January 2, 2026
 **Project**: SlideRuleCoreV3 - TheElectricSlide
 
 ## Overview
@@ -43,6 +43,7 @@ public enum SplitSegment: Sendable, Equatable, Hashable {
 - Single source of truth for split configuration
 - Natural extension point for asymmetric splits
 - Type-safe associated values prevent invalid configurations
+- [`SlideRuleModels.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift)
 
 ### 2. Parser `^` Recognition
 
@@ -61,6 +62,7 @@ if scaleLine.contains("^") {
 - Higher precedence than `|` separator follows intuitive expectations
 - No conflicts with existing parser logic
 - Simple string splitting without complex regex
+- [`SlideRuleAssembly.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleAssembly.swift)
 
 ### 3. Boundary Tick Injection
 
@@ -95,6 +97,7 @@ private func generateBoundaryTicks(for scale: ScaleDefinition, in subsection: Sc
 - Split scales need visual confirmation at the split point (√10 for 50/50 split)
 - Automatic injection ensures no gaps in tick coverage
 - Works for any split point, not just 0.5
+- [`ScaleCalculator.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleCalculator.swift)
 
 ### 4. Visual Debug Panel
 
@@ -339,9 +342,9 @@ Actual: 4.0000 at position 0.6021
 Right C segment domain: √10...10 (≈ 3.162...10)
 Value: 4.0
 Normalized: (log₁₀(4.0) - log₁₀(√10)) / (log₁₀(10) - log₁₀(√10))
-         = (0.6021 - 0.5) / (1.0 - 0.5)  
-         = 0.1021 / 0.5
-         = 0.2042
+          = (0.6021 - 0.5) / (1.0 - 0.5)  
+          = 0.1021 / 0.5
+          = 0.2042
 
 Physical: 0.5 + (0.2042 * 0.5) = 0.6021 ✓
 ```
@@ -634,6 +637,127 @@ The THETA scales now correctly:
 
 ---
 
+## Phase 6: THETA LARGE Scale Debugging ✅
+
+**Date**: January 1, 2026
+
+**Summary**: This was the third attempt to fix the THETA LARGE (Θ₂) split scale. The problem was that boundary labels kept appearing despite suppression flags being set.
+
+**Three Critical Issues Identified:**
+
+1. **Wrong Domain on Θ₂** - Was set to small angles (0.0 → 6.0) instead of large angles (89.43 → 84.29). The domain MUST match the scale's mathematical purpose.
+
+2. **Suppression Flags Being Stripped** - In [`SlideRuleAssembly.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleAssembly.swift), these methods were creating new ScaleDefinition copies WITHOUT preserving boundary suppression flags:
+   - `updateScaleWithSplitSegment()`
+   - `updateScaleWithSeparator()`
+   - `convertScaleToCircular()`
+   - `parseComponents()`
+
+3. **generateBoundaryTicks Ignoring Flags** - The [`ScaleCalculator.generateBoundaryTicks()`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleCalculator.swift) function was completely ignoring suppression flags.
+
+**Visual Debugging Technique**: Color-coded labels by source (MAGENTA=boundary, ORANGE=subsection, CYAN=constant, GREEN=scaleName) which definitively proved the unwanted labels came from boundary injection.
+
+---
+
+## New Infrastructure Added (Phase 6)
+
+### Boundary Suppression Flags in [`ScaleDefinition.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleDefinition.swift):
+- `suppressBeginBoundaryLabel: Bool`
+- `suppressBeginBoundaryTick: Bool`
+- `suppressEndBoundaryLabel: Bool`
+- `suppressEndBoundaryTick: Bool`
+
+### ScaleBuilder methods:
+- `.withSuppressBeginBoundaryLabel()`
+- `.withSuppressBeginBoundaryTick()`
+- `.withSuppressEndBoundaryLabel()`
+- `.withSuppressEndBoundaryTick()`
+
+### LabelSource enum in [`SlideRuleModels.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift) for debugging:
+- `.subsection` / `.boundary` / `.constant` / `.scaleName`
+
+---
+
+## THETA Scale Position Verification Table
+
+```
+LEFT HALF (small angles, 6° → 0.57°):
+| Angle  | tan(θ)   | log₁₀(tan) | Position | Complement |
+|--------|----------|------------|----------|------------|
+| 6.00°  | 0.1051   | -0.978     | 0.000    | 84.00°     | ← Ghost start (NO TICK)
+| 5.70°  | 0.0998   | -1.001     | 0.011    | 84.30°     | ← First labeled
+| 0.57°  | 0.0100   | -2.000     | 0.500    | 89.43°     | ← Center (unlabeled)
+
+RIGHT HALF (large angles, 89.43° → 84°):
+| Angle  | tan(θ)   | log₁₀(tan) | Position | Complement |
+|--------|----------|------------|----------|------------|
+| 89.43° | 100.00   | +2.000     | 0.500    | 0.57°      | ← Center (unlabeled)
+| 89.00° | 57.29    | +1.758     | 0.618    | 1.00°      |
+| 84.00° | 9.51     | +0.978     | 1.000    | 6.00°      | ← Right edge
+```
+
+---
+
+## Implementation Checklist for Split Scales
+
+1. **Domain Analysis**
+   - What is the mathematical domain for each segment?
+   - Does the domain match the scale's PURPOSE (don't confuse small/large)?
+
+2. **Boundary Suppression**
+   - Is there a "ghost start" that needs `suppressBeginBoundaryTick/Label`?
+   - Is the center boundary unlabeled? Use `suppressEndBoundaryLabel` on left AND `suppressBeginBoundaryLabel` on right
+
+3. **Alignment with Existing Scales**
+   - What scale does this align with below?
+   - Do the split points align logarithmically?
+
+4. **Label Formatting**
+   - How should labels be formatted?
+   - Are there dual-color labels (black primary + red complement)?
+
+5. **Subsection Design**
+   - What tick intervals match the physical rule?
+   - Verify major tick intervals don't hit boundary values unexpectedly
+
+6. **Visual Verification**
+   - Test with color-coded labels to identify label sources
+   - Compare against physical rule photos
+
+---
+
+## Anti-Patterns: How NOT to Implement Split Scales
+
+```swift
+// ❌ DON'T: Set wrong domain direction
+.withRange(begin: 84.0, end: 90.0)  // WRONG
+
+// ✅ RIGHT: Domain matches visual direction
+.withRange(begin: 89.43, end: 84.29)
+```
+
+```swift
+// ❌ WRONG - both segments have same domain (small angles)
+let theta1 = /* domain: 6.0 → 0.57 */ 
+let theta2 = /* domain: 0.0 → 6.0 */  // WRONG! Same type!
+
+// ✅ RIGHT - each segment has its correct domain type
+let theta1 = /* domain: 6.0 → 0.57 */   // small angles
+let theta2 = /* domain: 89.43 → 84.29 */ // large angles
+```
+
+```swift
+// ❌ WRONG - will show "6.00" label at ghost start
+.withRange(begin: 6.0, end: 0.57)
+
+// ✅ RIGHT - suppress the ghost start
+.withRange(begin: 6.0, end: 0.57)
+.withSuppressBeginBoundaryTick()
+.withSuppressBeginBoundaryLabel()
+```
+
+---
+
 ## Reusable Preview Components
 
 ### SplitScaleTestComponent
@@ -649,7 +773,6 @@ A reusable SwiftUI component for testing split scale rendering with enhanced vis
 - Pass/Fail indicators with tolerance-based validation
 - Colored background highlighting (green=left half, orange=right half)
 - Dual-unit measurement ruler (percentage + SwiftUI points)
-
 **Usage**:
 ```swift
 SplitScaleTestComponent(
@@ -667,7 +790,6 @@ SplitScaleTestComponent(
     rightMarginWidth: rightMarginWidth
 )
 ```
-
 ### ScalePairTestComponent
 
 A companion component for testing non-split scale pairs (vertically stacked scales):
@@ -692,7 +814,6 @@ ScalePairTestComponent(
     rightMarginWidth: rightMarginWidth
 )
 ```
-
 ---
 
 ## Updated Files List
@@ -710,7 +831,6 @@ ScalePairTestComponent(
 
 8. **[`ScalePairTestComponent.swift`](TheElectricSlide/Previews/Components/ScalePairTestComponent.swift)** (New File)
    - Reusable debug component for paired scale testing
-   - Boundary markers at 0% and 100%
 
 9. **[`LogLogScalesPreview.swift`](TheElectricSlide/Previews/LogLogScalesPreview.swift)** (New File)
    - Uses `ScalePairTestComponent` for LL00+C and LL0+C pairs
@@ -718,6 +838,19 @@ ScalePairTestComponent(
 10. **[`PickettN16ESPreview.swift`](TheElectricSlide/Previews/PickettN16ESPreview.swift)** (New File)
     - Uses `SplitScaleTestComponent` for THETA scales
     - Uses `ScalePairTestComponent` for ALPHA scale
+
+### Phase 6 Additions
+
+11. **[`ScaleDefinition.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleDefinition.swift)**
+    - Added suppression properties and ScaleBuilder methods
+12. **[`ScaleCalculator.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleCalculator.swift)**
+    - Fixed `generateBoundaryTicks` to respect suppression flags
+13. **[`SlideRuleAssembly.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleAssembly.swift)**
+    - Preserved flags in all scale transformation methods
+14. **[`SlideRuleModels.swift`](SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift)**
+    - Added `LabelSource` enum
+15. **[`ScaleLabelRenderer.swift`](TheElectricSlide/Components/ScaleLabelRenderer.swift)**
+    - Updated for label source tracking
 
 ---
 
@@ -733,12 +866,20 @@ The split scales implementation successfully achieved all core goals:
 ✅ **Phase 5 Complete** - THETA scales (Θ₁ ^ Θ₂) now render correctly as split scales
 ✅ **Reusable Components** - SplitScaleTestComponent and ScalePairTestComponent for future debugging
 
+✅ **Phase 6 Complete** - THETA LARGE scale domain and boundary suppression fixed
+✅ **Boundary Suppression** - New flag system prevents unwanted boundary labels
+
 **Key Success Factor:** Methodical debugging with visual feedback revealed the actual issue (missing `.withSplitSegment()` on Θ₂) vs. the assumed issue (formula problems).
 
 **Key Lesson from Phase 5:** Always verify that BOTH segments of a split scale have their `.withSplitSegment()` configuration applied - it's easy to add `.left()` but forget `.right()`.
 
+
+**Key Success Factor:** Methodical debugging with visual feedback revealed the actual issues (flag stripping and function ignoring flags) vs. the assumed issues.
+
+**Key Lesson from Phase 6:** When creating copies of objects during transformations (like in `SlideRuleAssembly`), ensure ALL properties are preserved, especially UI-specific flags like boundary suppression.
+
 ---
 
-**Document Version**: 2.0
-**Date**: December 31, 2025
+**Document Version**: 3.0
+**Date**: January 2, 2026
 **Author**: TheElectricSlide Development Team

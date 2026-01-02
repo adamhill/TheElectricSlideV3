@@ -7,6 +7,49 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// MARK: - GeneratedScale Label Extension (DRY helper for preview labels)
+
+extension GeneratedScale {
+    /// Generates a formatted label string from scale properties
+    /// Format: "Name – Formula: begin → end" or "Name: begin → end" if formula is empty
+    /// - Parameter precision: Number of decimal places for range values (auto-detected if nil)
+    func previewLabel(precision: Int? = nil) -> String {
+        let name = definition.name.isEmpty ? "Scale" : definition.name
+        let formula = definition.formula
+        let begin = definition.beginValue
+        let end = definition.endValue
+        
+        // Auto-detect precision based on value magnitude
+        let effectivePrecision = precision ?? autoPrecision(for: begin, end: end)
+        let beginStr = String(format: "%.\(effectivePrecision)f", begin)
+        let endStr = String(format: "%.\(effectivePrecision)f", end)
+        
+        if formula.isEmpty {
+            return "\(name): \(beginStr) → \(endStr)"
+        } else {
+            return "\(name) – \(formula): \(beginStr) → \(endStr)"
+        }
+    }
+    
+    /// Auto-detect appropriate decimal precision based on value magnitude
+    private func autoPrecision(for begin: Double, end: Double) -> Int {
+        let minAbsValue = min(abs(begin), abs(end))
+        if minAbsValue < 0.0001 {
+            return 6
+        } else if minAbsValue < 0.01 {
+            return 5
+        } else if minAbsValue < 0.1 {
+            return 4
+        } else if minAbsValue < 1.0 {
+            return 3
+        } else if minAbsValue < 10.0 {
+            return 2
+        } else {
+            return 1
+        }
+    }
+}
+
 /// A reusable component for visualizing and validating split scale rendering
 /// with enhanced debug information, boundary markers, and measurement tools.
 struct SplitScaleTestComponent: View {
@@ -33,6 +76,10 @@ struct SplitScaleTestComponent: View {
     let rightMarginWidth: CGFloat
     
     // MARK: - Computed Properties
+    
+    /// Scale labels computed from scale properties (DRY)
+    private var leftScaleLabel: String { leftScale.previewLabel() }
+    private var rightScaleLabel: String { rightScale.previewLabel() }
     
     /// Calculate pass/fail status based on tolerance
     private var isValidationPassed: Bool {
@@ -76,17 +123,20 @@ struct SplitScaleTestComponent: View {
             
             // 6-8. Scale visualization with boundary tick marks
             VStack(spacing: 0) {
-                // 6. TOP boundary tick mark
+                // 6. Scale name labels (centered above each segment)
+                scaleNameLabels
+                
+                // 7. TOP boundary tick mark
                 topBoundaryTick
                 
-                // 7. Scale visualization
+                // 8. Scale visualization
                 scaleVisualization
                 
-                // 8. BOTTOM boundary tick mark
+                // 9. BOTTOM boundary tick mark
                 bottomBoundaryTick
             }
             
-            // 9. Dual-unit measurement ruler
+            // 10. Dual-unit measurement ruler
             dualUnitRuler
         }
     }
@@ -113,11 +163,11 @@ LEFT segment (\(leftScale.definition.name)):
             
             Text(leftDebugText)
                 .font(.system(size: 10, weight: .medium).monospaced())
-                .foregroundColor(.green)
+                .foregroundColor(Color(red: 0.0, green: 0.5, blue: 0.2))  // Darker vivid green for readability
                 .textSelection(.enabled)
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.5))
+                .background(Color(red: 0.0, green: 0.7, blue: 0.3).opacity(0.2))  // Tinted green background
                 .cornerRadius(4)
             
             // RIGHT segment debug info
@@ -133,11 +183,11 @@ RIGHT segment (\(rightScale.definition.name)):
             
             Text(rightDebugText)
                 .font(.system(size: 10, weight: .medium).monospaced())
-                .foregroundColor(.orange)
+                .foregroundColor(Color(red: 0.8, green: 0.35, blue: 0.0))  // Darker vivid orange for readability
                 .textSelection(.enabled)
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white.opacity(0.5))
+                .background(Color(red: 1.0, green: 0.5, blue: 0.0).opacity(0.2))  // Tinted orange background
                 .cornerRadius(4)
             
             // Validation summary
@@ -161,13 +211,13 @@ RIGHT segment (\(rightScale.definition.name)):
     private var segmentLabels: some View {
         HStack(spacing: 0) {
             Text("← Left half (0-50%) →")
-                .font(.system(size: 10))
-                .foregroundColor(.green)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color(red: 0.0, green: 0.5, blue: 0.2))  // Darker vivid green
                 .frame(width: scaleLength / 2)
             
             Text("← Right half (50-100%) →")
-                .font(.system(size: 10))
-                .foregroundColor(.orange)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color(red: 0.9, green: 0.4, blue: 0.0))  // Darker vivid orange
                 .frame(width: scaleLength / 2)
         }
         .padding(.leading, leftMarginWidth)
@@ -186,14 +236,30 @@ RIGHT segment (\(rightScale.definition.name)):
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    /// Scale name labels centered above each segment (e.g., "C - x")
+    private var scaleNameLabels: some View {
+        HStack(spacing: 0) {
+            Text(leftScaleLabel)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.black)
+                .frame(width: scaleLength / 2)
+            
+            Text(rightScaleLabel)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.black)
+                .frame(width: scaleLength / 2)
+        }
+        .padding(.leading, leftMarginWidth)
+    }
+    
     /// Main scale visualization with colored backgrounds
     private var scaleVisualization: some View {
         ZStack(alignment: .leading) {
-            // Background colors with improved visibility
+            // Background colors with HIGH contrast visibility
             HStack(spacing: 0) {
-                Color.green.opacity(0.25)
+                Color(red: 0.0, green: 0.7, blue: 0.3).opacity(0.45)  // Vivid green
                     .frame(width: scaleLength / 2, height: scaleHeight)
-                Color.orange.opacity(0.25)
+                Color(red: 1.0, green: 0.5, blue: 0.0).opacity(0.45)  // Vivid orange
                     .frame(width: scaleLength / 2, height: scaleHeight)
             }
             .padding(.leading, leftMarginWidth)
@@ -278,64 +344,69 @@ RIGHT segment (\(rightScale.definition.name)):
 // MARK: - Preview
 
 #Preview("Simple C Scale 50/50 Split") {
-    let scaleLength: CGFloat = 800
-    let scaleHeight: CGFloat = 40
-    let leftMarginWidth: CGFloat = 60
-    let rightMarginWidth: CGFloat = 80
-    
-    // Left half: C scale from 1 to √10
-    let cScaleLeft: GeneratedScale = {
-        let cBuilder = ScaleBuilder()
-            .withName("C√10")
-            .withFormula("x (left)")
-            .withFunction(LogarithmicFunction())
-            .withRange(begin: 1.0, end: 3.162)
-            .withLength(scaleLength)
-            .withTickDirection(.up)
-            .withSplitSegment(.left(formulaOffset: 0.0))
+    GeometryReader { geometry in
+        let scaleLength: CGFloat = geometry.size.width  // Full width, edge-to-edge
+        let scaleHeight: CGFloat = 40
+        let leftMarginWidth: CGFloat = 0  // No left margin
+        let rightMarginWidth: CGFloat = 0  // No right margin
         
-        let standardC = StandardScales.cScale(length: scaleLength)
-        let cDef = cBuilder
-            .withSubsections(standardC.subsections)
-            .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
-            .build()
+        // Left half: C scale from 1 to √10
+        let cScaleLeft: GeneratedScale = {
+            let cBuilder = ScaleBuilder()
+                .withName("C₁")  // Name for previewLabel()
+                .withFormula("x")  // Formula for previewLabel()
+                .withFunction(LogarithmicFunction())
+                .withRange(begin: 1.0, end: 3.162)
+                .withLength(scaleLength)
+                .withTickDirection(.up)
+                .withSplitSegment(.left(formulaOffset: 0.0))
+                .suppressScaleName()  // Don't render name on scale (shown in preview label)
+                .suppressFormula()    // Don't render formula on scale (shown in preview label)
+            
+            let standardC = StandardScales.cScale(length: scaleLength)
+            let cDef = cBuilder
+                .withSubsections(standardC.subsections)
+                .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
+                .build()
+            
+            return GeneratedScale(definition: cDef)
+        }()
         
-        return GeneratedScale(definition: cDef)
-    }()
-    
-    // Right half: C scale from √10 to 10
-    let cScaleRight: GeneratedScale = {
-        let cBuilder = ScaleBuilder()
-            .withName("C√10-10")
-            .withFormula("x (right)")
-            .withFunction(LogarithmicFunction())
-            .withRange(begin: 3.162, end: 10.0)
-            .withLength(scaleLength)
-            .withTickDirection(.up)
-            .withSplitSegment(.right(formulaOffset: 0.0))
+        // Right half: C scale from √10 to 10
+        let cScaleRight: GeneratedScale = {
+            let cBuilder = ScaleBuilder()
+                .withName("C₂")  // Name for previewLabel()
+                .withFormula("x")  // Formula for previewLabel()
+                .withFunction(LogarithmicFunction())
+                .withRange(begin: 3.162, end: 10.0)
+                .withLength(scaleLength)
+                .withTickDirection(.up)
+                .withSplitSegment(.right(formulaOffset: 0.0))
+                .suppressScaleName()  // Don't render name on scale (shown in preview label)
+                .suppressFormula()    // Don't render formula on scale (shown in preview label)
+            
+            let standardC = StandardScales.cScale(length: scaleLength)
+            let cDef = cBuilder
+                .withSubsections(standardC.subsections)
+                .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
+                .build()
+            
+            return GeneratedScale(definition: cDef)
+        }()
         
-        let standardC = StandardScales.cScale(length: scaleLength)
-        let cDef = cBuilder
-            .withSubsections(standardC.subsections)
-            .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
-            .build()
-        
-        return GeneratedScale(definition: cDef)
-    }()
-    
-    return SplitScaleTestComponent(
-        leftScale: cScaleLeft,
-        rightScale: cScaleRight,
-        title: "Test Case 1: Simple C Scale 50/50 Split",
-        segmentDescription: "Left segment: 1→√10 (left half), Right segment: √10→10 (right half)",
-        expectedDescription: "Expected: Both segments render side-by-side in same physical space, each using 50% width",
-        expectedBoundaryPosition: 0.5,
-        actualBoundaryPosition: cScaleRight.tickMarks.first?.normalizedPosition ?? 0.0,
-        actualFirstTickValue: cScaleRight.tickMarks.first?.value ?? 0.0,
-        scaleLength: scaleLength,
-        scaleHeight: scaleHeight,
-        leftMarginWidth: leftMarginWidth,
-        rightMarginWidth: rightMarginWidth
-    )
-    .padding()
+        SplitScaleTestComponent(
+            leftScale: cScaleLeft,
+            rightScale: cScaleRight,
+            title: "Test Case 1: Simple C Scale 50/50 Split",
+            segmentDescription: "Left segment: 1→√10 (left half), Right segment: √10→10 (right half)",
+            expectedDescription: "Expected: Both segments render side-by-side in same physical space, each using 50% width",
+            expectedBoundaryPosition: 0.5,
+            actualBoundaryPosition: cScaleRight.tickMarks.first?.normalizedPosition ?? 0.0,
+            actualFirstTickValue: cScaleRight.tickMarks.first?.value ?? 0.0,
+            scaleLength: scaleLength,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth
+        )
+    }
 }

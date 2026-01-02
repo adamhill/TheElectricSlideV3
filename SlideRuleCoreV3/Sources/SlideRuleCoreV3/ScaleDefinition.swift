@@ -382,6 +382,14 @@ public struct ScaleDefinition: Sendable {
     ///   All existing scales default to `nil` (full width).
     public let splitSegment: SplitSegment?
     
+    /// Whether to suppress rendering the scale name label (left margin)
+    /// When true, the name is still stored (for use in previews/debugging) but not rendered on the scale.
+    public let suppressScaleNameLabel: Bool
+    
+    /// Whether to suppress rendering the formula label (right margin)
+    /// When true, the formula is still stored (for use in previews/debugging) but not rendered on the scale.
+    public let suppressFormulaLabel: Bool
+    
     public init(
         name: String,
         formula: String = ScaleDefinition.defaultFormula,
@@ -406,7 +414,9 @@ public struct ScaleDefinition: Sendable {
         suppressBeginBoundaryLabel: Bool = false,
         suppressBeginBoundaryTick: Bool = false,
         suppressEndBoundaryLabel: Bool = false,
-        suppressEndBoundaryTick: Bool = false
+        suppressEndBoundaryTick: Bool = false,
+        suppressScaleNameLabel: Bool = false,
+        suppressFormulaLabel: Bool = false
     ) {
         self.name = name
         self.displayName = displayName
@@ -432,6 +442,8 @@ public struct ScaleDefinition: Sendable {
         self.suppressBeginBoundaryTick = suppressBeginBoundaryTick
         self.suppressEndBoundaryLabel = suppressEndBoundaryLabel
         self.suppressEndBoundaryTick = suppressEndBoundaryTick
+        self.suppressScaleNameLabel = suppressScaleNameLabel
+        self.suppressFormulaLabel = suppressFormulaLabel
     }
     
     /// Whether this is a circular scale
@@ -487,6 +499,8 @@ public struct ScaleBuilder {
     private var suppressBeginBoundaryTick: Bool = false
     private var suppressEndBoundaryLabel: Bool = false
     private var suppressEndBoundaryTick: Bool = false
+    private var suppressScaleNameLabel: Bool = false
+    private var suppressFormulaLabel: Bool = false
     
     public init() {}
     
@@ -518,6 +532,8 @@ public struct ScaleBuilder {
         self.suppressBeginBoundaryTick = definition.suppressBeginBoundaryTick
         self.suppressEndBoundaryLabel = definition.suppressEndBoundaryLabel
         self.suppressEndBoundaryTick = definition.suppressEndBoundaryTick
+        self.suppressScaleNameLabel = definition.suppressScaleNameLabel
+        self.suppressFormulaLabel = definition.suppressFormulaLabel
     }
     
     public func withName(_ name: String) -> ScaleBuilder {
@@ -679,6 +695,32 @@ public struct ScaleBuilder {
         return copy
     }
     
+    /// Suppress rendering the scale name label in the left margin
+    /// The name is still stored for use in previews/debugging, just not rendered on the scale
+    public func withSuppressScaleNameLabel(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressScaleNameLabel = suppress
+        return copy
+    }
+    
+    /// Convenience: Suppress the scale name label
+    public func suppressScaleName() -> ScaleBuilder {
+        return withSuppressScaleNameLabel(true)
+    }
+    
+    /// Suppress rendering the formula label in the right margin
+    /// The formula is still stored for use in previews/debugging, just not rendered on the scale
+    public func withSuppressFormulaLabel(_ suppress: Bool = true) -> ScaleBuilder {
+        var copy = self
+        copy.suppressFormulaLabel = suppress
+        return copy
+    }
+    
+    /// Convenience: Suppress the formula label
+    public func suppressFormula() -> ScaleBuilder {
+        return withSuppressFormulaLabel(true)
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -706,7 +748,9 @@ public struct ScaleBuilder {
             suppressBeginBoundaryLabel: suppressBeginBoundaryLabel,
             suppressBeginBoundaryTick: suppressBeginBoundaryTick,
             suppressEndBoundaryLabel: suppressEndBoundaryLabel,
-            suppressEndBoundaryTick: suppressEndBoundaryTick
+            suppressEndBoundaryTick: suppressEndBoundaryTick,
+            suppressScaleNameLabel: suppressScaleNameLabel,
+            suppressFormulaLabel: suppressFormulaLabel
         )
     }
 }

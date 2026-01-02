@@ -116,7 +116,7 @@ struct PickettN16ESPreview: View {
             scaleHeight: scaleHeight,
             leftMarginWidth: leftMarginWidth,
             rightMarginWidth: rightMarginWidth,
-            stackSpacing: 4
+            stackSpacing: 0
         )
     }
 }

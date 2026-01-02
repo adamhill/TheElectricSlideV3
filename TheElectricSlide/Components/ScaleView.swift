@@ -94,13 +94,20 @@ struct ScaleView: View, Equatable {
         HStack(alignment: .center, spacing: 4) {
             // Scale name label on the left (right-aligned with responsive width)
             // Use displayName if available (for aliases like W2→Sq2), otherwise use canonical name
+            // Only render if not suppressed (suppressScaleNameLabel allows name to exist for debugging but not render)
             let scaleLabel = generatedScale.definition.displayName ?? generatedScale.definition.name
             
-            Text(scaleLabel)
-                .font(nameFont)
-                .foregroundColor(self.scaleLabelColor)
-                .frame(width: leftMarginWidth, alignment: .trailing)
-                .accessibilityIdentifier("scale-name-\(scaleLabel)")
+            if !generatedScale.definition.suppressScaleNameLabel {
+                Text(scaleLabel)
+                    .font(nameFont)
+                    .foregroundColor(self.scaleLabelColor)
+                    .frame(width: leftMarginWidth, alignment: .trailing)
+                    .accessibilityIdentifier("scale-name-\(scaleLabel)")
+            } else {
+                // Empty spacer to maintain layout when name is suppressed
+                Spacer()
+                    .frame(width: leftMarginWidth)
+            }
             
             // Scale view
             ZStack(alignment: .topLeading) {
@@ -138,12 +145,19 @@ struct ScaleView: View, Equatable {
             .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
             
             // Formula label on the right (left-aligned with responsive width)
-            Text(generatedScale.definition.formula)
-                .font(formulaFont)
-                .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
-                .foregroundColor(.black)
-                .frame(width: rightMarginWidth, alignment: .leading)
-                .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
+            // Only render if not suppressed (suppressFormulaLabel allows formula to exist for debugging but not render)
+            if !generatedScale.definition.suppressFormulaLabel {
+                Text(generatedScale.definition.formula)
+                    .font(formulaFont)
+                    .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
+                    .foregroundColor(.black)
+                    .frame(width: rightMarginWidth, alignment: .leading)
+                    .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
+            } else {
+                // Empty spacer to maintain layout when formula is suppressed
+                Spacer()
+                    .frame(width: rightMarginWidth)
+            }
         }
         .frame(height: height)  // Ensure consistent height for split scale ZStack alignment
         .accessibilityIdentifier("scaleview-\(generatedScale.definition.name)")

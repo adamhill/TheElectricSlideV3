@@ -7,6 +7,8 @@
 import SwiftUI
 import SlideRuleCoreV3
 
+// NOTE: Uses GeneratedScale.previewLabel() extension from SplitScaleTestComponent.swift
+
 /// A reusable component for visualizing and validating paired scale rendering
 /// with boundary markers at start (0%) and end (100%) of each scale.
 struct ScalePairTestComponent: View {
@@ -24,7 +26,14 @@ struct ScalePairTestComponent: View {
     let scaleHeight: CGFloat
     let leftMarginWidth: CGFloat
     let rightMarginWidth: CGFloat
-    let stackSpacing: CGFloat // Spacing between scales (default 4pt)
+    let stackSpacing: CGFloat // Spacing between scales (default 0pt)
+    
+    // MARK: - Computed Properties
+    
+    /// Scale labels computed from scale properties (DRY)
+    private var scaleLabels: [String] {
+        scales.map { $0.previewLabel() }
+    }
     
     // MARK: - Initialization
     
@@ -36,7 +45,7 @@ struct ScalePairTestComponent: View {
         scaleHeight: CGFloat,
         leftMarginWidth: CGFloat,
         rightMarginWidth: CGFloat,
-        stackSpacing: CGFloat = 4
+        stackSpacing: CGFloat = 0  // Default 0 - scales touch
     ) {
         self.scales = scales
         self.title = title
@@ -67,7 +76,8 @@ struct ScalePairTestComponent: View {
             // 4. Scale stack with boundary markers
             VStack(spacing: stackSpacing) {
                 ForEach(Array(scales.enumerated()), id: \.offset) { index, scale in
-                    scaleWithBoundaries(scale: scale, isLast: index == scales.count - 1)
+                    let label = index < scaleLabels.count ? scaleLabels[index] : ""
+                    scaleWithLabel(scale: scale, label: label, isFirst: index == 0, isLast: index == scales.count - 1)
                 }
             }
             
@@ -104,11 +114,19 @@ struct ScalePairTestComponent: View {
         .cornerRadius(8)
     }
     
-    /// Individual scale with boundary markers at 0% (red) and 100% (blue)
-    private func scaleWithBoundaries(scale: GeneratedScale, isLast: Bool) -> some View {
+    /// Individual scale with centered label above and boundary markers at 0% (red) and 100% (blue)
+    private func scaleWithLabel(scale: GeneratedScale, label: String, isFirst: Bool, isLast: Bool) -> some View {
         VStack(spacing: 0) {
-            // Top boundary tick mark (red at 0%)
-            boundaryTick(at: 0.0, color: .red)
+            // Scale name label centered above the scale
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+            
+            // Top boundary tick mark (red at 0%) - only for first scale
+            if isFirst {
+                boundaryTick(at: 0.0, color: .red)
+            }
             
             // Scale visualization
             ScaleView(
@@ -122,8 +140,10 @@ struct ScalePairTestComponent: View {
             )
             .frame(height: scaleHeight)
             
-            // Bottom boundary tick mark (blue at 100%)
-            boundaryTick(at: 1.0, color: .blue)
+            // Bottom boundary tick mark (blue at 100%) - only for last scale
+            if isLast {
+                boundaryTick(at: 1.0, color: .blue)
+            }
         }
     }
     
@@ -182,43 +202,32 @@ struct ScalePairTestComponent: View {
 // MARK: - Preview
 
 #Preview("LL00 + C Scale Pair") {
-    let scaleLength: CGFloat = 800
-    let scaleHeight: CGFloat = 40
-    let leftMarginWidth: CGFloat = 60
-    let rightMarginWidth: CGFloat = 80
-    
-    // LL00 scale with upward ticks
-    let ll00Scale = GeneratedScale(
-        definition: StandardScales.ll00Scale(length: scaleLength)
-    )
-    
-    // C scale with downward ticks
-    let cScale: GeneratedScale = {
-        let cBuilder = ScaleBuilder()
-            .withName("C")
-            .withFormula("x")
-            .withFunction(LogarithmicFunction())
-            .withRange(begin: 1.0, end: 10.0)
-            .withLength(scaleLength)
-            .withTickDirection(.down)
+    GeometryReader { geometry in
+        let scaleLength: CGFloat = geometry.size.width  // Full width, edge-to-edge
+        let scaleHeight: CGFloat = 40
+        let leftMarginWidth: CGFloat = 0  // No left margin
+        let rightMarginWidth: CGFloat = 0  // No right margin
         
-        let standardC = StandardScales.cScale(length: scaleLength)
-        let cDef = cBuilder
-            .withSubsections(standardC.subsections)
-            .withLabelFormatter(StandardLabelFormatter.cScaleFirstSubsection)
+        // LL00 scale with upward ticks
+        let ll00Def = ScaleBuilder(from: StandardScales.ll00Scale(length: scaleLength))
+            .withTickDirection(.up)  // First scale: ticks UP
             .build()
+        let ll00Scale = GeneratedScale(definition: ll00Def)
         
-        return GeneratedScale(definition: cDef)
-    }()
-    
-    return ScalePairTestComponent(
-        scales: [ll00Scale, cScale],
-        title: "Scale Pair: LL00 + C",
-        description: "LL00 (upward ticks) paired with C scale (downward ticks)",
-        scaleLength: scaleLength,
-        scaleHeight: scaleHeight,
-        leftMarginWidth: leftMarginWidth,
-        rightMarginWidth: rightMarginWidth
-    )
-    .padding()
+        // C scale with downward ticks
+        let cDef = ScaleBuilder(from: StandardScales.cScale(length: scaleLength))
+            .withTickDirection(.down)  // Second scale: ticks DOWN
+            .build()
+        let cScale = GeneratedScale(definition: cDef)
+        
+        ScalePairTestComponent(
+            scales: [ll00Scale, cScale],
+            title: "Scale Pair: LL00 + C",
+            description: "LL00 (upward ticks) paired with C scale (downward ticks)",
+            scaleLength: scaleLength,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth
+        )
+    }
 }

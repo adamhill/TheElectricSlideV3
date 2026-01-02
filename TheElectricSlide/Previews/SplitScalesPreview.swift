@@ -44,12 +44,14 @@ struct SplitScalesPreview: View {
     // Left half: C scale from 1 to √10
     private var cScaleLeft: GeneratedScale {
         let cBuilder = ScaleBuilder()
-            .withName("C√10")
-            .withFormula("x (left)")
+            .withName("C₁")  // Name for previewLabel()
+            .withFormula("x")  // Formula for previewLabel()
             .withFunction(LogarithmicFunction())
             .withRange(begin: 1.0, end: 3.162)  // √10 ≈ 3.162
             .withLength(scaleLength)
             .withTickDirection(.up)
+            .withSuppressScaleNameLabel()
+            .withSuppressFormulaLabel()
             .withSplitSegment(.left(formulaOffset: 0.0))
         
         let standardC = StandardScales.cScale(length: scaleLength)
@@ -64,8 +66,10 @@ struct SplitScalesPreview: View {
     // Right half: C scale from √10 to 10 (NO formula offset needed)
     private var cScaleRight: GeneratedScale {
         let cBuilder = ScaleBuilder()
-            .withName("C√10-10")
-            .withFormula("x (right)")
+            .withName("C₂")  // Name for previewLabel()
+            .withFormula("x")  // Formula for previewLabel()
+            .withSuppressScaleNameLabel()
+            .withSuppressFormulaLabel()
             .withFunction(LogarithmicFunction())
             .withRange(begin: 3.162, end: 10.0)  // √10 to 10
             .withLength(scaleLength)

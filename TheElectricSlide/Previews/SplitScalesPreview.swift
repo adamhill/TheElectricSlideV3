@@ -93,7 +93,8 @@ struct SplitScalesPreview: View {
         
         // Apply left split segment
         let modifiedDef = ScaleDefinition(
-            name: h266LL01Def.name + "^",
+            name: h266LL01Def.name,
+            formula: h266LL01Def.formula,
             function: h266LL01Def.function,
             beginValue: h266LL01Def.beginValue,
             endValue: h266LL01Def.endValue,
@@ -118,6 +119,7 @@ struct SplitScalesPreview: View {
         // Apply right split segment
         let modifiedDef = ScaleDefinition(
             name: ll02BDef.name,
+            formula: ll02BDef.formula,
             function: ll02BDef.function,
             beginValue: ll02BDef.beginValue,
             endValue: ll02BDef.endValue,
@@ -144,6 +146,7 @@ struct SplitScalesPreview: View {
         // Apply left split segment
         let modifiedDef = ScaleDefinition(
             name: sh1Def.name,
+            formula: sh1Def.formula,
             function: sh1Def.function,
             beginValue: sh1Def.beginValue,
             endValue: sh1Def.endValue,
@@ -170,6 +173,7 @@ struct SplitScalesPreview: View {
         // Apply right split segment WITHOUT formula offset
         let modifiedDef = ScaleDefinition(
             name: sh2Def.name,
+            formula: sh2Def.formula,
             function: sh2Def.function,
             beginValue: sh2Def.beginValue,
             endValue: sh2Def.endValue,
@@ -386,7 +390,7 @@ struct SplitScalesPreview: View {
 
 #Preview("Default Configuration") {
     SplitScalesPreview()
-        .aspectRatio(0.5, contentMode: .fit)
+        .frame(height: 1000)
         .preferredColorScheme(.light)
 }
 
@@ -394,7 +398,7 @@ struct SplitScalesPreview: View {
     SplitScalesPreview(
         scaleLength: 800
     )
-    .aspectRatio(0.5, contentMode: .fit)
+    .frame(height: 1000)
     .preferredColorScheme(.light)
 }
 
@@ -407,7 +411,7 @@ struct SplitScalesPreview: View {
         nameFontSize: 12,
         formulaFontSize: 10
     )
-    .aspectRatio(0.5, contentMode: .fit)
+    .frame(height: 1000)
     .preferredColorScheme(.light)
 }
 
@@ -420,7 +424,7 @@ struct SplitScalesPreview: View {
         nameFontSize: 16,
         formulaFontSize: 14
     )
-    .aspectRatio(0.5, contentMode: .fit)
+    .frame(height: 1000)
     .preferredColorScheme(.light)
 }
 
@@ -429,7 +433,7 @@ struct SplitScalesPreview: View {
         scaleLength: 1200,
         scaleHeight: 60
     )
-    .aspectRatio(0.5, contentMode: .fit)
+    .frame(height: 1000)
     .preferredColorScheme(.light)
 }
 
@@ -438,7 +442,7 @@ struct SplitScalesPreview: View {
         scaleLength: 800,
         scaleHeight: 40
     )
-    .aspectRatio(0.5, contentMode: .fit)
+    .frame(height: 1000)
     .preferredColorScheme(.dark)
 }
 

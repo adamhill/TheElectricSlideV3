@@ -143,7 +143,7 @@ extension StandardScales {
                 // Intermediate ticks at: 5.6, 5.5, 5.4, 5.3, 5.2, 5.1 = EXACTLY 6 ticks
                 // NOTE: Domain starts at 6.0° but this subsection starts at 5.7° because
                 //       6.0° has NO tick mark - it's just the mathematical domain boundary
-                // Use 0.7 as level 0 so only 5.7 gets labeled (next 0.7 tick would be 5.0)
+                // Use 5.7 as level 0 so only 5.7 gets labeled (next 5.7 tick would be 11.4)
                 // ─────────────────────────────────────────────────────────────────────────
                 ScaleSubsection(startValue: 5.7, tickIntervals: [5.7, 0.1], labelLevels: [0],
                                dualLabelFormatter: StandardLabelFormatter.thetaScaleNoComplement),

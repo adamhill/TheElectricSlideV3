@@ -29,7 +29,7 @@ public enum SplitSegment: Sendable, Equatable, Hashable {
     case left(formulaOffset: Double)
     
     /// Right segment of a split scale
-    /// - Parameter formulaOffset: Starting position in the scale's full mathematical range (typically 0.5)
+    /// - Parameter formulaOffset: Starting position in the scale's full mathematical range (typically 0.0)
     case right(formulaOffset: Double)
     
     /// The physical range this segment occupies on the slide rule

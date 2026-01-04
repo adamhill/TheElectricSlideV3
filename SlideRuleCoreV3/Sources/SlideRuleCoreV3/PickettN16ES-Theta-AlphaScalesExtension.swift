@@ -221,13 +221,11 @@ extension StandardScales {
     /// "Phase shift angle (voltage with respect to current) of circuits whose
     /// phase increases with DECREASING frequency (reads against frequency F scale)"
     ///
-    /// **Range:** 0.57° → 6.0° (0.57° is CENTER boundary unlabeled, 6.0° is RIGHT EDGE also unlabeled)
+    /// **Range:** 89.43° → 84.29° (89.43° is CENTER boundary unlabeled, 84.29° is RIGHT EDGE also unlabeled)
     ///
     /// **Transform:** position = 2 - log₁₀(tan(θ))
-    /// - At θ = 0.57°: tan = 0.01, log = -2, position = 0 (center boundary)
-    /// - At θ = 5.71°: tan = 0.1, log = -1, position ≈ 1.0 (near right edge)
-    /// - At θ = 6.0°: tan ≈ 0.1051, log ≈ -0.978, position ≈ 1.022 (domain end, NO tick)
-    ///
+    /// - At θ = 89.43°: tan ≈ 100, log = 2, position = 0 (center boundary)
+    /// - At θ = 84.29°: tan ≈ 10, log = 1, position = 1 (right edge)
     public static func phaseAngleThetaLargeScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
             .withName("Θ₂")

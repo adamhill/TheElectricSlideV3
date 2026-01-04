@@ -17,7 +17,7 @@ import Foundation
 /// The `formulaOffset` parameter specifies where the segment's mathematical range begins
 /// relative to the scale's full range. For example, a split D scale might have:
 /// - Left segment:  formulaOffset = 0.0, displays values 1-√10 (physical 0.0-0.5)
-/// - Right segment: formulaOffset = 0.5, displays values √10-10 (physical 0.5-1.0)
+    /// - Right segment: formulaOffset = 0.0, displays values √10-10 (physical 0.5-1.0)
 ///
 /// ## PostScript Heritage
 /// This design matches PostScript slide rule engines where split scales were implemented

@@ -311,7 +311,7 @@ struct UpperDecibelScaleDebugTests {
     @Test("Pickett N-16 ES: >DB scale in back stator has correct positioning")
     func testPickettN16ESUpperDBScale() throws {
         // This is the EXACT definition from SlideRuleLibrary.swift line 124
-        let definitionString = "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α >DB D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)"
+        let definitionString = "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)"
         
         let dimensions = RuleDefinitionParser.Dimensions(
             topStatorMM: 15,

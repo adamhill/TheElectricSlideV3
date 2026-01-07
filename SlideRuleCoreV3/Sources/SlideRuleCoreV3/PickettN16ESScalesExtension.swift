@@ -984,6 +984,7 @@ extension StandardScales {
                     return String(Int(value.rounded()))
                 }
             }
+            .addConstant(value: 1.0, label: "♦", style: .major)
             .build()
     }
     

@@ -754,8 +754,24 @@ public struct ScaleCalculator: Sendable {
                 let distance = abs(tick.normalizedPosition - lastTick.normalizedPosition)
                 
                 if distance < minSeparation {
-                    // Keep the one with the larger tick (more important)
-                    if tick.style.relativeLength > lastTick.style.relativeLength {
+                    // Determine which tick to keep based on priority:
+                    // 1. Constants always win over subsection ticks
+                    // 2. Otherwise, keep the one with larger relativeLength
+                    let tickIsConstant = tick.labels.contains { $0.source == .constant }
+                    let lastIsConstant = lastTick.labels.contains { $0.source == .constant }
+                    
+                    let shouldReplace: Bool = {
+                        if tickIsConstant && !lastIsConstant {
+                            return true  // New tick is constant, old is not - replace
+                        } else if !tickIsConstant && lastIsConstant {
+                            return false  // Old tick is constant, keep it
+                        } else {
+                            // Both same type, use relativeLength as tiebreaker
+                            return tick.style.relativeLength > lastTick.style.relativeLength
+                        }
+                    }()
+                    
+                    if shouldReplace {
                         result.removeLast()
                         result.append(tick)
                     }

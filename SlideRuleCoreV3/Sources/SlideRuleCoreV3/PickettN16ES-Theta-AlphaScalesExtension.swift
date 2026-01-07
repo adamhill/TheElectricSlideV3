@@ -532,6 +532,51 @@ extension StandardLabelFormatter {
         ]
     }
     
+    // MARK: - Upper dB Scale Dual Label Formatter
+    
+    /// Upper dB scale dual labeling: RED with ">" (left) and BLACK complement (right)
+    ///
+    /// Matches the physical Pickett N-16 ES dB scale where:
+    /// - RED label with ">" prefix on LEFT of tick: >20, >25, >30, >35, >40, >45, >50, >55, >60
+    /// - BLACK label on RIGHT of tick: 60, 55, 50, 45, 40, 35, 30, 25, 20
+    /// - RED + BLACK always = 80
+    ///
+    /// This is a LINEAR scale, so tick spacing is uniform (not logarithmic).
+    ///
+    public static func upperDecibelDual(value: ScaleValue) -> [LabelConfig] {
+        // Value is the dB value (20-60)
+        let primary = Int(value.rounded())
+        let complement = 80 - primary
+        
+        // Only label at 5 dB intervals
+        guard primary >= 20 && primary <= 60 && primary % 5 == 0 else {
+            return []
+        }
+        
+        return [
+            // Left label: RED with ">" prefix (primary dB value)
+            LabelConfig(
+                text: ">\(primary)",
+                position: .left,
+                fontStyle: .regular,
+                color: .red,
+                fontSizeMultiplier: 0.95,
+                offset: Offset(horizontal: -2.5, vertical: 0),
+                source: .subsection
+            ),
+            // Right label: BLACK (complement value, 80 - dB)
+            LabelConfig(
+                text: "\(complement)",
+                position: .right,
+                fontStyle: .regular,
+                color: .black,
+                fontSizeMultiplier: 0.95,
+                offset: Offset(horizontal: 2.5, vertical: 0),
+                source: .subsection
+            )
+        ]
+    }
+    
     // MARK: - Private Formatters for Theta/Alpha
     
     /// Format THETA scale labels (handles sub-degree values)

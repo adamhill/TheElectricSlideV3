@@ -671,6 +671,93 @@ extension StandardScales {
             .build()
     }
     
+    // MARK: - Pickett N-16 ES Upper dB Scale (LINEAR)
+    
+    /// Upper dB Scale - Linear Decibel Scale for Pickett N-16 ES
+    /// This is a LINEAR scale (NOT logarithmic like most slide rule scales)
+    ///
+    /// ## ACTUAL Pickett N-16 ES Specifications (from physical specimen)
+    ///
+    /// **Range:** 20 to 60 dB
+    ///
+    /// **Position Formula (Linear):**
+    /// ```
+    /// position = (dB_value - 20) / 40
+    /// ```
+    ///
+    /// **Dual Labeling:**
+    /// - RED number with ">" prefix on LEFT of tick: >20, >25, >30, >35, >40, >45, >50, >55, >60
+    /// - BLACK number on RIGHT of tick: 60, 55, 50, 45, 40, 35, 30, 25, 20
+    /// - RED + BLACK always = 80
+    ///
+    /// **Tick Marks (UNIFORMLY spaced):**
+    /// - Major ticks at 5 dB intervals: FULL height, labeled
+    /// - 4 ticks at 1 dB intervals: FULL height, NOT labeled (21, 22, 23, 24 between 20-25)
+    /// - 5 ticks at 0.5 dB intervals: HALF height (20.5, 21.5, 22.5, 23.5, 24.5 between 20-25)
+    /// - Total: 9 tick marks between each labeled position (4 full + 5 half)
+    /// - All ticks are EVENLY spaced (linear scale, NOT logarithmic)
+    ///
+    /// **Example positions:**
+    /// - 20 dB → position 0.000 (left end), labels: ">20" (RED) "60" (BLACK)
+    /// - 25 dB → position 0.125, labels: ">25" (RED) "55" (BLACK)
+    /// - 40 dB → position 0.500 (center), labels: ">40" (RED) "40" (BLACK)
+    /// - 60 dB → position 1.000 (right end), labels: ">60" (RED) "20" (BLACK)
+    ///
+    /// **Historical Context:**
+    /// Used for quick voltage/power ratio conversions in electronics work,
+    /// coordinated with the Θ and cos(Θ) scales for filter analysis.
+    /// The dual labeling (primary/complement) allows reading attenuation
+    /// and gain simultaneously.
+    public static func upperDecibelLinearScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder()
+            .withName("dB")  // Proper name for decibel scale
+            .withFormula("(dB - 20) / 40")
+            .withFunction(LinearDecibelFunction(minDB: 20.0, maxDB: 60.0))
+            .withRange(begin: 20.0, end: 60.0)  // Direct dB values
+            .withLength(length)
+            .withTickDirection(.up)
+            // THREE tick levels for correct Pickett N-16 ES pattern:
+            // Level 0: 5dB - LABELED with dual formatting (RED ">XX" / BLACK "YY")
+            // Level 1: 1dB - UNLABELED ticks at FULL height (21, 22, 23, 24)
+            // Level 2: 0.5dB - UNLABELED ticks at HALF height (20.5, 21.5, 22.5, 23.5, 24.5)
+            //
+            // Uses custom tick styles:
+            // - Level 0: Uses .absolutelyNone so dualLabelFormatter controls labeling (full height)
+            // - Level 1: Full height (1.0) but no labels (for 1dB ticks)
+            // - Level 2: Half height (0.5) no labels (for 0.5dB ticks)
+            .withDefaultTickStyles([
+                .absolutelyNone,  // Level 0: 5dB labeled ticks (full height)
+                TickStyle(relativeLength: 0.75, shouldLabel: false, lineWidth: 1.0),  // Level 1: 1dB full height, unlabeled
+                TickStyle(relativeLength: 0.375, shouldLabel: false, lineWidth: 0.65)  // Level 2: 0.5dB half height, unlabeled
+            ])
+            .withSubsections([
+                // ═══════════════════════════════════════════════════════════════════════
+                // SINGLE SUBSECTION: Linear scale 20-60 dB with UNIFORM tick spacing
+                //
+                // From ACTUAL Pickett N-16 ES:
+                // - Labels at 5 dB intervals: 20, 25, 30, 35, 40, 45, 50, 55, 60
+                // - Alternating tick heights between labels:
+                //   - 1 dB intervals: FULL height (21, 22, 23, 24)
+                //   - 0.5 dB intervals: HALF height (20.5, 21.5, 22.5, 23.5, 24.5)
+                // - Total 9 tick marks between each label (4 full + 5 half)
+                // - All ticks EVENLY spaced (linear scale, NOT logarithmic)
+                //
+                // Example between 20 and 25 dB:
+                //   20 (labeled, full) → 20.5 (half) → 21 (full) → 21.5 (half) →
+                //   22 (full) → 22.5 (half) → 23 (full) → 23.5 (half) →
+                //   24 (full) → 24.5 (half) → 25 (labeled, full)
+                // ═══════════════════════════════════════════════════════════════════════
+                ScaleSubsection(
+                    startValue: 20.0,
+                    tickIntervals: [5.0, 1.0, 0.5],  // Major=5dB (labeled), Full=1dB, Half=0.5dB
+                    labelLevels: [0],  // Only label at 5dB intervals (level 0)
+                    dualLabelFormatter: StandardLabelFormatter.upperDecibelDual
+                )
+            ])
+            // No single-label formatter needed since we use dualLabelFormatter
+            .build()
+    }
+    
     // MARK: - Pickett N-16 ES Time Constant Scale
     
     /// τ - Time constant scale (τ = 1/ω, reciprocal relationship)
@@ -805,46 +892,96 @@ extension StandardScales {
     
     // MARK: - Pickett N-16 ES Utility Scales
     
-    /// D/Q - Decimal keeper and Q-factor scale
-    /// Dual mode: Decade tracking or quality factor
-    /// Essential: Prevents magnitude errors in four-decade calculations
-    /// Note: This conflicts with standard D scale, so we use "pickettD" internally
-    public static func pickettDScale(length: Distance = 250.0) -> ScaleDefinition {
+    /// D/Q - Decimal keeper and Q-factor scale (Two Decades: 0.1 to 10)
+    ///
+    /// ## ACTUAL Pickett N-16 ES Specifications (from physical specimen)
+    ///
+    /// This is a standard logarithmic A-scale pattern running from .1 to 10 (two decades).
+    /// Used for decade tracking to prevent magnitude errors in four-decade calculations.
+    /// D = capacitative impedance / resistance
+    /// Q = resistance / inductive impedance
+    ///
+    /// **Range:** 0.1 to 10 (two decades)
+    ///
+    /// **Tick Pattern (from actual Pickett N16-ES):**
+    /// - .1 → .2: 49 ticks (finest density)
+    /// - .2 → .3: 19 ticks
+    /// - .3 → .4: 19 ticks
+    /// - .4 → .5: 19 ticks
+    /// - .5 → .6: 9 ticks
+    /// - .6 → .7: 9 ticks
+    /// - .7 → .8: 9 ticks
+    /// - .8 → .9: 9 ticks
+    /// - .9 → 1: 9 ticks
+    /// - 1 → 2: 49 ticks (finest density)
+    /// - 2 → 3: 19 ticks
+    /// - 3 → 4: 19 ticks
+    /// - 4 → 5: 19 ticks
+    /// - 5 → 6: 9 ticks
+    /// - 6 → 7: 9 ticks
+    /// - 7 → 8: 9 ticks
+    /// - 8 → 9: 9 ticks
+    /// - 9 → 10: 9 ticks
+    ///
+    /// **Labels:** .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    ///
+    /// Note: This is identical to the standard A scale, just with explicit .1 to 10 labeling.
+    public static func pickettDQScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
-            .withName("D")
+            .withName("D or Q")
             .withFormula("log₁₀(x)")
             .withFunction(DecimalKeeperQFunction(isQMode: false))
-            .withRange(begin: 1.0, end: 10.0)
+            .withRange(begin: 0.1, end: 10.0)  // Two decades: 0.1 to 10
             .withLength(length)
-            .withTickDirection(.up)
+            .withTickDirection(.down)
+            // Standard 4-level tick styles for A-scale pattern
+            .withDefaultTickStyles([.absolutelyNone, .medium, .minor, .tiny])
             .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.1, 0.05, 0.01], labelLevels: [0, 1]),
-                ScaleSubsection(startValue: 2.0, tickIntervals: [1, 0.5, 0.1, 0.05], labelLevels: [0, 1]),
-                ScaleSubsection(startValue: 4.0, tickIntervals: [1, 0.5, 0.1, 0.02], labelLevels: [0])
-            ])
-            .withLabelFormatter(StandardLabelFormatter.oneDecimal)
-            .build()
-    }
-    
-    /// Q - Quality factor scale
-    /// Shows Q-factor for resonant circuits (Q = ωL/R = 1/(ωRC))
-    public static func pickettQScale(length: Distance = 250.0) -> ScaleDefinition {
-        ScaleBuilder()
-            .withName("Q")
-            .withFormula("log₁₀(Q)")
-            .withFunction(DecimalKeeperQFunction(isQMode: true))
-            .withRange(begin: 1.0, end: 100.0)
-            .withLength(length)
-            .withTickDirection(.up)
-            .withSubsections([
-                ScaleSubsection(startValue: 1.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0]),
-                ScaleSubsection(startValue: 10.0, tickIntervals: [10, 5, 1], labelLevels: [0])
+                // ═══════════════════════════════════════════════════════════════════════
+                // FIRST DECADE: 0.1 to 1.0
+                // Standard A-scale variable tick density pattern
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 0.1 → 0.2: 49 ticks (finest) - 50 divisions = 0.002 per tick
+                // Pattern: Major=0.1, Half=0.05, Minor=0.01, Tiny=0.002
+                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.002], labelLevels: [0]),
+                
+                // 0.2 → 0.5: 19 ticks each section - 20 divisions = 0.005 per tick
+                // Pattern: Major=0.1, Half=0.05, Minor=0.01, Tiny=0.005
+                ScaleSubsection(startValue: 0.2, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0]),
+                
+                // 0.5 → 1.0: 9 ticks each section - 10 divisions = 0.01 per tick
+                // Pattern: Major=0.1, Half=0.05, Minor=0.01
+                ScaleSubsection(startValue: 0.5, tickIntervals: [0.1, 0.05, 0.01], labelLevels: [0]),
+                
+                // ═══════════════════════════════════════════════════════════════════════
+                // SECOND DECADE: 1.0 to 10.0
+                // Same pattern scaled up 10x
+                // ═══════════════════════════════════════════════════════════════════════
+                
+                // 1 → 2: 49 ticks (finest) - 50 divisions = 0.02 per tick
+                // Pattern: Major=1, Half=0.5, Minor=0.1, Tiny=0.02
+                ScaleSubsection(startValue: 1.0, tickIntervals: [1.0, 0.5, 0.1, 0.02], labelLevels: [0]),
+                
+                // 2 → 5: 19 ticks each section - 20 divisions = 0.05 per tick
+                // Pattern: Major=1, Half=0.5, Minor=0.1, Tiny=0.05
+                ScaleSubsection(startValue: 2.0, tickIntervals: [1.0, 0.5, 0.1, 0.05], labelLevels: [0]),
+                
+                // 5 → 10: 9 ticks each section - 10 divisions = 0.1 per tick
+                // Pattern: Major=1, Half=0.5, Minor=0.1
+                ScaleSubsection(startValue: 5.0, tickIntervals: [1.0, 0.5, 0.1], labelLevels: [0])
             ])
             .withLabelFormatter { value in
-                if value < 10 {
-                    return String(format: "Q=%.1f", value)
+                // Format labels: .1, .2, ... .9, 1, 2, ... 10
+                guard value > 0 else { return "" }
+                
+                if value < 1.0 {
+                    // Values 0.1-0.9: show as ".1", ".2", etc.
+                    let digit = Int((value * 10).rounded())
+                    return ".\(digit)"
                 } else {
-                    return String(format: "Q=%.0f", value)
+                    // Values 1-10: show as integers
+                    return String(Int(value.rounded()))
                 }
             }
             .build()

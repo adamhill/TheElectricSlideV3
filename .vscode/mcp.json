@@ -16,13 +16,13 @@
             "command": "mise",
             "args": [
                 "x",
-                "npm:xcodebuildmcp@1.4.0",
+                "npm:xcodebuildmcp@1.15.1",
                 "--",
                 "xcodebuildmcp"
             ],
             "type": "stdio",
             "env": {
-                 "XCODEBUILDMCP_DYNAMIC_TOOLS": "true"
+                 "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
   }
         },
         "apple-docs": {

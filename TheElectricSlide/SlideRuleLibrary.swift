@@ -33,8 +33,12 @@ struct SlideRuleLibrary {
     /// Version 19: Fixed THETA domain: 6.0°→0.57°→6.0° with no tick at 6.0°, first/last visible tick at 5.7°
     /// Version 20: Fixed Θ₂ tick direction: changed Θ₂- to Θ₂^ (both scales need ticks UP, not DOWN)
     /// Version 21: Fixed ^ in the wrong place
-
-    static let libraryVersion = 21
+    /// Version 22: Changed upper dB scale to >DB (linear dB scale with correct tick marks)
+    /// Version 23: Changed it back to db
+    /// Version 24: Changed pickettD to DQ
+    /// Version 25: Fixed tick direction for db (mistake)
+    /// Version 26: Fixed tick direction for DQ 
+    static let libraryVersion = 26
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -118,13 +122,15 @@ struct SlideRuleLibrary {
             // NOTE: Θ₁^ Θ₂^ uses ^ (caret) for SPLIT SCALE - both render in same row
             // BOTH scales must have ticks pointing UP to share baseline with ALPHA below
             // Do NOT use - suffix on Θ₂ as that flips ticks DOWN (wrong direction!)
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            // NOTE: >DB is the upper decibel scale (linear dB, correct tick marks)
+            // The lower `db` is the standard dB scale (dB power scale)
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 0,
             scaleNameOverrides: [
-                "D": "D/Q",          // Decimal keeper with Q-factor dual mode
+                "DQ": "D/Q",          // Decimal keeper with Q-factor dual mode
                 "L": "C/L",          // Combined capacitance/inductance scale
                 "Cos": "cos",        // Lowercase for clarity
                 "CosΘ": "cos Θ",     // Phase power factor with Greek letter

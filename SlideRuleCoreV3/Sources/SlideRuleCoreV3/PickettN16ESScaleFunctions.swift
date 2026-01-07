@@ -343,11 +343,70 @@ public struct DecibelFunction: ScaleFunction, Sendable {
     }
 }
 
+/// Linear Decibel Function for Pickett N-16 ES Upper dB Scale
+/// This is a LINEAR scale (NOT logarithmic like most slide rule scales)
+/// Formula: position = (dB_value - 20) / 40
+/// Range: 20 dB to 60 dB mapped linearly to position 0 to 1
+///
+/// The ACTUAL Pickett N-16 ES upper dB scale has:
+/// - Linear spacing (uniform tick intervals)
+/// - Range of 20 to 60 dB
+/// - Dual labels: Primary ">" values (20, 25, ..., 60) and secondary complement (60, 55, ..., 20)
+///
+/// Historical Note: This scale was used for quick voltage/power ratio conversions
+/// in electronics work, coordinated with the Θ and cos(Θ) scales for filter analysis.
+public struct LinearDecibelFunction: ScaleFunction, Sendable {
+    public let name = "linear-decibel"
+    
+    /// Minimum dB value (left end of scale)
+    public let minDB: Double
+    
+    /// Maximum dB value (right end of scale)
+    public let maxDB: Double
+    
+    /// Initialize with standard Pickett N-16 ES upper dB range
+    /// - Parameters:
+    ///   - minDB: Minimum dB value (default: 20)
+    ///   - maxDB: Maximum dB value (default: 60)
+    public init(minDB: Double = 20.0, maxDB: Double = 60.0) {
+        self.minDB = minDB
+        self.maxDB = maxDB
+    }
+    
+    /// Transform dB value to position (0-1)
+    /// Formula: position = (dB_value - minDB) / (maxDB - minDB)
+    public func transform(_ value: ScaleValue) -> Double {
+        // Linear mapping: 20 dB → 0, 60 dB → 1
+        (value - minDB) / (maxDB - minDB)
+    }
+    
+    /// Transform position (0-1) back to dB value
+    /// Formula: dB_value = position * (maxDB - minDB) + minDB
+    public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
+        // Linear inverse: 0 → 20 dB, 1 → 60 dB
+        transformedValue * (maxDB - minDB) + minDB
+    }
+    
+    /// Get the complementary dB value (80 - value)
+    /// Used for dual-label display on real Pickett N-16 ES
+    public func complementaryValue(_ dB: Double) -> Double {
+        80.0 - dB
+    }
+}
+
 /// D/Q Scale - Decimal Keeper and Q-Factor
-/// Dual function scale:
-/// - D mode: Tracks decimal magnitude (decade counter) to prevent order-of-magnitude errors
-/// - Q mode: Quality factor for resonant circuits (Q = ωL/R = 1/(ωRC))
-/// Range: 1 to 10 (repeating for each decade)
+///
+/// ## ACTUAL Pickett N-16 ES Specifications
+///
+/// The D or Q scale on the Pickett N-16 ES is a standard two-decade logarithmic scale
+/// running from 0.1 to 10, identical to the A scale pattern.
+///
+/// Dual function:
+/// - D (Decimal keeper): Tracks decimal magnitude to prevent order-of-magnitude errors
+/// - Q (Quality factor): Q = ωL/R = 1/(ωRC) for resonant circuits
+///
+/// Range: 0.1 to 10 (2 decades)
+///
 /// Special: Essential when component values span femtofarads to farads
 /// Historical: The four-decade component value scales required careful decade tracking
 public struct DecimalKeeperQFunction: ScaleFunction, Sendable {
@@ -359,18 +418,17 @@ public struct DecimalKeeperQFunction: ScaleFunction, Sendable {
     }
     
     public func transform(_ value: ScaleValue) -> Double {
-        if isQMode {
-            // Q-factor: logarithmic scale
-            return log10(value)
-        } else {
-            // Decimal keeper: shows mantissa (1-10 range)
-            let mantissa = value / pow(10, floor(log10(abs(value))))
-            return log10(mantissa)
-        }
+        // Standard two-decade logarithmic scale: 0.1 to 10
+        // Position = (log10(value) + 1) / 2
+        // At value = 0.1: log10(0.1) = -1, position = (-1 + 1) / 2 = 0
+        // At value = 1.0: log10(1.0) = 0, position = (0 + 1) / 2 = 0.5
+        // At value = 10.0: log10(10.0) = 1, position = (1 + 1) / 2 = 1
+        (log10(value) + 1.0) / 2.0
     }
     
     public func inverseTransform(_ transformedValue: Double) -> ScaleValue {
-        pow(10, transformedValue)
+        // Inverse: value = 10^(position * 2 - 1)
+        pow(10, transformedValue * 2.0 - 1.0)
     }
 }
 

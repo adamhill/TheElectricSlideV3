@@ -1,7 +1,7 @@
 //  TheElectricSlide
 //
-//  Visual test preview for Pickett N-16 ES THETA and ALPHA scales
-//  Demonstrates split THETA scales (Θ₁ ^ Θ₂) and full-width ALPHA scale
+//  Visual test preview for Pickett N-16 ES scales
+//  Demonstrates split THETA scales (Θ₁ ^ Θ₂), ALPHA scale, dB scale, and D/Q scale
 //
 
 import SwiftUI
@@ -59,17 +59,31 @@ struct PickettN16ESPreview: View {
         return GeneratedScale(definition: alphaDef)
     }
     
+    /// dB (Upper Decibel) - Linear scale: 20 dB → 60 dB with complement labels
+    private var upperDecibel: GeneratedScale {
+        let dbDef = StandardScales.upperDecibelLinearScale(length: scaleLength)
+        return GeneratedScale(definition: dbDef)
+    }
+    
+    /// D/Q (Decimal Keeper / Q-Factor) - Logarithmic scale: 1 → 10
+    private var decimalKeeperQ: GeneratedScale {
+        let dqDef = StandardScales.pickettDQScale(length: scaleLength)
+        return GeneratedScale(definition: dqDef)
+    }
+    
+    // MARK: - Body
+    
     // MARK: - Body
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 // Title
-                Text("Pickett N-16 ES Phase Angle Scales")
+                Text("Pickett N-16 ES Scales Preview")
                     .font(.system(size: 28, weight: .bold))
                     .padding(.bottom, 8)
                 
-                Text("THETA scales (Θ₁ ^ Θ₂) with split architecture and ALPHA scale with full-width layout")
+                Text("Phase angle scales (Θ₁ ^ Θ₂, α), dB scale (LINEAR), and D/Q scale (LOGARITHMIC)")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
                     .padding(.bottom, 16)
@@ -81,6 +95,16 @@ struct PickettN16ESPreview: View {
                 
                 // ALPHA scale section (full width)
                 alphaScaleSection
+                
+                Divider()
+                
+                // Upper dB scale (LINEAR)
+                decibelScaleSection
+                
+                Divider()
+                
+                // D/Q scale (LOGARITHMIC)
+                decimalKeeperScaleSection
             }
             .padding()
         }
@@ -119,9 +143,39 @@ struct PickettN16ESPreview: View {
             stackSpacing: 0
         )
     }
+    
+    /// Upper dB scale section - LINEAR tick spacing
+    /// Shows complement values: 60, 55, 50, 45, 40, 35, 30, 25, 20
+    /// NOTE: Real Pickett N-16 ES has DUAL labels (RED primary + BLACK complement)
+    /// Future enhancement: Support dual-label rendering
+    private var decibelScaleSection: some View {
+        ScalePairTestComponent(
+            scales: [upperDecibel],
+            title: "Upper dB Scale - LINEAR Tick Spacing",
+            description: "Linear 20-60 dB with complement labels (60, 55, ..., 20). 9 evenly-spaced ticks between 5dB labels. Note: Real Pickett has dual RED/BLACK labels (future enhancement).",
+            scaleLength: scaleLength,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            stackSpacing: 0
+        )
+    }
+    
+    /// D/Q (Decimal Keeper / Q-Factor) scale section - LOGARITHMIC tick spacing
+    /// Standard A-scale positioning (1 → 10)
+    private var decimalKeeperScaleSection: some View {
+        ScalePairTestComponent(
+            scales: [decimalKeeperQ],
+            title: "D/Q Scale - Decimal Keeper & Q-Factor",
+            description: "Logarithmic scale (1 → 10) matching A-scale positioning. Used for decade tracking and Q-factor calculations.",
+            scaleLength: scaleLength,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            stackSpacing: 0
+        )
+    }
 }
-
-// MARK: - SwiftUI Previews
 
 #Preview("Default Configuration") {
     PickettN16ESPreview()

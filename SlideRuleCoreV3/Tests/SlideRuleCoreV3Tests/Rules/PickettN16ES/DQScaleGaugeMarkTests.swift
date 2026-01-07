@@ -166,9 +166,8 @@ struct DQScaleGaugeMarkTests {
         #expect(hasDiamondLabel,
                "The diamond constant label should be present, not overwritten by subsection tick")
         
-        // Verify no subsection label at this position overwrote the constant
-        let hasSubsectionLabelOnly = !constantLabels.isEmpty || subsectionLabels.isEmpty
-        #expect(hasSubsectionLabelOnly,
+        // Verify subsection labels at this position were removed in favor of the constant
+        #expect(subsectionLabels.isEmpty,
                "Subsection tick at same position should be removed in favor of constant")
     }
 }

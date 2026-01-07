@@ -1801,6 +1801,7 @@ public enum StandardScales {
         case "THETA2", "Θ₂", "θ₂": return phaseAngleThetaLargeScale(length: length)
         case "ALPHA", "Α", "α": return phaseAngleAlphaScale(length: length)
         case "COS", "COSTHETA", "COSΘ", "COSθ": return cosinePowerFactorScale(length: length)
+        // Keep DB PowerScale around in-case we need it for any other Electronic scales
         //case "DB", "DECIBEL": return decibelPowerScale(length: length)
         case "DBV", "DECIBELV": return decibelVoltageScale(length: length)
         case "DB", "UPPERDB", "DBLINEAR": return upperDecibelLinearScale(length: length)

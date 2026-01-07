@@ -1,4 +1,9 @@
 {
     "gitlens.ai.experimental.composer.enabled": true,
-    "sweetpad.workspacePath": "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcworkspace"
+    "sweetpad.workspacePath": "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcworkspace",
+    "chat.mcp.serverSampling": {
+        "TheElectricSlide/.vscode/mcp.json: XcodeBuildMCP": {
+            "allowedDuringChat": true
+        }
+    }
 }

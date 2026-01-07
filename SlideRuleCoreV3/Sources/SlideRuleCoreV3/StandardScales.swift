@@ -1801,15 +1801,15 @@ public enum StandardScales {
         case "THETA2", "Θ₂", "θ₂": return phaseAngleThetaLargeScale(length: length)
         case "ALPHA", "Α", "α": return phaseAngleAlphaScale(length: length)
         case "COS", "COSTHETA", "COSΘ", "COSθ": return cosinePowerFactorScale(length: length)
-        case "DB", "DECIBEL": return decibelPowerScale(length: length)
+        //case "DB", "DECIBEL": return decibelPowerScale(length: length)
         case "DBV", "DECIBELV": return decibelVoltageScale(length: length)
+        case "DB", "UPPERDB", "DBLINEAR": return upperDecibelLinearScale(length: length)
         
         // Time constant scale
         case "TAU", "Τ", "τ": return timeConstantTauScale(length: length)
         
         // Utility scales
-        case "PICKETTD", "D/Q": return pickettDScale(length: length)
-        case "PICKETTQ", "Q": return pickettQScale(length: length)
+        case "DQ", "D/Q": return pickettDQScale(length: length)
             
         default: return nil
         }

@@ -73,8 +73,6 @@ struct PickettN16ESPreview: View {
     
     // MARK: - Body
     
-    // MARK: - Body
-    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {

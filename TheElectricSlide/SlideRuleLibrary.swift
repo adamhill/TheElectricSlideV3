@@ -122,7 +122,7 @@ struct SlideRuleLibrary {
             // NOTE: Θ₁^ Θ₂^ uses ^ (caret) for SPLIT SCALE - both render in same row
             // BOTH scales must have ticks pointing UP to share baseline with ALPHA below
             // Do NOT use - suffix on Θ₂ as that flips ticks DOWN (wrong direction!)
-            // NOTE: >DB is the upper decibel scale (linear dB, correct tick marks)
+            // NOTE: db is the upper decibel scale (linear dB, correct tick marks)
             // The lower `db` is the standard dB scale (dB power scale)
             definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
             topStatorMM: 15,

@@ -160,12 +160,12 @@ struct PickettN16ESPreview: View {
     }
     
     /// D/Q (Decimal Keeper / Q-Factor) scale section - LOGARITHMIC tick spacing
-    /// Standard A-scale positioning (1 → 10)
+    /// Standard A-scale positioning (0.1 → 10, two decades)
     private var decimalKeeperScaleSection: some View {
         ScalePairTestComponent(
             scales: [decimalKeeperQ],
             title: "D/Q Scale - Decimal Keeper & Q-Factor",
-            description: "Logarithmic scale (1 → 10) matching A-scale positioning. Used for decade tracking and Q-factor calculations.",
+            description: "Logarithmic scale (0.1 → 10, two decades) matching A-scale positioning. Used for decade tracking and Q-factor calculations.",
             scaleLength: scaleLength,
             scaleHeight: scaleHeight,
             leftMarginWidth: leftMarginWidth,

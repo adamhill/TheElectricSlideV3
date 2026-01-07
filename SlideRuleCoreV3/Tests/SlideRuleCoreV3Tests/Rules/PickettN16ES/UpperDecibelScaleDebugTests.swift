@@ -379,7 +379,7 @@ struct UpperDecibelScaleDebugTests {
     
     @Test("Pickett N-16 ES: >DB scale positions major ticks correctly")
     func testPickettN16ESUpperDBMajorTicks() throws {
-        let definitionString = "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α >DB D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)"
+        let definitionString = "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db D XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)"
         
         let dimensions = RuleDefinitionParser.Dimensions(
             topStatorMM: 15,

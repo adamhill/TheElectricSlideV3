@@ -28,11 +28,12 @@ protocol ScaleContainer {
 }
 
 extension ScaleContainer {
-    /// Default implementation that uses a uniform 4pt spacing between scales.
+    /// Default implementation that uses no between scales. 
+    /// Because the internal scaling gives good enough spacing.
     var totalScalesHeight: Distance {
         let scalesHeight = scales.map { $0.definition.height }.reduce(0.0, +)
-        let spacing = scales.isEmpty ? 0.0 : Double(scales.count - 1) * 4.0
-        return scalesHeight + spacing
+        //let spacing = scales.isEmpty ? 0.0 : Double(scales.count - 1) * 0.1
+        return scalesHeight // + spacing
     }
     
     /// Computes the total height of all scales using a configuration-aware spacing rule.

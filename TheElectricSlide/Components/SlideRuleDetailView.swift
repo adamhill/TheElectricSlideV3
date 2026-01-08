@@ -91,11 +91,13 @@ struct SlideRuleDetailView: View {
             )
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
-            // EXPERIMENT: .drawingGroup() re-enabled for optimization testing (Dec 2024)
-            // Previously removed due to scale shift bug at high zoom levels - test at 2.3x+ iPad, 2.7x+ iPhone
-            // If label shifting occurs, the fix in ScaleLabelRenderer (position rounding + concatenate) should handle it
-            // See: swift-docs/zoom-label-shift-fix.md, swift-docs/scale-shift-solution-implementation.md
-            .drawingGroup()
+            // NOTE: .drawingGroup() intentionally NOT applied here (Jan 2025, Issue #115)
+            // Reason: .drawingGroup() rasterizes content at pre-zoom size, creating a fixed Metal buffer.
+            // In Front/Back mode (single side), the smaller content height = smaller buffer = clipping when panned.
+            // In Both mode (2 sides + spacer), taller content = larger buffer = no clipping.
+            // Fix: Remove .drawingGroup() at this level. Individual ScaleView components use .drawingGroup()
+            // for Canvas tick rendering performance (see ScaleView.swift).
+            // Performance: Acceptable per Instruments testing (some hitches, large parameterList in Update).
             .simultaneousGesture(
                 MagnificationGesture()
                 // MARK: Magnification Active State Tracking

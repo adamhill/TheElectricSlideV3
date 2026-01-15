@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SlideRuleCoreV3
 
 /// Factory for creating standard slide rule definitions based on the PostScript reference
 struct SlideRuleLibrary {
@@ -37,14 +38,23 @@ struct SlideRuleLibrary {
     /// Version 23: Changed it back to db
     /// Version 24: Changed pickettD to DQ
     /// Version 25: Fixed tick direction for db (mistake)
-    /// Version 26: Fixed tick direction for DQ 
-    static let libraryVersion = 26
+    /// Version 26: Fixed tick direction for DQ
+    /// Version 27: Added Pickett N-16 ES Annotation Test (demonstrates annotation system: formulas hidden, even scale names suppressed, back slide legend)
+    /// Version 28: CRITICAL FIX - Changed annotation properties from @Transient to persisted.
+    ///            @Transient properties are NEVER saved to SwiftData - they reset to defaults on load.
+    ///            Now using: showScaleNames, showFormulas, suppressEvenScaleNames (Bool),
+    ///            and backSlideAnnotationsJSON (String) for complex type persistence via JSON encoding.
+    /// Version 29: Added annotation property sync to library update logic (SlideRulePicker + SlideRuleSidebarView)
+    ///            Without this, existing rules didn't get the new annotation properties copied during updates.
+    // Version 30: Fixed annotation horizontalPosition from 0.92 to 0.99 for Pickett N-16 ES test
+    static let libraryVersion = 30
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
     static func standardRules() -> [SlideRuleDefinitionModel] {
         let rules = [
             pickettN16ESElectronic(),
+            pickettN16ESAnnotationTest(),  // Test version with annotation features
             keuffelEsser4081_3(),
             fabercastell6283N(),
             hemmi266(),
@@ -141,6 +151,76 @@ struct SlideRuleLibrary {
                 "PF": "F"            // Time constant (lowercase Greek)
             ],
             manufacturer: SlideRuleManufacturer.pickett.rawValue
+        )
+    }
+    
+    /// Pickett N-16 ES Electronic - ANNOTATION TEST VERSION
+    /// Demonstrates new annotation features:
+    /// - Rule-level display settings (formulas disabled)
+    /// - Even-indexed scale names suppressed
+    /// - Back slide has legend text block annotation
+    static func pickettN16ESAnnotationTest() -> SlideRuleDefinitionModel {
+        // Create the legend annotation and encode to JSON for persistence
+        let legendAnnotation: ComponentAnnotation = ComponentAnnotation(
+            content: .text("""
+                F = cycles per. sec.
+                λ = meters × 10⁶
+                ω = radians per. sec.
+                T = seconds
+                
+                C = farads
+                L = Henrys
+                Xc = ohms
+                XL = ohms
+                """),
+            color: LabelColor(red: 0, green: 0, blue: 0, alpha: 1),
+            horizontalPosition: 0.99,  // Right edge (trailing anchor aligns right edge here)
+            verticalPosition: 0.5,     // Vertically centered
+            anchor: .trailing,         // Anchor right edge at position
+            fontSize: 8,
+            fontWeight: .medium,
+            textAlignment: .leading
+        )
+        
+        // Encode annotations to JSON for SwiftData persistence
+        let annotationsJSON: String? = {
+            let annotations = [legendAnnotation]
+            guard let data = try? JSONEncoder().encode(annotations),
+                  let json = String(data: data, encoding: .utf8) else {
+                return nil
+            }
+            return json
+        }()
+        
+        return SlideRuleDefinitionModel(
+            name: "Pickett N-16 ES (Annotation Test)",
+            description: """
+                TEST VERSION demonstrating annotation features: \
+                • All formulas disabled at rule level \
+                • Even-numbered scale names suppressed \
+                • Back slide has unit legend text block
+                """,
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: -1,  // Show at top for easy testing
+            scaleNameOverrides: [
+                "DQ": "D/Q",
+                "L": "C/L",
+                "Cos": "cos",
+                "CosΘ": "cos Θ",
+                "Θ": "θ",
+                "λ": "λ",
+                "ω": "ω",
+                "τ": "τ",
+                "PF": "F"
+            ],
+            manufacturer: SlideRuleManufacturer.pickett.rawValue,
+            showScaleNames: true,           // Names visible (but even-indexed suppressed)
+            showFormulas: false,            // Formulas hidden at rule level
+            suppressEvenScaleNames: true,   // Suppress names at indices 0, 2, 4...
+            backSlideAnnotationsJSON: annotationsJSON
         )
     }
     

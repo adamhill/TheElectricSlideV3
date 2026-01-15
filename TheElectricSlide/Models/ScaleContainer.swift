@@ -13,6 +13,7 @@ import SlideRuleCoreV3
 protocol ScaleContainer {
     var scales: [GeneratedScale] { get }
     var showBorder: Bool { get }
+    var annotations: [ComponentAnnotation] { get }
     
     /// Approximate total height of all scales in this container.
     ///

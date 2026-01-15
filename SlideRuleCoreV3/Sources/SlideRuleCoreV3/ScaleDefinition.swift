@@ -384,11 +384,39 @@ public struct ScaleDefinition: Sendable {
     
     /// Whether to suppress rendering the scale name label (left margin)
     /// When true, the name is still stored (for use in previews/debugging) but not rendered on the scale.
+    /// DEPRECATED: Use `scaleNameMargin = .none` instead
     public let suppressScaleNameLabel: Bool
     
     /// Whether to suppress rendering the formula label (right margin)
     /// When true, the formula is still stored (for use in previews/debugging) but not rendered on the scale.
+    /// DEPRECATED: Use `formulaMargin = .none` instead
     public let suppressFormulaLabel: Bool
+    
+    /// Which margin the scale name appears in (nil = use rule default, typically .left)
+    /// Examples:
+    /// - `.left`: Name appears in left margin (traditional)
+    /// - `.right`: Name appears in right margin (Graphoplex style)
+    /// - `.none`: Name is suppressed
+    /// - `nil`: Use rule-level default (RuleDisplaySettings.defaultScaleNameMargin)
+    public let scaleNameMargin: MarginSide?
+    
+    /// Which margin the formula appears in (nil = use rule default, typically .right)
+    /// Examples:
+    /// - `.right`: Formula appears in right margin (traditional)
+    /// - `.left`: Formula appears in left margin
+    /// - `.none`: Formula is suppressed
+    /// - `nil`: Use rule-level default (RuleDisplaySettings.defaultFormulaMargin)
+    public let formulaMargin: MarginSide?
+    
+    /// Custom annotations for the left margin (replaces or supplements scale name)
+    /// If non-empty, these are rendered instead of the scale name.
+    /// If empty/nil and suppressScaleNameLabel is false, the scale name is rendered.
+    public let leftAnnotations: [MarginAnnotation]
+    
+    /// Custom annotations for the right margin (replaces or supplements formula)
+    /// If non-empty, these are rendered instead of the formula.
+    /// If empty/nil and suppressFormulaLabel is false, the formula is rendered.
+    public let rightAnnotations: [MarginAnnotation]
     
     public init(
         name: String,
@@ -416,7 +444,11 @@ public struct ScaleDefinition: Sendable {
         suppressEndBoundaryLabel: Bool = false,
         suppressEndBoundaryTick: Bool = false,
         suppressScaleNameLabel: Bool = false,
-        suppressFormulaLabel: Bool = false
+        suppressFormulaLabel: Bool = false,
+        scaleNameMargin: MarginSide? = nil,
+        formulaMargin: MarginSide? = nil,
+        leftAnnotations: [MarginAnnotation] = [],
+        rightAnnotations: [MarginAnnotation] = []
     ) {
         self.name = name
         self.displayName = displayName
@@ -444,6 +476,10 @@ public struct ScaleDefinition: Sendable {
         self.suppressEndBoundaryTick = suppressEndBoundaryTick
         self.suppressScaleNameLabel = suppressScaleNameLabel
         self.suppressFormulaLabel = suppressFormulaLabel
+        self.scaleNameMargin = scaleNameMargin
+        self.formulaMargin = formulaMargin
+        self.leftAnnotations = leftAnnotations
+        self.rightAnnotations = rightAnnotations
     }
     
     /// Whether this is a circular scale
@@ -501,6 +537,10 @@ public struct ScaleBuilder {
     private var suppressEndBoundaryTick: Bool = false
     private var suppressScaleNameLabel: Bool = false
     private var suppressFormulaLabel: Bool = false
+    private var scaleNameMargin: MarginSide?
+    private var formulaMargin: MarginSide?
+    private var leftAnnotations: [MarginAnnotation] = []
+    private var rightAnnotations: [MarginAnnotation] = []
     
     public init() {}
     
@@ -534,6 +574,10 @@ public struct ScaleBuilder {
         self.suppressEndBoundaryTick = definition.suppressEndBoundaryTick
         self.suppressScaleNameLabel = definition.suppressScaleNameLabel
         self.suppressFormulaLabel = definition.suppressFormulaLabel
+        self.scaleNameMargin = definition.scaleNameMargin
+        self.formulaMargin = definition.formulaMargin
+        self.leftAnnotations = definition.leftAnnotations
+        self.rightAnnotations = definition.rightAnnotations
     }
     
     public func withName(_ name: String) -> ScaleBuilder {
@@ -721,6 +765,122 @@ public struct ScaleBuilder {
         return withSuppressFormulaLabel(true)
     }
     
+    // MARK: - Margin Side Control
+    
+    /// Set which margin the scale name appears in
+    /// - Parameter margin: `.left` (traditional), `.right` (Graphoplex style), or `.none` (suppressed)
+    /// - Returns: Updated builder
+    /// - Note: `nil` defers to rule-level `RuleDisplaySettings.defaultScaleNameMargin`
+    public func withScaleNameMargin(_ margin: MarginSide?) -> ScaleBuilder {
+        var copy = self
+        copy.scaleNameMargin = margin
+        return copy
+    }
+    
+    /// Convenience: Place scale name in left margin (traditional)
+    public func scaleNameOnLeft() -> ScaleBuilder {
+        return withScaleNameMargin(.left)
+    }
+    
+    /// Convenience: Place scale name in right margin (Graphoplex style)
+    public func scaleNameOnRight() -> ScaleBuilder {
+        return withScaleNameMargin(.right)
+    }
+    
+    /// Set which margin the formula appears in
+    /// - Parameter margin: `.right` (traditional), `.left`, or `.none` (suppressed)
+    /// - Returns: Updated builder
+    /// - Note: `nil` defers to rule-level `RuleDisplaySettings.defaultFormulaMargin`
+    public func withFormulaMargin(_ margin: MarginSide?) -> ScaleBuilder {
+        var copy = self
+        copy.formulaMargin = margin
+        return copy
+    }
+    
+    /// Convenience: Place formula in right margin (traditional)
+    public func formulaOnRight() -> ScaleBuilder {
+        return withFormulaMargin(.right)
+    }
+    
+    /// Convenience: Place formula in left margin
+    public func formulaOnLeft() -> ScaleBuilder {
+        return withFormulaMargin(.left)
+    }
+    
+    // MARK: - Margin Annotations
+    
+    /// Set left margin annotations (replaces scale name)
+    public func withLeftAnnotations(_ annotations: [MarginAnnotation]) -> ScaleBuilder {
+        var copy = self
+        copy.leftAnnotations = annotations
+        return copy
+    }
+    
+    /// Add a single left margin annotation
+    public func addLeftAnnotation(_ annotation: MarginAnnotation) -> ScaleBuilder {
+        var copy = self
+        copy.leftAnnotations.append(annotation)
+        return copy
+    }
+    
+    /// Add a simple text annotation to the left margin
+    public func addLeftAnnotation(
+        text: String,
+        color: LabelColor = .black,
+        offset: Offset = .zero,
+        fontSizeMultiplier: Double = 1.0
+    ) -> ScaleBuilder {
+        return addLeftAnnotation(MarginAnnotation(
+            text: text,
+            color: color,
+            offset: offset,
+            fontSizeMultiplier: fontSizeMultiplier
+        ))
+    }
+    
+    /// Set right margin annotations (replaces formula)
+    public func withRightAnnotations(_ annotations: [MarginAnnotation]) -> ScaleBuilder {
+        var copy = self
+        copy.rightAnnotations = annotations
+        return copy
+    }
+    
+    /// Add a single right margin annotation
+    public func addRightAnnotation(_ annotation: MarginAnnotation) -> ScaleBuilder {
+        var copy = self
+        copy.rightAnnotations.append(annotation)
+        return copy
+    }
+    
+    /// Add a simple text annotation to the right margin
+    public func addRightAnnotation(
+        text: String,
+        color: LabelColor = .black,
+        offset: Offset = .zero,
+        fontSizeMultiplier: Double = 1.0
+    ) -> ScaleBuilder {
+        return addRightAnnotation(MarginAnnotation(
+            text: text,
+            color: color,
+            offset: offset,
+            fontSizeMultiplier: fontSizeMultiplier
+        ))
+    }
+    
+    /// Clear all left margin annotations
+    public func clearLeftAnnotations() -> ScaleBuilder {
+        var copy = self
+        copy.leftAnnotations = []
+        return copy
+    }
+    
+    /// Clear all right margin annotations
+    public func clearRightAnnotations() -> ScaleBuilder {
+        var copy = self
+        copy.rightAnnotations = []
+        return copy
+    }
+    
     public func build() -> ScaleDefinition {
         guard let function = function else {
             fatalError("Scale function must be specified")
@@ -750,7 +910,11 @@ public struct ScaleBuilder {
             suppressEndBoundaryLabel: suppressEndBoundaryLabel,
             suppressEndBoundaryTick: suppressEndBoundaryTick,
             suppressScaleNameLabel: suppressScaleNameLabel,
-            suppressFormulaLabel: suppressFormulaLabel
+            suppressFormulaLabel: suppressFormulaLabel,
+            scaleNameMargin: scaleNameMargin,
+            formulaMargin: formulaMargin,
+            leftAnnotations: leftAnnotations,
+            rightAnnotations: rightAnnotations
         )
     }
 }

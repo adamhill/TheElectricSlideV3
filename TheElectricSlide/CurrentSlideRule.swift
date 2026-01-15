@@ -59,6 +59,46 @@ final class SlideRuleDefinitionModel {
         return SlideRuleManufacturer(rawValue: manufacturer)
     }
     
+    // MARK: - Annotation Features (Persisted)
+    // These properties support annotation configuration and ARE stored in SwiftData
+    
+    /// Whether to show scale names (default: true)
+    /// When false, all scale names are hidden regardless of per-scale settings
+    var showScaleNames: Bool = true
+    
+    /// Whether to show formulas (default: true)
+    /// When false, all formulas are hidden regardless of per-scale settings
+    var showFormulas: Bool = true
+    
+    /// Whether to suppress scale names for even-indexed scales (0, 2, 4, ...)
+    var suppressEvenScaleNames: Bool = false
+    
+    /// JSON-encoded annotation data for back slide (text blocks, logos, etc.)
+    /// Stored as String for SwiftData compatibility - decoded at parse time
+    var backSlideAnnotationsJSON: String?
+    
+    /// Computed property to get RuleDisplaySettings from persisted booleans
+    var displaySettings: RuleDisplaySettings {
+        RuleDisplaySettings(
+            showScaleNames: showScaleNames,
+            showFormulas: showFormulas
+        )
+    }
+    
+    /// Computed property to decode back slide annotations from JSON
+    var backSlideAnnotations: [ComponentAnnotation] {
+        guard let json = backSlideAnnotationsJSON,
+              let data = json.data(using: .utf8) else {
+            return []
+        }
+        do {
+            return try JSONDecoder().decode([ComponentAnnotation].self, from: data)
+        } catch {
+            print("Failed to decode backSlideAnnotations: \(error)")
+            return []
+        }
+    }
+    
     init(
         name: String,
         description: String,
@@ -71,7 +111,11 @@ final class SlideRuleDefinitionModel {
         sortOrder: Int = 0,
         scaleNameOverrides: [String: String] = [:],
         libraryVersion: Int = 0,
-        manufacturer: String? = nil
+        manufacturer: String? = nil,
+        showScaleNames: Bool = true,
+        showFormulas: Bool = true,
+        suppressEvenScaleNames: Bool = false,
+        backSlideAnnotationsJSON: String? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -86,6 +130,10 @@ final class SlideRuleDefinitionModel {
         self.scaleNameOverrides = scaleNameOverrides
         self.libraryVersion = libraryVersion
         self.manufacturer = manufacturer
+        self.showScaleNames = showScaleNames
+        self.showFormulas = showFormulas
+        self.suppressEvenScaleNames = suppressEvenScaleNames
+        self.backSlideAnnotationsJSON = backSlideAnnotationsJSON
     }
     
     /// Parse this definition into a SlideRule
@@ -114,7 +162,8 @@ final class SlideRuleDefinitionModel {
             rule = try RuleDefinitionParser.parse(
                 fullDefinition,
                 dimensions: dimensions,
-                scaleLength: scaleLength
+                scaleLength: scaleLength,
+                displaySettings: displaySettings
             )
         }
         
@@ -123,7 +172,97 @@ final class SlideRuleDefinitionModel {
             rule = applyScaleNameOverrides(to: rule)
         }
         
+        // Apply even-indexed scale name suppression if enabled
+        if suppressEvenScaleNames {
+            print("🔧 Applying even-indexed scale name suppression")
+            rule = applyEvenScaleNameSuppression(to: rule)
+        } else {
+            print("⚠️ suppressEvenScaleNames is FALSE, not suppressing")
+        }
+        
+        // Apply back slide annotations if any exist
+        if !backSlideAnnotations.isEmpty {
+            rule = applyBackSlideAnnotations(to: rule)
+        }
+        
         return rule
+    }
+    
+    /// Apply suppression of scale names at even indices (0, 2, 4, ...)
+    private func applyEvenScaleNameSuppression(to rule: SlideRule) -> SlideRule {
+        // Helper to suppress scale names at even indices
+        func suppressEvenScales(_ scales: [GeneratedScale]) -> [GeneratedScale] {
+            return scales.enumerated().map { (index, generatedScale) in
+                // Even indices: 0, 2, 4, ...
+                if index % 2 == 0 {
+                    // IMPORTANT: Use MarginSide.none explicitly to avoid Swift inferring Optional.none (nil)
+                    let newDefinition = ScaleBuilder(from: generatedScale.definition)
+                        .withScaleNameMargin(MarginSide.none)
+                        .build()
+                    return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
+                }
+                return generatedScale
+            }
+        }
+        
+        func processStator(_ stator: Stator) -> Stator {
+            Stator(
+                name: stator.name,
+                scales: suppressEvenScales(stator.scales),
+                heightInPoints: stator.heightInPoints,
+                showBorder: stator.showBorder,
+                annotations: stator.annotations
+            )
+        }
+        
+        func processSlide(_ slide: Slide) -> Slide {
+            Slide(
+                name: slide.name,
+                scales: suppressEvenScales(slide.scales),
+                heightInPoints: slide.heightInPoints,
+                showBorder: slide.showBorder,
+                annotations: slide.annotations
+            )
+        }
+        
+        return SlideRule(
+            frontTopStator: processStator(rule.frontTopStator),
+            frontSlide: processSlide(rule.frontSlide),
+            frontBottomStator: processStator(rule.frontBottomStator),
+            backTopStator: rule.backTopStator.map { processStator($0) },
+            backSlide: rule.backSlide.map { processSlide($0) },
+            backBottomStator: rule.backBottomStator.map { processStator($0) },
+            totalLengthInPoints: rule.totalLengthInPoints,
+            diameter: rule.diameter,
+            radialPositions: rule.radialPositions,
+            displaySettings: rule.displaySettings
+        )
+    }
+    
+    /// Apply annotations to the back slide
+    private func applyBackSlideAnnotations(to rule: SlideRule) -> SlideRule {
+        guard let backSlide = rule.backSlide else { return rule }
+        
+        let newBackSlide = Slide(
+            name: backSlide.name,
+            scales: backSlide.scales,
+            heightInPoints: backSlide.heightInPoints,
+            showBorder: backSlide.showBorder,
+            annotations: backSlide.annotations + backSlideAnnotations
+        )
+        
+        return SlideRule(
+            frontTopStator: rule.frontTopStator,
+            frontSlide: rule.frontSlide,
+            frontBottomStator: rule.frontBottomStator,
+            backTopStator: rule.backTopStator,
+            backSlide: newBackSlide,
+            backBottomStator: rule.backBottomStator,
+            totalLengthInPoints: rule.totalLengthInPoints,
+            diameter: rule.diameter,
+            radialPositions: rule.radialPositions,
+            displaySettings: rule.displaySettings
+        )
     }
     
     /// Apply scale name overrides to a parsed slide rule
@@ -164,7 +303,8 @@ final class SlideRuleDefinitionModel {
                 name: stator.name,
                 scales: stator.scales.map(overrideGeneratedScale),
                 heightInPoints: stator.heightInPoints,
-                showBorder: stator.showBorder
+                showBorder: stator.showBorder,
+                annotations: stator.annotations
             )
         }
         
@@ -174,7 +314,8 @@ final class SlideRuleDefinitionModel {
                 name: slide.name,
                 scales: slide.scales.map(overrideGeneratedScale),
                 heightInPoints: slide.heightInPoints,
-                showBorder: slide.showBorder
+                showBorder: slide.showBorder,
+                annotations: slide.annotations
             )
         }
         
@@ -197,7 +338,8 @@ final class SlideRuleDefinitionModel {
             backBottomStator: newBackBottomStator,
             totalLengthInPoints: rule.totalLengthInPoints,
             diameter: rule.diameter,
-            radialPositions: rule.radialPositions
+            radialPositions: rule.radialPositions,
+            displaySettings: rule.displaySettings
         )
     }
 }

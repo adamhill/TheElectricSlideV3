@@ -153,6 +153,93 @@ Canvas { ... }.drawingGroup()  // Metal-accelerated rendering for 200+ tick mark
   - `.regular` = spacious width (iPads full screen, large iPhones landscape)
 - **Don't** use `UIDevice.current.userInterfaceIdiom` in view bodies
 
+## CRITICAL: SlideRuleLibrary Version Bumping
+
+**⚠️ ALWAYS bump `libraryVersion` when modifying SlideRuleLibrary.swift**
+
+When adding, removing, or modifying any slide rule definition (`definitionString`, scale overrides, manufacturer, etc.):
+
+1. **Increment `libraryVersion`** - This triggers SwiftData to refresh cached rules
+2. **Add version comment** - Document what changed in the version history
+
+```swift
+// ❌ WRONG - Forgetting to bump version
+static func standardRules() -> [SlideRuleDefinitionModel] {
+    // Added new rule but didn't bump version - users won't see it!
+}
+
+// ✅ CORRECT - Always bump and document
+/// Version 27: Added Pickett N-16 ES Annotation Test
+static let libraryVersion = 27  // Bumped from 26
+```
+
+**Why this matters:**
+- SwiftData caches slide rule definitions
+- Without version bump, existing users never see new/modified rules
+- The app compares `libraryVersion` against stored version to detect updates
+- New rules simply won't appear in the sidebar until version is bumped
+
+## CRITICAL: NO @Transient Properties for Persisted Data
+
+**⚠️ NEVER use `@Transient` for data that must survive app restart**
+
+`@Transient` properties in SwiftData models are **never saved to the database**. They reset to default values when the model is loaded from storage.
+
+```swift
+// ❌ WRONG - @Transient resets on load
+@Model
+final class SlideRuleDefinitionModel {
+    @Transient var showFormulas: Bool = true  // Always resets to true!
+    @Transient var annotations: [ComponentAnnotation] = []  // Always empty!
+}
+
+// ✅ CORRECT - Use persisted properties
+@Model
+final class SlideRuleDefinitionModel {
+    var showFormulas: Bool = true  // Persisted!
+    var annotationsJSON: String?   // JSON-encode complex types
+}
+```
+
+**For complex types** (arrays, custom structs) that SwiftData can't store directly:
+1. Store as JSON-encoded `String?`
+2. Add computed property to decode on access
+3. Encode in factory methods before saving
+
+```swift
+// Store complex types as JSON
+var backSlideAnnotationsJSON: String?
+
+// Decode on access
+var backSlideAnnotations: [ComponentAnnotation] {
+    guard let json = backSlideAnnotationsJSON,
+          let data = json.data(using: .utf8) else { return [] }
+    return (try? JSONDecoder().decode([ComponentAnnotation].self, from: data)) ?? []
+}
+```
+
+## CRITICAL: Sync New Model Properties in Library Update Logic
+
+**⚠️ When adding NEW properties to `SlideRuleDefinitionModel`, you MUST update BOTH:**
+
+1. `SlideRulePicker.swift` - Update logic around line 127-145
+2. `SlideRuleSidebarView.swift` - Update logic around line 210-230
+
+The library update logic copies properties from standard rules to existing rules. If a new property isn't copied, existing users' cached rules won't get the new values even after a version bump.
+
+```swift
+// ❌ WRONG - Added new property but forgot to sync
+existingRule.libraryVersion = standardRule.libraryVersion
+// showFormulas is NOT copied - existing rules keep default value!
+
+// ✅ CORRECT - Always sync ALL properties
+existingRule.libraryVersion = standardRule.libraryVersion
+existingRule.showScaleNames = standardRule.showScaleNames
+existingRule.showFormulas = standardRule.showFormulas
+existingRule.suppressEvenScaleNames = standardRule.suppressEvenScaleNames
+existingRule.backSlideAnnotationsJSON = standardRule.backSlideAnnotationsJSON
+```
+
 ## View Hierarchy
 - `ContentView` → `StaticHeaderSection` + `DynamicSlideRuleContent`
 - `DynamicSlideRuleContent` → `SideView` → `StatorView` + `SlideView` + `StatorView`

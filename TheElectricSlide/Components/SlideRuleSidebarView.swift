@@ -220,6 +220,11 @@ struct SlideRuleSidebarView: View {
                         existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
                         existingRule.manufacturer = standardRule.manufacturer  // Sync manufacturer
+                        // Sync annotation features (added Version 28)
+                        existingRule.showScaleNames = standardRule.showScaleNames
+                        existingRule.showFormulas = standardRule.showFormulas
+                        existingRule.suppressEvenScaleNames = standardRule.suppressEvenScaleNames
+                        existingRule.backSlideAnnotationsJSON = standardRule.backSlideAnnotationsJSON
                         // Preserve user's favorite status
                     } else {
                         // New rule: insert it
@@ -309,17 +314,11 @@ extension SlideRuleSidebarView {
     }
     
     private func parseSlideRule(from model: SlideRuleDefinitionModel, length: Distance) throws -> SlideRule {
-        let dimensions = RuleDefinitionParser.Dimensions(
-            topStatorMM: model.topStatorMM,
-            slideMM: model.slideMM,
-            bottomStatorMM: model.bottomStatorMM
-        )
-        
-        return try RuleDefinitionParser.parse(
-            model.definitionString,
-            dimensions: dimensions,
-            scaleLength: length
-        )
+        // Use model's parseSlideRule() to include all post-processing:
+        // - Scale name overrides
+        // - Even-indexed scale name suppression
+        // - Back slide annotations
+        return try model.parseSlideRule(scaleLength: length)
     }
     
     private func presentError(message: String) {

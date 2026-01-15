@@ -29,18 +29,11 @@ extension ScaleTestData {
             testValues: [0.1, 1.0, 10.0, 100.0, 1000.0]
         ),
         ScaleTestData(
-            name: "PickettD",
-            scaleFactory: { StandardScales.pickettDScale(length: $0) },
+            name: "PickettDQ",
+            scaleFactory: { StandardScales.pickettDQScale(length: $0) },
             tolerance: TestTolerance.eeScale,
             testPositions: TestValues.positions,
             testValues: [0.001, 0.01, 0.1, 1.0, 10.0]
-        ),
-        ScaleTestData(
-            name: "PickettQ",
-            scaleFactory: { StandardScales.pickettQScale(length: $0) },
-            tolerance: TestTolerance.eeScale,
-            testPositions: TestValues.positions,
-            testValues: [1.0, 10.0, 100.0, 1000.0]
         ),
         ScaleTestData(
             name: "PickettF",

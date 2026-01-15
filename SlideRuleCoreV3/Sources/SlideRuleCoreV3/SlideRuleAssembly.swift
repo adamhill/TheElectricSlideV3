@@ -18,12 +18,22 @@ public struct Stator: Sendable {
     public let heightInPoints: Distance
     /// Whether to render a border around this stator
     public let showBorder: Bool
+    /// Annotations positioned on this stator (text blocks, logos, etc.)
+    /// Uses normalized coordinates with origin at top-left of the stator
+    public let annotations: [ComponentAnnotation]
     
-    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance, showBorder: Bool = false) {
+    public init(
+        name: String,
+        scales: [GeneratedScale],
+        heightInPoints: Distance,
+        showBorder: Bool = false,
+        annotations: [ComponentAnnotation] = []
+    ) {
         self.name = name
         self.scales = scales
         self.heightInPoints = heightInPoints
         self.showBorder = showBorder
+        self.annotations = annotations
     }
 }
 
@@ -34,12 +44,22 @@ public struct Slide: Sendable {
     public let heightInPoints: Distance
     /// Whether to render a border around this slide
     public let showBorder: Bool
+    /// Annotations positioned on this slide (text blocks, logos, etc.)
+    /// Uses normalized coordinates with origin at top-left of the slide
+    public let annotations: [ComponentAnnotation]
     
-    public init(name: String, scales: [GeneratedScale], heightInPoints: Distance, showBorder: Bool = false) {
+    public init(
+        name: String,
+        scales: [GeneratedScale],
+        heightInPoints: Distance,
+        showBorder: Bool = false,
+        annotations: [ComponentAnnotation] = []
+    ) {
         self.name = name
         self.scales = scales
         self.heightInPoints = heightInPoints
         self.showBorder = showBorder
+        self.annotations = annotations
     }
 }
 
@@ -64,6 +84,10 @@ public struct SlideRule: Sendable {
     /// For circular rules: radial positions for each component [outer, middle, inner]
     public let radialPositions: [Distance]?
     
+    /// Display settings for rule-level control of scale names and formulas
+    /// Controls whether to show scale names/formulas globally, and which margins they default to.
+    public let displaySettings: RuleDisplaySettings
+    
     public init(
         frontTopStator: Stator,
         frontSlide: Slide,
@@ -73,7 +97,8 @@ public struct SlideRule: Sendable {
         backBottomStator: Stator? = nil,
         totalLengthInPoints: Distance,
         diameter: Distance? = nil,
-        radialPositions: [Distance]? = nil
+        radialPositions: [Distance]? = nil,
+        displaySettings: RuleDisplaySettings = .standard
     ) {
         self.frontTopStator = frontTopStator
         self.frontSlide = frontSlide
@@ -84,6 +109,7 @@ public struct SlideRule: Sendable {
         self.totalLengthInPoints = totalLengthInPoints
         self.diameter = diameter
         self.radialPositions = radialPositions
+        self.displaySettings = displaySettings
     }
     
     /// Whether this is a circular slide rule
@@ -242,11 +268,13 @@ public struct RuleDefinitionParser {
     ///   - definition: String like "(C D [ CI ] A K : LL1 LL2 [ LL3 ])"
     ///   - dimensions: Component heights
     ///   - scaleLength: Length of scales in points (e.g., 250mm = ~710 points)
+    ///   - displaySettings: Rule-level display settings for scale names and formulas
     /// - Returns: A SlideRule structure
     public static func parse(
         _ definition: String,
         dimensions: Dimensions,
-        scaleLength: Distance = 250.0
+        scaleLength: Distance = 250.0,
+        displaySettings: RuleDisplaySettings = .standard
     ) throws -> SlideRule {
         // Remove parentheses and split by colon for front/back
         let cleaned = definition
@@ -325,7 +353,8 @@ public struct RuleDefinitionParser {
             backTopStator: backTopStator,
             backSlide: backSlide,
             backBottomStator: backBottomStator,
-            totalLengthInPoints: scaleLength
+            totalLengthInPoints: scaleLength,
+            displaySettings: displaySettings
         )
     }
     

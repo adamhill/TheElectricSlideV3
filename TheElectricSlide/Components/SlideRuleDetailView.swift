@@ -89,6 +89,8 @@ struct SlideRuleDetailView: View {
                 useManufacturerColors: useManufacturerColors,
                 colorScheme: colorScheme
             )
+            // Inject rule-level display settings into environment for ScaleView to use
+            .environment(\.ruleDisplaySettings, currentSlideRule.displaySettings)
             .modifier(PanPositionModifier(offset: panOffset))  // Use custom modifier for jitter-free pan
             .scaleEffect(currentZoomScale, anchor: .top)  // Scale from top to prevent vertical shift
             // NOTE: .drawingGroup() intentionally NOT applied here (Jan 2025, Issue #115)

@@ -23,9 +23,31 @@ private let DEBUG_SPLIT_CANVAS = true
 /// Track Canvas redraw count
 private var canvasRedrawCount = 0
 
+/// TEST FLAG: Set to true to suppress ALL formulas for Phase 2 annotation testing
+/// TODO: Remove this flag after testing is complete
+private let DEBUG_SUPPRESS_ALL_FORMULAS = false
+
+// MARK: - RuleDisplaySettings Environment Key
+
+/// Environment key for rule-level display settings
+/// Allows ScaleView to access rule-level name/formula visibility settings
+/// without prop drilling through StatorView/SlideView/ScaleContainerView
+private struct RuleDisplaySettingsKey: EnvironmentKey {
+    static let defaultValue: RuleDisplaySettings = .standard
+}
+
+extension EnvironmentValues {
+    var ruleDisplaySettings: RuleDisplaySettings {
+        get { self[RuleDisplaySettingsKey.self] }
+        set { self[RuleDisplaySettingsKey.self] = newValue }
+    }
+}
+
 // MARK: - ScaleView Component
 
 struct ScaleView: View, Equatable {
+    @Environment(\.ruleDisplaySettings) private var ruleDisplaySettings
+    
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
     let width: CGFloat
     let height: CGFloat
@@ -90,77 +112,170 @@ struct ScaleView: View, Equatable {
         lhs.backgroundGradient == rhs.backgroundGradient
     }
     
+    // MARK: - Computed Margin Content
+    
+    /// Determines which margin the scale name should appear in, considering rule and scale settings
+    /// Priority: per-scale scaleNameMargin > rule default > legacy suppressScaleNameLabel
+    private var effectiveScaleNameMargin: MarginSide {
+        // If rule-level says don't show names, return .none
+        guard ruleDisplaySettings.showScaleNames else { return .none }
+        
+        // Check for per-scale override first
+        if let perScaleMargin = generatedScale.definition.scaleNameMargin {
+            // DEBUG: Log when per-scale margin is found
+            print("📛 Scale '\(generatedScale.definition.name)' has per-scale margin: \(perScaleMargin)")
+            return perScaleMargin
+        }
+        
+        // Fall back to legacy suppress flag for backward compatibility
+        if generatedScale.definition.suppressScaleNameLabel {
+            return .none
+        }
+        
+        // Use rule-level default
+        return ruleDisplaySettings.defaultScaleNameMargin
+    }
+    
+    /// Determines which margin the formula should appear in, considering rule and scale settings
+    /// Priority: per-scale formulaMargin > rule default > legacy suppressFormulaLabel
+    private var effectiveFormulaMargin: MarginSide {
+        // If rule-level says don't show formulas, return .none
+        guard ruleDisplaySettings.showFormulas else { return .none }
+        
+        // Check for per-scale override first
+        if let perScaleMargin = generatedScale.definition.formulaMargin {
+            return perScaleMargin
+        }
+        
+        // Fall back to legacy suppress flag for backward compatibility
+        if generatedScale.definition.suppressFormulaLabel {
+            return .none
+        }
+        
+        // Use rule-level default
+        return ruleDisplaySettings.defaultFormulaMargin
+    }
+    
     var body: some View {
+        let scaleLabel = generatedScale.definition.displayName ?? generatedScale.definition.name
+        let nameMargin = effectiveScaleNameMargin
+        let formulaMargin = effectiveFormulaMargin
+        
         HStack(alignment: .center, spacing: 4) {
-            // Scale name label on the left (right-aligned with responsive width)
-            // Use displayName if available (for aliases like W2→Sq2), otherwise use canonical name
-            // Only render if not suppressed (suppressScaleNameLabel allows name to exist for debugging but not render)
-            let scaleLabel = generatedScale.definition.displayName ?? generatedScale.definition.name
+            // Left margin content
+            leftMarginContent(scaleLabel: scaleLabel, nameMargin: nameMargin, formulaMargin: formulaMargin)
             
-            if !generatedScale.definition.suppressScaleNameLabel {
-                Text(scaleLabel)
-                    .font(nameFont)
-                    .foregroundColor(self.scaleLabelColor)
-                    .frame(width: leftMarginWidth, alignment: .trailing)
-                    .accessibilityIdentifier("scale-name-\(scaleLabel)")
-            } else {
-                // Empty spacer to maintain layout when name is suppressed
-                Spacer()
-                    .frame(width: leftMarginWidth)
-            }
+            // Scale view (tick marks and labels)
+            scaleCanvas
             
-            // Scale view
-            ZStack(alignment: .topLeading) {
-                // Tick marks and labels
-                Canvas { context, size in
-                    // DEBUG: Log Canvas size for split scales
-                    if DEBUG_SPLIT_CANVAS && (generatedScale.definition.name.contains("Θ") || generatedScale.definition.name.contains("θ")) {
-                        print("🎨 [CANVAS] \(generatedScale.definition.name): size=(\(size.width), \(size.height)), passed height=\(height), tickDir=\(generatedScale.definition.tickDirection)")
-                        if let segment = generatedScale.definition.splitSegment {
-                            print("   splitSegment: \(segment)")
-                        }
-                    }
-                    
-                    // ✅ OPTIMIZATION: Draw background gradient in Canvas instead of .background()
-                    // This eliminates VStack preference propagation during drag updates
-                    if let gradient = backgroundGradient {
-                        drawBackgroundGradient(context: &context, size: size, gradient: gradient)
-                    }
-                    
-                    // ✅ Use pre-computed tick marks from GeneratedScale
-                    drawScale(
-                        context: &context,
-                        size: size,
-                        tickMarks: generatedScale.tickMarks,
-                        definition: generatedScale.definition
-                    )
-                }
-                .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
-                .accessibilityIdentifier("scale-canvas-\(generatedScale.definition.name)")
-            }
-            // ✅ FIXED HEIGHT: Use fixed frame to ensure Canvas gets consistent size
-            // This is critical for split scale ZStack rendering where both scales
-            // must have identical Canvas dimensions for proper tick alignment
-            .frame(width: width, height: height)
-            .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
-            
-            // Formula label on the right (left-aligned with responsive width)
-            // Only render if not suppressed (suppressFormulaLabel allows formula to exist for debugging but not render)
-            if !generatedScale.definition.suppressFormulaLabel {
-                Text(generatedScale.definition.formula)
-                    .font(formulaFont)
-                    .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
-                    .foregroundColor(.black)
-                    .frame(width: rightMarginWidth, alignment: .leading)
-                    .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
-            } else {
-                // Empty spacer to maintain layout when formula is suppressed
-                Spacer()
-                    .frame(width: rightMarginWidth)
-            }
+            // Right margin content
+            rightMarginContent(scaleLabel: scaleLabel, nameMargin: nameMargin, formulaMargin: formulaMargin)
         }
         .frame(height: height)  // Ensure consistent height for split scale ZStack alignment
         .accessibilityIdentifier("scaleview-\(generatedScale.definition.name)")
+    }
+    
+    /// Left margin content: custom annotations, scale name, formula, or empty spacer
+    @ViewBuilder
+    private func leftMarginContent(scaleLabel: String, nameMargin: MarginSide, formulaMargin: MarginSide) -> some View {
+        // Priority 1: Custom left annotations (if non-empty)
+        if !generatedScale.definition.leftAnnotations.isEmpty {
+            leftMarginAnnotationsView
+                .frame(width: leftMarginWidth, alignment: .trailing)
+                .accessibilityIdentifier("scale-left-annotations-\(scaleLabel)")
+        }
+        // Priority 2: Scale name (if configured for left margin)
+        else if nameMargin == .left {
+            Text(scaleLabel)
+                .font(nameFont)
+                .foregroundColor(scaleLabelColor)
+                .frame(width: leftMarginWidth, alignment: .trailing)
+                .accessibilityIdentifier("scale-name-\(scaleLabel)")
+        }
+        // Priority 3: Formula (if configured for left margin - unusual but supported)
+        else if formulaMargin == .left {
+            Text(generatedScale.definition.formula)
+                .font(formulaFont)
+                .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
+                .foregroundColor(.black)
+                .frame(width: leftMarginWidth, alignment: .trailing)
+                .accessibilityIdentifier("scale-formula-left-\(generatedScale.definition.name)")
+        }
+        // Priority 4: Empty spacer to maintain layout
+        else {
+            Spacer()
+                .frame(width: leftMarginWidth)
+        }
+    }
+    
+    /// Right margin content: custom annotations, formula, scale name, or empty spacer
+    @ViewBuilder
+    private func rightMarginContent(scaleLabel: String, nameMargin: MarginSide, formulaMargin: MarginSide) -> some View {
+        // Priority 1: Custom right annotations (if non-empty)
+        if !generatedScale.definition.rightAnnotations.isEmpty {
+            rightMarginAnnotationsView
+                .frame(width: rightMarginWidth, alignment: .leading)
+                .accessibilityIdentifier("scale-right-annotations-\(generatedScale.definition.name)")
+        }
+        // Priority 2: Formula (if configured for right margin - traditional)
+        else if formulaMargin == .right {
+            Text(generatedScale.definition.formula)
+                .font(formulaFont)
+                .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
+                .foregroundColor(.black)
+                .frame(width: rightMarginWidth, alignment: .leading)
+                .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
+        }
+        // Priority 3: Scale name (if configured for right margin - Graphoplex style)
+        else if nameMargin == .right {
+            Text(scaleLabel)
+                .font(nameFont)
+                .foregroundColor(scaleLabelColor)
+                .frame(width: rightMarginWidth, alignment: .leading)
+                .accessibilityIdentifier("scale-name-right-\(scaleLabel)")
+        }
+        // Priority 4: Empty spacer to maintain layout
+        else {
+            Spacer()
+                .frame(width: rightMarginWidth)
+        }
+    }
+    
+    /// Scale canvas view - tick marks and labels
+    private var scaleCanvas: some View {
+        ZStack(alignment: .topLeading) {
+            // Tick marks and labels
+            Canvas { context, size in
+                // DEBUG: Log Canvas size for split scales
+                if DEBUG_SPLIT_CANVAS && (generatedScale.definition.name.contains("Θ") || generatedScale.definition.name.contains("θ")) {
+                    print("🎨 [CANVAS] \(generatedScale.definition.name): size=(\(size.width), \(size.height)), passed height=\(height), tickDir=\(generatedScale.definition.tickDirection)")
+                    if let segment = generatedScale.definition.splitSegment {
+                        print("   splitSegment: \(segment)")
+                    }
+                }
+                
+                // ✅ OPTIMIZATION: Draw background gradient in Canvas instead of .background()
+                // This eliminates VStack preference propagation during drag updates
+                if let gradient = backgroundGradient {
+                    drawBackgroundGradient(context: &context, size: size, gradient: gradient)
+                }
+                
+                // ✅ Use pre-computed tick marks from GeneratedScale
+                drawScale(
+                    context: &context,
+                    size: size,
+                    tickMarks: generatedScale.tickMarks,
+                    definition: generatedScale.definition
+                )
+            }
+            .drawingGroup()  // Metal-accelerated rendering for 200+ tick marks
+            .accessibilityIdentifier("scale-canvas-\(generatedScale.definition.name)")
+        }
+        // ✅ FIXED HEIGHT: Use fixed frame to ensure Canvas gets consistent size
+        // This is critical for split scale ZStack rendering where both scales
+        // must have identical Canvas dimensions for proper tick alignment
+        .frame(width: width, height: height)
+        .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
     }
     
     /// Draw the scale with pre-computed tick marks
@@ -282,5 +397,49 @@ struct ScaleView: View, Equatable {
         // Fill the entire canvas area with the gradient
         let rect = CGRect(origin: .zero, size: size)
         context.fill(Path(rect), with: shading)
+    }
+    
+    // MARK: - Margin Annotation Views
+    
+    /// Renders left margin annotations as a vertical stack
+    /// Used when `leftAnnotations` is non-empty to replace the default scale name
+    @ViewBuilder
+    private var leftMarginAnnotationsView: some View {
+        VStack(alignment: .trailing, spacing: 0) {
+            ForEach(Array(generatedScale.definition.leftAnnotations.enumerated()), id: \.offset) { _, annotation in
+                marginAnnotationText(annotation, alignment: .trailing)
+            }
+        }
+    }
+    
+    /// Renders right margin annotations as a vertical stack
+    /// Used when `rightAnnotations` is non-empty to replace the default formula
+    @ViewBuilder
+    private var rightMarginAnnotationsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(generatedScale.definition.rightAnnotations.enumerated()), id: \.offset) { _, annotation in
+                marginAnnotationText(annotation, alignment: .leading)
+            }
+        }
+    }
+    
+    /// Creates a Text view for a single margin annotation with proper styling
+    /// - Parameters:
+    ///   - annotation: The MarginAnnotation containing text, color, offset, and font size multiplier
+    ///   - alignment: Text alignment (.trailing for left margin, .leading for right margin)
+    @ViewBuilder
+    private func marginAnnotationText(_ annotation: MarginAnnotation, alignment: Alignment) -> some View {
+        let baseFont = alignment == .trailing ? nameFont : formulaFont
+        let color = Color(
+            red: annotation.color.red,
+            green: annotation.color.green,
+            blue: annotation.color.blue,
+            opacity: annotation.color.alpha
+        )
+        
+        Text(annotation.text)
+            .font(baseFont)
+            .foregroundColor(color)
+            .offset(x: annotation.offset.horizontal, y: annotation.offset.vertical)
     }
 }

@@ -123,6 +123,7 @@ extension StandardScales {
             .withLabelColor(.green)
             .addConstant(value: 25.12, label: "XL", style: .major)
             .addConstant(value: 26.30, label: "TL", style: .major)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -231,6 +232,7 @@ extension StandardScales {
                 }
             }
             .withLabelColor(.red)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -252,6 +254,7 @@ extension StandardScales {
                 ScaleSubsection(startValue: 10.0, tickIntervals: [1, 0.5, 0.1], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.oneDecimal)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -454,6 +457,7 @@ extension StandardScales {
                 }
                 return ""
             }
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -543,6 +547,7 @@ extension StandardScales {
                     return String(Int(frequency.rounded()))
                 }
             }
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -606,6 +611,7 @@ extension StandardScales {
                 }
             }
             .addConstant(value: 0.707, label: "-3dB", style: .major)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -637,6 +643,7 @@ extension StandardScales {
                 }
             }
             .withLabelColor(.green)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -668,6 +675,7 @@ extension StandardScales {
                 }
             }
             .withLabelColor(.red)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -755,6 +763,7 @@ extension StandardScales {
                 )
             ])
             // No single-label formatter needed since we use dualLabelFormatter
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -887,6 +896,7 @@ extension StandardScales {
                     return ".\(twoDigits)"
                 }
             }
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -985,6 +995,7 @@ extension StandardScales {
                 }
             }
             .addConstant(value: 1.0, label: "♦", style: .major)
+            .withSuppressFormulaLabel(true)  // TEST: Suppress formula for Phase 2 annotation testing
             .build()
     }
     
@@ -992,6 +1003,7 @@ extension StandardScales {
     
     /// Cos - Alias for cosinePowerFactorScale (used in definition strings)
     public static func cosScale(length: Distance = 250.0) -> ScaleDefinition {
+        // Note: cosinePowerFactorScale already has suppressFormulaLabel applied
         cosinePowerFactorScale(length: length)
     }
 }

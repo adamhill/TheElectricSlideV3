@@ -137,6 +137,11 @@ struct SlideRulePicker: View {
                         existingRule.sortOrder = standardRule.sortOrder
                         existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
+                        // Sync annotation features (added Version 28)
+                        existingRule.showScaleNames = standardRule.showScaleNames
+                        existingRule.showFormulas = standardRule.showFormulas
+                        existingRule.suppressEvenScaleNames = standardRule.suppressEvenScaleNames
+                        existingRule.backSlideAnnotationsJSON = standardRule.backSlideAnnotationsJSON
                         // Preserve user's favorite status
                     } else {
                         // New rule: insert it

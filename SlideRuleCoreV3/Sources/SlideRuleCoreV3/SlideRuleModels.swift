@@ -190,6 +190,363 @@ public enum ScaleLayout: Sendable, Equatable {
     }
 }
 
+// MARK: - Margin Side
+
+/// Which margin a scale element (name or formula) appears in
+/// Used for flexible per-scale positioning as seen on rules like Graphoplex 698
+/// where scale names appear on left for some scales and right for others
+public enum MarginSide: String, Sendable, Equatable, Hashable, Codable {
+    /// Element appears in left margin (default for scale names)
+    case left
+    /// Element appears in right margin (default for formulas)
+    case right
+    /// Element is suppressed entirely
+    case none
+}
+
+// MARK: - Rule Display Settings
+
+/// Rule-level display settings for scale names and formulas
+/// These provide global toggles that apply to all scales on a slide rule,
+/// with per-scale overrides possible via MarginSide settings
+///
+/// ## Usage Pattern
+/// ```swift
+/// // Create settings that hide all formulas (like Pickett N-16 ES testing)
+/// let settings = RuleDisplaySettings(showFormulas: false)
+///
+/// // Create settings with names on right by default (European style)
+/// let euroSettings = RuleDisplaySettings(defaultScaleNameMargin: .right)
+/// ```
+public struct RuleDisplaySettings: Sendable, Equatable, Hashable, Codable {
+    /// Whether to show scale names on this rule (default: true)
+    /// When false, no scale names are rendered regardless of per-scale settings
+    public var showScaleNames: Bool
+    
+    /// Whether to show formulas on this rule (default: true)
+    /// When false, no formulas are rendered regardless of per-scale settings
+    public var showFormulas: Bool
+    
+    /// Default margin for scale names when not specified per-scale (default: .left)
+    public var defaultScaleNameMargin: MarginSide
+    
+    /// Default margin for formulas when not specified per-scale (default: .right)
+    public var defaultFormulaMargin: MarginSide
+    
+    public init(
+        showScaleNames: Bool = true,
+        showFormulas: Bool = true,
+        defaultScaleNameMargin: MarginSide = .left,
+        defaultFormulaMargin: MarginSide = .right
+    ) {
+        self.showScaleNames = showScaleNames
+        self.showFormulas = showFormulas
+        self.defaultScaleNameMargin = defaultScaleNameMargin
+        self.defaultFormulaMargin = defaultFormulaMargin
+    }
+    
+    /// Standard display settings (names left, formulas right, both visible)
+    public static let standard = RuleDisplaySettings()
+    
+    /// Names only (no formulas) - common for simpler rules
+    public static let namesOnly = RuleDisplaySettings(showFormulas: false)
+    
+    /// Formulas only (no names) - rare but possible
+    public static let formulasOnly = RuleDisplaySettings(showScaleNames: false)
+    
+    /// No margin labels at all
+    public static let none = RuleDisplaySettings(showScaleNames: false, showFormulas: false)
+}
+
+// MARK: - Margin Annotations
+
+/// Annotation for per-scale left/right margin text
+/// Used to add custom text in the margins that replaces or supplements the scale name/formula
+public struct MarginAnnotation: Sendable, Equatable, Hashable {
+    /// The text to display (single line)
+    public let text: String
+    
+    /// Color for the annotation text
+    public let color: LabelColor
+    
+    /// Fine-tuning offset from default position (in points)
+    public let offset: Offset
+    
+    /// Font size multiplier relative to base margin font (1.0 = normal)
+    public let fontSizeMultiplier: Double
+    
+    public init(
+        text: String,
+        color: LabelColor = .black,
+        offset: Offset = .zero,
+        fontSizeMultiplier: Double = 1.0
+    ) {
+        self.text = text
+        self.color = color
+        self.offset = offset
+        self.fontSizeMultiplier = fontSizeMultiplier
+    }
+}
+
+// MARK: - Component Annotations
+
+/// Text alignment for multi-line text blocks
+public enum AnnotationTextAlignment: String, Sendable, Equatable, Hashable, Codable {
+    case leading
+    case center
+    case trailing
+}
+
+/// Anchor point for positioning annotations
+/// Determines which part of the annotation is placed at the specified position
+public enum AnnotationAnchor: String, Sendable, Equatable, Hashable, Codable {
+    case topLeading, top, topTrailing
+    case leading, center, trailing
+    case bottomLeading, bottom, bottomTrailing
+}
+
+/// Content type for component annotations
+public enum AnnotationContent: Sendable, Equatable, Hashable, Codable {
+    /// Text content, supports \n for multi-line
+    case text(String)
+    
+    /// Image from asset catalog (PNG, JPEG with @1x/@2x/@3x)
+    case assetImage(name: String)
+    
+    /// SF Symbol with optional rendering mode
+    case sfSymbol(name: String)
+    
+    /// SVG file from bundle resources
+    case svg(name: String)
+}
+
+/// Annotation for text blocks and images positioned on a Stator or Slide
+/// Uses normalized coordinates (0.0-1.0) with origin at top-left of the component
+///
+/// ## Coordinate System
+/// ```
+/// (0.0, 0.0) ─────────────────── (1.0, 0.0)
+///     │                               │
+///     │     STATOR or SLIDE           │
+///     │                               │
+/// (0.0, 1.0) ─────────────────── (1.0, 1.0)
+/// ```
+public struct ComponentAnnotation: Sendable, Equatable, Hashable {
+    /// The content to display (text, image, SF Symbol, or SVG)
+    public let content: AnnotationContent
+    
+    /// Color for text or SF Symbol; ignored for images/SVGs
+    public let color: LabelColor?
+    
+    /// Horizontal position (0.0 = left edge, 1.0 = right edge)
+    public let horizontalPosition: Double
+    
+    /// Vertical position (0.0 = top edge, 1.0 = bottom edge)
+    public let verticalPosition: Double
+    
+    /// Which part of the annotation is anchored at the position
+    public let anchor: AnnotationAnchor
+    
+    /// Explicit size for images (width, height in points); nil = intrinsic size
+    public let size: (width: Double, height: Double)?
+    
+    /// Font size for text; nil = use default
+    public let fontSize: Double?
+    
+    /// Font weight/style for text
+    public let fontWeight: LabelFontStyle
+    
+    /// Text alignment for multi-line text
+    public let textAlignment: AnnotationTextAlignment
+    
+    public init(
+        content: AnnotationContent,
+        color: LabelColor? = nil,
+        horizontalPosition: Double,
+        verticalPosition: Double,
+        anchor: AnnotationAnchor = .topLeading,
+        size: (width: Double, height: Double)? = nil,
+        fontSize: Double? = nil,
+        fontWeight: LabelFontStyle = .medium,
+        textAlignment: AnnotationTextAlignment = .leading
+    ) {
+        self.content = content
+        self.color = color
+        self.horizontalPosition = horizontalPosition
+        self.verticalPosition = verticalPosition
+        self.anchor = anchor
+        self.size = size
+        self.fontSize = fontSize
+        self.fontWeight = fontWeight
+        self.textAlignment = textAlignment
+    }
+    
+    // MARK: - Hashable (manual due to tuple)
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(content)
+        hasher.combine(color)
+        hasher.combine(horizontalPosition)
+        hasher.combine(verticalPosition)
+        hasher.combine(anchor)
+        if let size = size {
+            hasher.combine(size.width)
+            hasher.combine(size.height)
+        }
+        hasher.combine(fontSize)
+        hasher.combine(fontWeight)
+        hasher.combine(textAlignment)
+    }
+    
+    public static func == (lhs: ComponentAnnotation, rhs: ComponentAnnotation) -> Bool {
+        lhs.content == rhs.content &&
+        lhs.color == rhs.color &&
+        lhs.horizontalPosition == rhs.horizontalPosition &&
+        lhs.verticalPosition == rhs.verticalPosition &&
+        lhs.anchor == rhs.anchor &&
+        lhs.size?.width == rhs.size?.width &&
+        lhs.size?.height == rhs.size?.height &&
+        lhs.fontSize == rhs.fontSize &&
+        lhs.fontWeight == rhs.fontWeight &&
+        lhs.textAlignment == rhs.textAlignment
+    }
+}
+
+// MARK: - ComponentAnnotation Codable Conformance
+
+extension ComponentAnnotation: Codable {
+    enum CodingKeys: String, CodingKey {
+        case content, color, horizontalPosition, verticalPosition, anchor
+        case sizeWidth, sizeHeight, fontSize, fontWeight, textAlignment
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        content = try container.decode(AnnotationContent.self, forKey: .content)
+        color = try container.decodeIfPresent(LabelColor.self, forKey: .color)
+        horizontalPosition = try container.decode(Double.self, forKey: .horizontalPosition)
+        verticalPosition = try container.decode(Double.self, forKey: .verticalPosition)
+        anchor = try container.decode(AnnotationAnchor.self, forKey: .anchor)
+        
+        // Decode size tuple from separate keys
+        if let width = try container.decodeIfPresent(Double.self, forKey: .sizeWidth),
+           let height = try container.decodeIfPresent(Double.self, forKey: .sizeHeight) {
+            size = (width: width, height: height)
+        } else {
+            size = nil
+        }
+        
+        fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+        fontWeight = try container.decode(LabelFontStyle.self, forKey: .fontWeight)
+        textAlignment = try container.decode(AnnotationTextAlignment.self, forKey: .textAlignment)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(color, forKey: .color)
+        try container.encode(horizontalPosition, forKey: .horizontalPosition)
+        try container.encode(verticalPosition, forKey: .verticalPosition)
+        try container.encode(anchor, forKey: .anchor)
+        
+        // Encode size tuple as separate keys
+        if let size = size {
+            try container.encode(size.width, forKey: .sizeWidth)
+            try container.encode(size.height, forKey: .sizeHeight)
+        }
+        
+        try container.encodeIfPresent(fontSize, forKey: .fontSize)
+        try container.encode(fontWeight, forKey: .fontWeight)
+        try container.encode(textAlignment, forKey: .textAlignment)
+    }
+}
+
+// MARK: - ComponentAnnotation Factory Methods
+
+extension ComponentAnnotation {
+    /// Create a manufacturer logo annotation
+    /// - Parameters:
+    ///   - svgName: Name of the SVG file in bundle resources
+    ///   - position: Normalized position (h: 0.0-1.0, v: 0.0-1.0)
+    ///   - anchor: Which part of the image is at the position
+    ///   - size: Optional explicit size; nil = intrinsic
+    public static func logo(
+        svg svgName: String,
+        at position: (h: Double, v: Double),
+        anchor: AnnotationAnchor = .center,
+        size: (width: Double, height: Double)? = nil
+    ) -> ComponentAnnotation {
+        ComponentAnnotation(
+            content: .svg(name: svgName),
+            horizontalPosition: position.h,
+            verticalPosition: position.v,
+            anchor: anchor,
+            size: size
+        )
+    }
+    
+    /// Create a logo from asset catalog image
+    public static func logo(
+        asset assetName: String,
+        at position: (h: Double, v: Double),
+        anchor: AnnotationAnchor = .center,
+        size: (width: Double, height: Double)? = nil
+    ) -> ComponentAnnotation {
+        ComponentAnnotation(
+            content: .assetImage(name: assetName),
+            horizontalPosition: position.h,
+            verticalPosition: position.v,
+            anchor: anchor,
+            size: size
+        )
+    }
+    
+    /// Create a multi-line text block
+    /// - Parameters:
+    ///   - text: Text content (supports \n for newlines)
+    ///   - color: Text color
+    ///   - position: Normalized position (h: 0.0-1.0, v: 0.0-1.0)
+    ///   - anchor: Which part of the text block is at the position
+    ///   - fontSize: Optional font size; nil = default
+    ///   - alignment: Text alignment for multi-line text
+    public static func textBlock(
+        _ text: String,
+        color: LabelColor = .black,
+        at position: (h: Double, v: Double),
+        anchor: AnnotationAnchor = .topLeading,
+        fontSize: Double? = nil,
+        alignment: AnnotationTextAlignment = .leading
+    ) -> ComponentAnnotation {
+        ComponentAnnotation(
+            content: .text(text),
+            color: color,
+            horizontalPosition: position.h,
+            verticalPosition: position.v,
+            anchor: anchor,
+            fontSize: fontSize,
+            textAlignment: alignment
+        )
+    }
+    
+    /// Create an SF Symbol annotation
+    public static func symbol(
+        _ symbolName: String,
+        color: LabelColor = .black,
+        at position: (h: Double, v: Double),
+        anchor: AnnotationAnchor = .center,
+        size: Double? = nil
+    ) -> ComponentAnnotation {
+        ComponentAnnotation(
+            content: .sfSymbol(name: symbolName),
+            color: color,
+            horizontalPosition: position.h,
+            verticalPosition: position.v,
+            anchor: anchor,
+            fontSize: size
+        )
+    }
+}
+
 // MARK: - Label Configuration
 
 /// Source system that generated a label (used for debugging)
@@ -213,7 +570,7 @@ public enum LabelPosition: Sendable, Equatable, Hashable {
 
 /// Font style modifiers for labels
 /// Corresponds to PostScript font selections like NumFontRi (right italic), NumFontLi (left italic)
-public enum LabelFontStyle: Sendable, Equatable, Hashable {
+public enum LabelFontStyle: String, Sendable, Equatable, Hashable, Codable {
     case regular
     case medium         // Default: medium weight for better readability
     case italic         // PostScript: NumFontRi (20° right slant)
@@ -256,7 +613,7 @@ public struct Offset: Sendable, Equatable, Hashable {
 }
 
 /// Color specification for labels
-public struct LabelColor: Sendable, Equatable, Hashable {
+public struct LabelColor: Sendable, Equatable, Hashable, Codable {
     public let red: Double
     public let green: Double
     public let blue: Double

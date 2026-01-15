@@ -319,12 +319,8 @@ enum CommonScales {
         StandardScales.pickettLScale(length: length)
     }
     
-    static func pickettD(length: Double = 250.0) -> ScaleDefinition {
-        StandardScales.pickettDScale(length: length)
-    }
-    
-    static func pickettQ(length: Double = 250.0) -> ScaleDefinition {
-        StandardScales.pickettQScale(length: length)
+    static func pickettDQ(length: Double = 250.0) -> ScaleDefinition {
+        StandardScales.pickettDQScale(length: length)
     }
     
     static func pickettF(length: Double = 250.0) -> ScaleDefinition {

@@ -437,3 +437,231 @@ struct AnnotationPositionTests {
         #expect(AnnotationPosition.bottomTrailing.normalized(in: (100, 100)) == (h: 1, v: 1))
     }
 }
+
+// MARK: - ComponentConfiguration Tests (Phase 3)
+
+@Suite("ComponentConfiguration")
+struct ComponentConfigurationTests {
+    
+    @Test("Factory methods create correct selectors")
+    func factoryMethods() {
+        let frontSlide = ComponentConfiguration.frontSlide()
+        #expect(frontSlide.selector == .frontSlide)
+        #expect(frontSlide.scaleConfigs.isEmpty)
+        #expect(frontSlide.annotations.isEmpty)
+        
+        let backTopStator = ComponentConfiguration.backTopStator(
+            scaleConfigs: [ScaleConfiguration.hideNames(for: .all)]
+        )
+        #expect(backTopStator.selector == .backTopStator)
+        #expect(backTopStator.scaleConfigs.count == 1)
+    }
+    
+    @Test("appliesTo correctly matches components")
+    func appliesToMatching() {
+        let frontSlideConfig = ComponentConfiguration.frontSlide()
+        
+        #expect(frontSlideConfig.appliesTo(side: .front, component: .slide))
+        #expect(!frontSlideConfig.appliesTo(side: .back, component: .slide))
+        #expect(!frontSlideConfig.appliesTo(side: .front, component: .topStator))
+    }
+    
+    @Test("Both-side selector matches both sides")
+    func bothSideMatching() {
+        let bothSlidesConfig = ComponentConfiguration(
+            selector: ComponentSelector(side: .both, component: .slide)
+        )
+        
+        #expect(bothSlidesConfig.appliesTo(side: .front, component: .slide))
+        #expect(bothSlidesConfig.appliesTo(side: .back, component: .slide))
+        #expect(!bothSlidesConfig.appliesTo(side: .front, component: .topStator))
+    }
+    
+    @Test("Resolver uses component's scale configs")
+    func resolverFromComponent() {
+        let config = ComponentConfiguration.frontSlide(
+            scaleConfigs: [ScaleConfiguration.hideNames(for: .evenIndices)]
+        )
+        
+        let resolver = config.resolver()
+        
+        // Even index - name hidden
+        let evenResult = resolver.resolve(scaleName: "C", at: 0, totalCount: 4)
+        #expect(evenResult.nameMargin == MarginSide.none)
+        
+        // Odd index - name shown
+        let oddResult = resolver.resolve(scaleName: "D", at: 1, totalCount: 4)
+        #expect(oddResult.nameMargin == .left)
+    }
+}
+
+// MARK: - SlideRuleConfiguration Tests (Phase 4)
+
+@Suite("SlideRuleConfiguration")
+struct SlideRuleConfigurationTests {
+    
+    @Test("Standard configuration has default settings")
+    func standardConfig() {
+        let config = SlideRuleConfiguration.standard
+        
+        #expect(config.displaySettings.showScaleNames == true)
+        #expect(config.displaySettings.showFormulas == true)
+        #expect(config.componentConfigs.isEmpty)
+    }
+    
+    @Test("namesOnly hides formulas")
+    func namesOnlyConfig() {
+        let config = SlideRuleConfiguration.namesOnly
+        
+        #expect(config.displaySettings.showScaleNames == true)
+        #expect(config.displaySettings.showFormulas == false)
+    }
+    
+    @Test("configuration(for:component:) finds matching config")
+    func configurationQuery() {
+        var config = SlideRuleConfiguration()
+        config.addComponentConfig(ComponentConfiguration.frontSlide(
+            scaleConfigs: [ScaleConfiguration.hideNames(for: .all)]
+        ))
+        config.addComponentConfig(ComponentConfiguration.backSlide(
+            scaleConfigs: [ScaleConfiguration.hideFormulas(for: .all)]
+        ))
+        
+        let frontSlideConfig = config.configuration(for: .front, component: .slide)
+        #expect(frontSlideConfig != nil)
+        #expect(frontSlideConfig?.selector == .frontSlide)
+        
+        let backSlideConfig = config.configuration(for: .back, component: .slide)
+        #expect(backSlideConfig != nil)
+        #expect(backSlideConfig?.selector == .backSlide)
+        
+        let frontTopConfig = config.configuration(for: .front, component: .topStator)
+        #expect(frontTopConfig == nil)
+    }
+    
+    @Test("resolvedName applies overrides")
+    func nameOverrides() {
+        var config = SlideRuleConfiguration()
+        config.addNameOverride(canonical: "DQ", display: "D/Q")
+        config.addNameOverride(canonical: "Cos", display: "cos")
+        
+        #expect(config.resolvedName(for: "DQ") == "D/Q")
+        #expect(config.resolvedName(for: "Cos") == "cos")
+        #expect(config.resolvedName(for: "C") == "C")  // No override
+    }
+    
+    @Test("resolver(for:component:) uses display settings")
+    func resolverFromConfig() {
+        // Config with formulas hidden
+        let config = SlideRuleConfiguration.namesOnly
+        let resolver = config.resolver(for: .front, component: .slide)
+        
+        let result = resolver.resolve(scaleName: "C", at: 0, totalCount: 1)
+        
+        #expect(result.nameMargin == .left)  // Names shown
+        #expect(result.formulaMargin == MarginSide.none)  // Formulas hidden
+    }
+    
+    @Test("resolver(for:component:) merges component configs")
+    func resolverWithComponentConfig() {
+        var config = SlideRuleConfiguration()
+        config.addComponentConfig(ComponentConfiguration.frontSlide(
+            scaleConfigs: [ScaleConfiguration.hideNames(for: .evenIndices)]
+        ))
+        
+        let resolver = config.resolver(for: .front, component: .slide)
+        
+        // Even index - name hidden
+        let evenResult = resolver.resolve(scaleName: "C", at: 0, totalCount: 4)
+        #expect(evenResult.nameMargin == MarginSide.none)
+        
+        // Odd index - name shown (default)
+        let oddResult = resolver.resolve(scaleName: "D", at: 1, totalCount: 4)
+        #expect(oddResult.nameMargin == .left)
+    }
+    
+    @Test("fromLegacy creates matching configuration")
+    func legacyMigration() {
+        let config = SlideRuleConfiguration.fromLegacy(
+            showScaleNames: true,
+            showFormulas: false,
+            suppressEvenScaleNames: true,
+            scaleNameOverrides: ["PF": "F"]
+        )
+        
+        #expect(config.displaySettings.showScaleNames == true)
+        #expect(config.displaySettings.showFormulas == false)
+        #expect(config.scaleNameOverrides["PF"] == "F")
+        
+        // Should have component configs for even name suppression
+        #expect(!config.componentConfigs.isEmpty)
+        
+        // Check resolver behavior matches legacy
+        let resolver = config.resolver(for: .front, component: .slide)
+        let evenResult = resolver.resolve(scaleName: "C", at: 0, totalCount: 4)
+        #expect(evenResult.nameMargin == MarginSide.none)  // Even names hidden
+        #expect(evenResult.formulaMargin == MarginSide.none)  // Formulas hidden globally
+    }
+    
+    @Test("annotations(for:) retrieves correct annotations")
+    func annotationQuery() {
+        let annotation = ComponentAnnotation(
+            content: .text("Test"),
+            color: LabelColor.black,
+            horizontalPosition: 0.5,
+            verticalPosition: 0.5,
+            anchor: .center,
+            fontSize: 12,
+            fontWeight: .medium,
+            textAlignment: .center
+        )
+        
+        var config = SlideRuleConfiguration()
+        config.addAnnotation(annotation, on: .front)
+        
+        #expect(config.annotations(for: .front).count == 1)
+        #expect(config.annotations(for: .back).isEmpty)
+    }
+}
+
+// MARK: - SlideRuleConfiguration Codable Tests
+
+@Suite("SlideRuleConfiguration Codable")
+struct SlideRuleConfigurationCodableTests {
+    
+    @Test("Full configuration round-trips through JSON")
+    func fullRoundTrip() throws {
+        var config = SlideRuleConfiguration(
+            displaySettings: RuleDisplaySettings(showFormulas: false),
+            scaleNameOverrides: ["DQ": "D/Q"]
+        )
+        config.addComponentConfig(ComponentConfiguration.frontSlide(
+            scaleConfigs: [ScaleConfiguration.hideNames(for: .evenIndices)]
+        ))
+        
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        
+        let data = try encoder.encode(config)
+        let decoded = try decoder.decode(SlideRuleConfiguration.self, from: data)
+        
+        #expect(decoded.displaySettings.showFormulas == false)
+        #expect(decoded.scaleNameOverrides["DQ"] == "D/Q")
+        #expect(decoded.componentConfigs.count == 1)
+    }
+    
+    @Test("Empty configuration round-trips")
+    func emptyRoundTrip() throws {
+        let config = SlideRuleConfiguration.standard
+        
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        
+        let data = try encoder.encode(config)
+        let decoded = try decoder.decode(SlideRuleConfiguration.self, from: data)
+        
+        #expect(decoded.displaySettings.showScaleNames == true)
+        #expect(decoded.displaySettings.showFormulas == true)
+        #expect(decoded.componentConfigs.isEmpty)
+    }
+}

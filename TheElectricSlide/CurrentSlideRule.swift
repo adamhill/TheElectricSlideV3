@@ -120,7 +120,7 @@ final class SlideRuleDefinitionModel {
                let data = json.data(using: .utf8),
                let annotations = try? JSONDecoder().decode([ComponentAnnotation].self, from: data) {
                 for annotation in annotations {
-                    b = b.addAnnotation(annotation, for: .backSlide)
+                    b = b.addAnnotation(annotation, on: .back)
                 }
             }
             
@@ -257,7 +257,8 @@ final class SlideRuleDefinitionModel {
         showScaleNames: Bool = true,
         showFormulas: Bool = true,
         suppressEvenScaleNames: Bool = false,
-        backSlideAnnotationsJSON: String? = nil
+        backSlideAnnotationsJSON: String? = nil,
+        configuration: SlideRuleConfiguration? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -272,13 +273,63 @@ final class SlideRuleDefinitionModel {
         self.scaleNameOverrides = scaleNameOverrides
         self.libraryVersion = libraryVersion
         self.manufacturer = manufacturer
-        self.showScaleNames = showScaleNames
-        self.showFormulas = showFormulas
-        self.suppressEvenScaleNames = suppressEvenScaleNames
+        
+        // Store legacy values for backward compatibility
+        self._showScaleNames = showScaleNames
+        self._showFormulas = showFormulas
+        self._suppressEvenScaleNames = suppressEvenScaleNames
         self.backSlideAnnotationsJSON = backSlideAnnotationsJSON
+        
+        // If configuration provided, encode and store it
+        if let config = configuration {
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .sortedKeys
+                let data = try encoder.encode(config)
+                self.configurationJSON = String(data: data, encoding: .utf8)
+            } catch {
+                print("⚠️ Failed to encode initial configuration: \(error)")
+            }
+        }
     }
     
-    /// Parse this definition into a SlideRule
+    /// Convenience initializer that takes a SlideRuleConfiguration directly
+    convenience init(
+        name: String,
+        description: String,
+        definitionString: String,
+        topStatorMM: Double = 14,
+        slideMM: Double = 13,
+        bottomStatorMM: Double = 14,
+        circularSpec: String? = nil,
+        isFavorite: Bool = false,
+        sortOrder: Int = 0,
+        libraryVersion: Int = 0,
+        manufacturer: String? = nil,
+        configuration: SlideRuleConfiguration
+    ) {
+        self.init(
+            name: name,
+            description: description,
+            definitionString: definitionString,
+            topStatorMM: topStatorMM,
+            slideMM: slideMM,
+            bottomStatorMM: bottomStatorMM,
+            circularSpec: circularSpec,
+            isFavorite: isFavorite,
+            sortOrder: sortOrder,
+            scaleNameOverrides: configuration.scaleNameOverrides,
+            libraryVersion: libraryVersion,
+            manufacturer: manufacturer,
+            showScaleNames: configuration.displaySettings.showScaleNames,
+            showFormulas: configuration.displaySettings.showFormulas,
+            suppressEvenScaleNames: false, // Handled by configuration
+            backSlideAnnotationsJSON: nil, // Handled by configuration
+            configuration: configuration
+        )
+    }
+    
+    /// Parse this definition into a SlideRule using the configuration system
     func parseSlideRule(scaleLength: Distance = 1000.0) throws -> SlideRule {
         let dimensions = RuleDefinitionParser.Dimensions(
             topStatorMM: topStatorMM,
@@ -293,6 +344,9 @@ final class SlideRuleDefinitionModel {
             fullDefinition = definitionString
         }
         
+        // Get the configuration (either from JSON or migrated from legacy)
+        let config = configuration
+        
         var rule: SlideRule
         if circularSpec != nil {
             rule = try RuleDefinitionParser.parseWithCircular(
@@ -305,62 +359,101 @@ final class SlideRuleDefinitionModel {
                 fullDefinition,
                 dimensions: dimensions,
                 scaleLength: scaleLength,
-                displaySettings: displaySettings
+                displaySettings: config.displaySettings
             )
         }
         
-        // Apply scale name overrides if any exist
-        if !scaleNameOverrides.isEmpty {
-            rule = applyScaleNameOverrides(to: rule)
-        }
-        
-        // Apply even-indexed scale name suppression if enabled
-        if suppressEvenScaleNames {
-            print("🔧 Applying even-indexed scale name suppression")
-            rule = applyEvenScaleNameSuppression(to: rule)
-        } else {
-            print("⚠️ suppressEvenScaleNames is FALSE, not suppressing")
-        }
-        
-        // Apply back slide annotations if any exist
-        if !backSlideAnnotations.isEmpty {
-            rule = applyBackSlideAnnotations(to: rule)
-        }
+        // Apply configuration using the new unified system
+        rule = applyConfiguration(config, to: rule)
         
         return rule
     }
     
-    /// Apply suppression of scale names at even indices (0, 2, 4, ...)
-    private func applyEvenScaleNameSuppression(to rule: SlideRule) -> SlideRule {
-        // Helper to suppress scale names at even indices
-        func suppressEvenScales(_ scales: [GeneratedScale]) -> [GeneratedScale] {
+    /// Apply full SlideRuleConfiguration to a parsed rule
+    private func applyConfiguration(_ config: SlideRuleConfiguration, to rule: SlideRule) -> SlideRule {
+        var result = rule
+        
+        // Apply scale name overrides
+        if !config.scaleNameOverrides.isEmpty {
+            result = applyScaleNameOverrides(config.scaleNameOverrides, to: result)
+        }
+        
+        // Apply component configurations (scale display settings)
+        if !config.componentConfigs.isEmpty {
+            result = applyComponentConfigs(config.componentConfigs, to: result)
+        }
+        
+        // Apply rule-level annotations
+        for (side, annotations) in config.ruleAnnotations {
+            result = applyAnnotations(annotations, side: side, to: result)
+        }
+        
+        return result
+    }
+    
+    /// Apply component configurations to control scale display
+    private func applyComponentConfigs(_ configs: [ComponentConfiguration], to rule: SlideRule) -> SlideRule {
+        // DEBUG: Log all configs
+        print("🔧 applyComponentConfigs: received \(configs.count) component configs")
+        for (idx, config) in configs.enumerated() {
+            print("  [\(idx)] selector: \(config.selector), scaleConfigs: \(config.scaleConfigs.count)")
+            for scaleConfig in config.scaleConfigs {
+                print("    - nameMargin: \(String(describing: scaleConfig.nameMargin)), formulaMargin: \(String(describing: scaleConfig.formulaMargin))")
+            }
+        }
+        
+        // Process each component
+        func processScales(
+            _ scales: [GeneratedScale],
+            side: RuleSideSelector,
+            component: ComponentType
+        ) -> [GeneratedScale] {
+            // Find all configs that apply to this component
+            let applicableConfigs = configs.filter { $0.appliesTo(side: side, component: component) }
+            print("🔧 processScales: \(side) \(component) - found \(applicableConfigs.count) applicable configs")
+            guard !applicableConfigs.isEmpty else { return scales }
+            
+            let totalCount = scales.count
             return scales.enumerated().map { (index, generatedScale) in
-                // Even indices: 0, 2, 4, ...
-                if index % 2 == 0 {
-                    // IMPORTANT: Use MarginSide.none explicitly to avoid Swift inferring Optional.none (nil)
-                    let newDefinition = ScaleBuilder(from: generatedScale.definition)
-                        .withScaleNameMargin(MarginSide.none)
-                        .build()
-                    return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
+                // Apply each applicable config's scale configs
+                var modifiedDefinition = generatedScale.definition
+                var wasModified = false
+                
+                for componentConfig in applicableConfigs {
+                    for scaleConfig in componentConfig.scaleConfigs {
+                        if scaleConfig.selector.matches(
+                            scaleName: generatedScale.definition.name,
+                            at: index,
+                            totalCount: totalCount
+                        ) {
+                            // Apply the scale configuration
+                            modifiedDefinition = applyScaleConfig(scaleConfig, to: modifiedDefinition)
+                            wasModified = true
+                        }
+                    }
+                }
+                
+                if wasModified {
+                    return GeneratedScale(definition: modifiedDefinition, noLineBreak: generatedScale.noLineBreak)
                 }
                 return generatedScale
             }
         }
         
-        func processStator(_ stator: Stator) -> Stator {
+        func processStator(_ stator: Stator, side: RuleSideSelector, component: ComponentType) -> Stator {
             Stator(
                 name: stator.name,
-                scales: suppressEvenScales(stator.scales),
+                scales: processScales(stator.scales, side: side, component: component),
                 heightInPoints: stator.heightInPoints,
                 showBorder: stator.showBorder,
                 annotations: stator.annotations
             )
         }
         
-        func processSlide(_ slide: Slide) -> Slide {
+        func processSlide(_ slide: Slide, side: RuleSideSelector, component: ComponentType) -> Slide {
             Slide(
                 name: slide.name,
-                scales: suppressEvenScales(slide.scales),
+                scales: processScales(slide.scales, side: side, component: component),
                 heightInPoints: slide.heightInPoints,
                 showBorder: slide.showBorder,
                 annotations: slide.annotations
@@ -368,12 +461,12 @@ final class SlideRuleDefinitionModel {
         }
         
         return SlideRule(
-            frontTopStator: processStator(rule.frontTopStator),
-            frontSlide: processSlide(rule.frontSlide),
-            frontBottomStator: processStator(rule.frontBottomStator),
-            backTopStator: rule.backTopStator.map { processStator($0) },
-            backSlide: rule.backSlide.map { processSlide($0) },
-            backBottomStator: rule.backBottomStator.map { processStator($0) },
+            frontTopStator: processStator(rule.frontTopStator, side: .front, component: .topStator),
+            frontSlide: processSlide(rule.frontSlide, side: .front, component: .slide),
+            frontBottomStator: processStator(rule.frontBottomStator, side: .front, component: .bottomStator),
+            backTopStator: rule.backTopStator.map { processStator($0, side: .back, component: .topStator) },
+            backSlide: rule.backSlide.map { processSlide($0, side: .back, component: .slide) },
+            backBottomStator: rule.backBottomStator.map { processStator($0, side: .back, component: .bottomStator) },
             totalLengthInPoints: rule.totalLengthInPoints,
             diameter: rule.diameter,
             radialPositions: rule.radialPositions,
@@ -381,40 +474,92 @@ final class SlideRuleDefinitionModel {
         )
     }
     
-    /// Apply annotations to the back slide
-    private func applyBackSlideAnnotations(to rule: SlideRule) -> SlideRule {
-        guard let backSlide = rule.backSlide else { return rule }
+    /// Apply a single ScaleConfiguration to a ScaleDefinition
+    private func applyScaleConfig(_ config: ScaleConfiguration, to definition: ScaleDefinition) -> ScaleDefinition {
+        var builder = ScaleBuilder(from: definition)
         
-        let newBackSlide = Slide(
-            name: backSlide.name,
-            scales: backSlide.scales,
-            heightInPoints: backSlide.heightInPoints,
-            showBorder: backSlide.showBorder,
-            annotations: backSlide.annotations + backSlideAnnotations
-        )
+        // Apply name margin (visibility)
+        if let nameMargin = config.nameMargin {
+            builder = builder.withScaleNameMargin(nameMargin)
+        }
         
-        return SlideRule(
-            frontTopStator: rule.frontTopStator,
-            frontSlide: rule.frontSlide,
-            frontBottomStator: rule.frontBottomStator,
-            backTopStator: rule.backTopStator,
-            backSlide: newBackSlide,
-            backBottomStator: rule.backBottomStator,
-            totalLengthInPoints: rule.totalLengthInPoints,
-            diameter: rule.diameter,
-            radialPositions: rule.radialPositions,
-            displaySettings: rule.displaySettings
-        )
+        // Apply formula margin (visibility)
+        if let formulaMargin = config.formulaMargin {
+            builder = builder.withFormulaMargin(formulaMargin)
+        }
+        
+        // Apply label color
+        if let labelColor = config.labelColor {
+            builder = builder.withLabelColor(labelColor)
+        }
+        
+        return builder.build()
+    }
+    
+    /// Apply annotations to a specific side
+    private func applyAnnotations(_ annotations: [ComponentAnnotation], side: RuleSideSelector, to rule: SlideRule) -> SlideRule {
+        guard !annotations.isEmpty else { return rule }
+        
+        // For now, annotations go on the slide component
+        // Future: could use component specifier in annotation
+        switch side {
+        case .front:
+            let newSlide = Slide(
+                name: rule.frontSlide.name,
+                scales: rule.frontSlide.scales,
+                heightInPoints: rule.frontSlide.heightInPoints,
+                showBorder: rule.frontSlide.showBorder,
+                annotations: rule.frontSlide.annotations + annotations
+            )
+            return SlideRule(
+                frontTopStator: rule.frontTopStator,
+                frontSlide: newSlide,
+                frontBottomStator: rule.frontBottomStator,
+                backTopStator: rule.backTopStator,
+                backSlide: rule.backSlide,
+                backBottomStator: rule.backBottomStator,
+                totalLengthInPoints: rule.totalLengthInPoints,
+                diameter: rule.diameter,
+                radialPositions: rule.radialPositions,
+                displaySettings: rule.displaySettings
+            )
+        case .back:
+            guard let backSlide = rule.backSlide else { return rule }
+            let newBackSlide = Slide(
+                name: backSlide.name,
+                scales: backSlide.scales,
+                heightInPoints: backSlide.heightInPoints,
+                showBorder: backSlide.showBorder,
+                annotations: backSlide.annotations + annotations
+            )
+            return SlideRule(
+                frontTopStator: rule.frontTopStator,
+                frontSlide: rule.frontSlide,
+                frontBottomStator: rule.frontBottomStator,
+                backTopStator: rule.backTopStator,
+                backSlide: newBackSlide,
+                backBottomStator: rule.backBottomStator,
+                totalLengthInPoints: rule.totalLengthInPoints,
+                diameter: rule.diameter,
+                radialPositions: rule.radialPositions,
+                displaySettings: rule.displaySettings
+            )
+        case .both:
+            var result = rule
+            result = applyAnnotations(annotations, side: .front, to: result)
+            result = applyAnnotations(annotations, side: .back, to: result)
+            return result
+        }
     }
     
     /// Apply scale name overrides to a parsed slide rule
-    private func applyScaleNameOverrides(to rule: SlideRule) -> SlideRule {
-        guard !scaleNameOverrides.isEmpty else { return rule }
+    private func applyScaleNameOverrides(_ overrides: [String: String], to rule: SlideRule) -> SlideRule {
+        guard !overrides.isEmpty else { return rule }
         
         // Shared helper to override a single GeneratedScale
         func overrideGeneratedScale(_ generatedScale: GeneratedScale) -> GeneratedScale {
             let scaleName = generatedScale.definition.name
-            guard let overrideName = scaleNameOverrides[scaleName] else {
+            guard let overrideName = overrides[scaleName] else {
                 return generatedScale
             }
             
@@ -483,6 +628,15 @@ final class SlideRuleDefinitionModel {
             radialPositions: rule.radialPositions,
             displaySettings: rule.displaySettings
         )
+    }
+    
+    // MARK: - Migration Helpers
+    
+    /// Migrate from legacy properties to configuration JSON
+    /// Call this to persist legacy settings into the new configuration system
+    func migrateToConfiguration() {
+        guard configurationJSON == nil else { return } // Already migrated
+        configuration = migratedConfiguration
     }
 }
 

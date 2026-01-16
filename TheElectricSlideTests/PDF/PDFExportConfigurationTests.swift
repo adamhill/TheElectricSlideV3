@@ -4,6 +4,7 @@ import Testing
 @testable import TheElectricSlide
 import SlideRuleCoreV3
 
+@MainActor
 struct PDFExportConfigurationTests {
     
     @Test func testFixedPageDimensions() {

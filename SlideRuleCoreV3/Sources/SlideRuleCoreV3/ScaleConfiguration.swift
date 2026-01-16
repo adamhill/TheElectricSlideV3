@@ -751,6 +751,16 @@ public struct ScaleConfiguration: Sendable, Codable, Equatable, Hashable {
     public static func nudgeFormula(_ nudge: PositionNudge, for selector: ScaleSelector, priority: Int = 0) -> Self {
         .init(selector: selector, formulaNudge: nudge, priority: priority)
     }
+    
+    /// Set name margin (left/right/none) for matching scales
+    public static func setNameMargin(_ margin: MarginSide, for selector: ScaleSelector, priority: Int = 0) -> Self {
+        .init(selector: selector, nameMargin: margin, priority: priority)
+    }
+    
+    /// Set formula margin (left/right/none) for matching scales
+    public static func setFormulaMargin(_ margin: MarginSide, for selector: ScaleSelector, priority: Int = 0) -> Self {
+        .init(selector: selector, formulaMargin: margin, priority: priority)
+    }
 }
 
 // MARK: - Resolved Scale Display

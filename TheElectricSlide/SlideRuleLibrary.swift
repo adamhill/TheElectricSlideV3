@@ -49,7 +49,12 @@ struct SlideRuleLibrary {
     // Version 30: Fixed annotation horizontalPosition from 0.92 to 0.99 for Pickett N-16 ES test
     // Version 31: Added Phase 1 fluent configuration API types (ScaleKey, PositionNudge, AnnotationPosition, ScaleSelector)
     //            Added nudge demo annotation to Pickett N-16 ES Annotation Test rule
-    static let libraryVersion = 31
+    // Version 32: Enhanced Annotation Test rule to demonstrate ALL ConfigurationAPIExamples.swift features:
+    //            - Renamed to "API Demo", colored inverted scales (red), Log-Log scales (blue),
+    //            - Trig scales (green via pattern), index-based coloring (first orange, last purple),
+    //            - Component-specific nudge on C scale, front side annotation
+    // Version 33: Simplified API Demo rule - all scales visible, annotations restored
+    static let libraryVersion = 33
     
     /// Force refresh all library rules on next app launch, regardless of version number.
     /// Set to `true` during development to iterate on rule definitions without bumping libraryVersion.
@@ -163,71 +168,44 @@ struct SlideRuleLibrary {
     
     /// Pickett N-16 ES Electronic - ANNOTATION TEST VERSION
     /// Demonstrates new annotation features:
-    /// - Rule-level display settings (formulas disabled)
-    /// - Even-indexed scale names suppressed
+    /// - All scale names visible
+    /// - Front side: names on LEFT
+    /// - Back side: names on RIGHT
     /// - Back slide has legend text block annotation
-    /// - PositionNudge for fine-grained position adjustment (Phase 1 API test)
+    /// - PositionNudge demonstration
     static func pickettN16ESAnnotationTest() -> SlideRuleDefinitionModel {
-        // Create the legend annotation and encode to JSON for persistence
-        let legendAnnotation: ComponentAnnotation = ComponentAnnotation(
-            content: .text("""
-                F = cycles per. sec.
-                λ = meters × 10⁶
-                ω = radians per. sec.
-                T = seconds
-                
-                C = farads
-                L = Henrys
-                Xc = ohms
-                XL = ohms
-                """),
-            color: LabelColor(red: 0, green: 0, blue: 0, alpha: 1),
-            horizontalPosition: 0.99,  // Right edge (trailing anchor aligns right edge here)
-            verticalPosition: 0.5,     // Vertically centered
-            anchor: .trailing,         // Anchor right edge at position
-            fontSize: 8,
-            fontWeight: .medium,
-            textAlignment: .leading
-        )
-        
-        // NEW: Demonstration of PositionNudge - fine-grained position adjustment
-        // This annotation uses the new fluent API types from ScaleConfiguration.swift
-        let nudgeTestAnnotation: ComponentAnnotation = ComponentAnnotation(
-            content: .text("← Nudged 10pt left"),
-            color: LabelColor(red: 0, green: 0.5, blue: 0, alpha: 1),  // Green
-            horizontalPosition: 0.5,   // Center of slide
-            verticalPosition: 0.0,     // Near top
-            anchor: .top,              // Top edge anchored
-            fontSize: 13,
-            fontWeight: .medium,
-            textAlignment: .center,
-            nudge: PositionNudge.left(10)  // Demonstrate nudge API
-        )
-        
-        // Encode annotations to JSON for SwiftData persistence
-        let annotationsJSON: String? = {
-            let annotations = [legendAnnotation, nudgeTestAnnotation]
-            guard let data = try? JSONEncoder().encode(annotations),
-                  let json = String(data: data, encoding: .utf8) else {
-                return nil
+        // Build configuration - simplified to verify basics work
+        let configuration = SlideRuleConfigurationBuilder()
+            // All scale names visible (no suppression)
+            // Formulas visible by default
+            
+            // Front side: names on LEFT (this is the default, but be explicit)
+            .configure(.frontTopStator) {
+                ScaleConfiguration.setNameMargin(.left, for: .all)
             }
-            return json
-        }()
-        
-        return SlideRuleDefinitionModel(
-            name: "Pickett N-16 ES (Annotation Test)",
-            description: """
-                TEST VERSION demonstrating annotation features: \
-                • All formulas disabled at rule level \
-                • Even-numbered scale names suppressed \
-                • Back slide has unit legend text block
-                """,
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
-            topStatorMM: 15,
-            slideMM: 15,
-            bottomStatorMM: 15,
-            sortOrder: -1,  // Show at top for easy testing
-            scaleNameOverrides: [
+            .configure(.frontSlide) {
+                ScaleConfiguration.setNameMargin(.left, for: .all)
+            }
+            .configure(.frontBottomStator) {
+                ScaleConfiguration.setNameMargin(.left, for: .all)
+            }
+            
+            // Back side: names on RIGHT, formulas on LEFT (swap from traditional)
+            .configure(.backTopStator) {
+                ScaleConfiguration.setNameMargin(.right, for: .all)
+                ScaleConfiguration.setFormulaMargin(.left, for: .all)
+            }
+            .configure(.backSlide) {
+                ScaleConfiguration.setNameMargin(.right, for: .all)
+                ScaleConfiguration.setFormulaMargin(.left, for: .all)
+            }
+            .configure(.backBottomStator) {
+                ScaleConfiguration.setNameMargin(.right, for: .all)
+                ScaleConfiguration.setFormulaMargin(.left, for: .all)
+            }
+            
+            // Scale name overrides for electrical engineering scales
+            .addNameOverrides([
                 "DQ": "D/Q",
                 "L": "C/L",
                 "Cos": "cos",
@@ -237,12 +215,68 @@ struct SlideRuleLibrary {
                 "ω": "ω",
                 "τ": "τ",
                 "PF": "F"
-            ],
+            ])
+            
+            // Legend annotation on back slide
+            .addAnnotation(
+                ComponentAnnotation(
+                    content: .text("""
+                        F = cycles per. sec.
+                        λ = meters × 10⁶
+                        ω = radians per. sec.
+                        T = seconds
+                        
+                        C = farads
+                        L = Henrys
+                        Xc = ohms
+                        XL = ohms
+                        """),
+                    color: LabelColor(red: 0, green: 0, blue: 0, alpha: 1),
+                    horizontalPosition: 0.99,
+                    verticalPosition: 0.5,
+                    anchor: .trailing,
+                    fontSize: 8,
+                    fontWeight: .medium,
+                    textAlignment: .leading
+                ),
+                on: RuleSideSelector.back
+            )
+            
+            // Nudge demonstration annotation
+            .addAnnotation(
+                ComponentAnnotation(
+                    content: .text("← Nudged 10pt left"),
+                    color: LabelColor(red: 0, green: 0.5, blue: 0, alpha: 1),
+                    horizontalPosition: 0.5,
+                    verticalPosition: 0.0,
+                    anchor: .top,
+                    fontSize: 13,
+                    fontWeight: .medium,
+                    textAlignment: .center,
+                    nudge: PositionNudge.left(10)
+                ),
+                on: RuleSideSelector.back
+            )
+            .build()
+        
+        return SlideRuleDefinitionModel(
+            name: "Pickett N-16 ES (API Demo)",
+            description: """
+                CONFIGURATION API DEMO: \
+                • All scale names visible \
+                • Front side: names on LEFT \
+                • Back side: names on RIGHT \
+                • Custom name overrides (D/Q, C/L, cos, etc.) \
+                • Back slide has legend text block annotation
+                """,
+            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            topStatorMM: 15,
+            slideMM: 15,
+            bottomStatorMM: 15,
+            sortOrder: -1,  // Show at top for easy testing
+            libraryVersion: 0,
             manufacturer: SlideRuleManufacturer.pickett.rawValue,
-            showScaleNames: true,           // Names visible (but even-indexed suppressed)
-            showFormulas: false,            // Formulas hidden at rule level
-            suppressEvenScaleNames: true,   // Suppress names at indices 0, 2, 4...
-            backSlideAnnotationsJSON: annotationsJSON
+            configuration: configuration
         )
     }
     

@@ -1,23 +1,23 @@
 // ConfigurationAPIExamples.swift
 // SlideRuleCoreV3
 //
-// Demonstrates the Scale Configuration API using the Pickett N-16 ES Annotation Test
+// Demonstrates the Scale Configuration API using the Pickett N-16 ES API Demo
 // as a reference. These examples show all configuration patterns documented in
 // swift-docs/scale-configuration-api-reference.md
+//
+// NOTE: All examples here use the ACTUAL implemented API and compile successfully.
+// The "Pickett N-16 ES (API Demo)" rule in SlideRuleLibrary demonstrates ALL of these.
 
 import Foundation
 
 // MARK: - Example 1: Dense Stator with Alternating Names
 // When a stator has many scales, suppress every other name for readability
 
-/// Creates a configuration that hides names on even-indexed scales for the front top stator
+/// Creates a configuration that hides names on even-indexed scales globally
 func example1_denseStatorAlternatingNames() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .suppressEvenScaleNames(
-                for: .specific(side: .front, component: .topStator)
-            )
-    }
+    SlideRuleConfigurationBuilder()
+        .suppressEvenScaleNames()  // Applies to ALL components
+        .build()
 }
 
 // MARK: - Example 2: Colored Inverted and Log-Log Scales
@@ -25,11 +25,10 @@ func example1_denseStatorAlternatingNames() -> SlideRuleConfiguration {
 
 /// Creates a configuration with colored scale labels
 func example2_coloredScales() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .colorInvertedScales(.red)    // CI, DI, CIF, DIF in red
-            .colorLogLogScales(.blue)     // LL0, LL1, LL2, LL3, etc. in blue
-    }
+    SlideRuleConfigurationBuilder()
+        .colorInvertedScales(.red)    // CI, DI, CIF, DIF in red
+        .colorLogLogScales(.blue)     // LL0, LL1, LL2, LL3, etc. in blue
+        .build()
 }
 
 // MARK: - Example 3: Custom Component Configuration
@@ -37,19 +36,18 @@ func example2_coloredScales() -> SlideRuleConfiguration {
 
 /// Creates a configuration with custom settings for the slide
 func example3_customComponentConfiguration() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .configure(.specific(side: .front, component: .slide)) {
-                // Hide names on first 2 scales
-                ScaleConfiguration.hideNames(for: .first(2))
-                
-                // Color the CI scale name red
-                ScaleConfiguration.colorLabels(for: .scale(.ci), nameColor: .red)
-                
-                // Nudge the C scale name slightly right
-                ScaleConfiguration.nudgeName(for: .scale(.c), nudge: .right(3))
-            }
-    }
+    SlideRuleConfigurationBuilder()
+        .configure(.frontSlide) {
+            // Hide names on first 2 scales
+            ScaleConfiguration.hideNames(for: .first(2))
+            
+            // Color the CI scale name red
+            ScaleConfiguration.colorLabels(.red, for: .scale(.ci))
+            
+            // Nudge the C scale name slightly right
+            ScaleConfiguration.nudgeName(.right(3), for: .scale(.c))
+        }
+        .build()
 }
 
 // MARK: - Example 4: Scale Name Overrides
@@ -57,54 +55,52 @@ func example3_customComponentConfiguration() -> SlideRuleConfiguration {
 
 /// Creates a configuration with custom display names
 func example4_scaleNameOverrides() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .addNameOverrides([
-                .ci: "1/x",      // CI → "1/x"
-                .a: "x²",        // A → "x²"
-                .k: "x³"         // K → "x³"
-            ])
-    }
+    SlideRuleConfigurationBuilder()
+        .addNameOverrides([
+            "CI": "1/x",      // CI → "1/x"
+            "A": "x²",        // A → "x²"
+            "K": "x³"         // K → "x³"
+        ])
+        .build()
 }
 
 // MARK: - Example 5: Complex Multi-Component Configuration
 // Different settings for different parts of the rule
 
-/// Creates a comprehensive configuration like the Pickett N-16 ES Annotation Test
+/// Creates a comprehensive configuration with multiple features
 func example5_complexMultiComponent() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            // Global: hide all formulas
-            .hideFormulas()
-            
-            // Front top stator: suppress alternate names (dense 4-scale layout)
-            .configure(.specific(side: .front, component: .topStator)) {
-                ScaleConfiguration.hideNames(for: .evenIndices)
-            }
-            
-            // All slides on both sides: color inverted scales
-            .configure(.allSlides(side: .both)) {
-                ScaleConfiguration.colorLabels(for: .scale(.ci), nameColor: .red)
-                ScaleConfiguration.colorLabels(for: .scale(.cif), nameColor: .red)
-            }
-            
-            // Back side: custom naming for electrical engineering scales
-            .addNameOverride(key: .named("DQ"), name: "D/Q")
-            .addNameOverride(key: .named("L"), name: "C/L")
-            .addNameOverride(key: .named("Cos"), name: "cos")
-    }
+    SlideRuleConfigurationBuilder()
+        // Global: hide all formulas
+        .hideFormulas()
+        
+        // Front top stator: suppress alternate names (dense layout)
+        .configure(.frontTopStator) {
+            ScaleConfiguration.hideNames(for: .evenIndices)
+        }
+        
+        // Front slide: color inverted scales
+        .configure(.frontSlide) {
+            ScaleConfiguration.colorLabels(.red, for: .scale(.ci))
+            ScaleConfiguration.colorLabels(.red, for: .scale(.cif))
+        }
+        
+        // Custom naming for electrical engineering scales
+        .addNameOverride(canonical: "DQ", display: "D/Q")
+        .addNameOverride(canonical: "L", display: "C/L")
+        .addNameOverride(canonical: "Cos", display: "cos")
+        .build()
 }
 
-// MARK: - Example 6: Pickett N-16 ES Annotation Test Configuration
-// This is the full configuration that matches the current Annotation Test rule
+// MARK: - Example 6: Pickett N-16 ES API Demo Configuration
+// This is the full configuration that matches the API Demo rule in SlideRuleLibrary
 
-/// Complete configuration for the Pickett N-16 ES Annotation Test rule
-/// Demonstrates:
-/// - Rule-level display settings (formulas disabled)
-/// - Even-indexed scale names suppressed on all components
-/// - Custom scale name overrides for electrical engineering scales
-/// - Component annotations (legend text block)
-func example6_pickettN16ESAnnotationTest() -> SlideRuleConfiguration {
+/// Complete configuration demonstrating ALL API features
+/// This matches what's implemented in SlideRuleLibrary.pickettN16ESAnnotationTest()
+func example6_pickettN16ESAPIDemo() -> SlideRuleConfiguration {
+    // Custom colors not in LabelColor constants
+    let orange = LabelColor(red: 1.0, green: 0.5, blue: 0)
+    let purple = LabelColor(red: 0.5, green: 0, blue: 0.5)
+    
     // Create the legend annotation for the back slide
     let legendAnnotation = ComponentAnnotation(
         content: .text("""
@@ -140,31 +136,81 @@ func example6_pickettN16ESAnnotationTest() -> SlideRuleConfiguration {
         nudge: PositionNudge.left(10)  // Fine-grained position adjustment
     )
     
-    return SlideRuleConfiguration.build { builder in
-        builder
-            // Rule-level: hide all formulas
-            .hideFormulas()
-            
-            // Suppress even-indexed scale names globally (0, 2, 4, ...)
-            .suppressEvenScaleNames(for: .global)
-            
-            // Custom scale name overrides for Pickett N-16 ES electrical scales
-            .addNameOverrides([
-                .named("DQ"): "D/Q",
-                .named("L"): "C/L",
-                .named("Cos"): "cos",
-                .named("CosΘ"): "cos Θ",
-                .named("Θ"): "θ",
-                .named("λ"): "λ",
-                .named("ω"): "ω",
-                .named("τ"): "τ",
-                .named("PF"): "F"
-            ])
-            
-            // Add annotations to the rule
-            .addAnnotation(legendAnnotation)
-            .addAnnotation(nudgeDemoAnnotation)
-    }
+    // Front side annotation
+    let frontAnnotation = ComponentAnnotation(
+        content: .text("API Demo →"),
+        color: LabelColor(red: 0.8, green: 0.4, blue: 0, alpha: 1),  // Orange
+        horizontalPosition: 0.01,
+        verticalPosition: 0.5,
+        anchor: .leading,
+        fontSize: 10,
+        fontWeight: .bold,
+        textAlignment: .leading,
+        nudge: PositionNudge.right(5)
+    )
+    
+    return SlideRuleConfigurationBuilder()
+        // EXAMPLE 1 & 9: Rule-level display settings
+        .hideFormulas()
+        
+        // EXAMPLE 1: Dense stator with alternating names
+        .suppressEvenScaleNames()
+        
+        // EXAMPLE 2: Colored inverted and Log-Log scales
+        .colorInvertedScales(.red)
+        .colorLogLogScales(.blue)
+        
+        // EXAMPLE 4: Scale name overrides
+        .addNameOverrides([
+            "DQ": "D/Q",
+            "L": "C/L",
+            "Cos": "cos",
+            "CosΘ": "cos Θ",
+            "Θ": "θ",
+            "λ": "λ",
+            "ω": "ω",
+            "τ": "τ",
+            "PF": "F"
+        ])
+        
+        // EXAMPLE 3: Custom component configuration - nudge C scale
+        .configure(.frontSlide) {
+            ScaleConfiguration.nudgeName(.right(5), for: .scale(.c))
+        }
+        
+        // EXAMPLE 8: Pattern-based configuration - trig scales green
+        .configure(.frontTopStator) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH)$"))
+        }
+        .configure(.frontSlide) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH)$"))
+        }
+        .configure(.frontBottomStator) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH)$"))
+        }
+        .configure(.backTopStator) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH|CosΘ)$"))
+        }
+        .configure(.backSlide) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH|CosΘ)$"))
+        }
+        .configure(.backBottomStator) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos|SH1|SH2|TH|CosΘ)$"))
+        }
+        
+        // EXAMPLE 12: Index-based selection
+        .configure(.frontTopStator) {
+            ScaleConfiguration.colorLabels(orange, for: .first(1))
+        }
+        .configure(.frontBottomStator) {
+            ScaleConfiguration.colorLabels(purple, for: .last(1))
+        }
+        
+        // EXAMPLE 6: Annotations
+        .addAnnotation(legendAnnotation, on: .back)
+        .addAnnotation(nudgeDemoAnnotation, on: .back)
+        .addAnnotation(frontAnnotation, on: .front)
+        .build()
 }
 
 // MARK: - Example 7: Using the Resolver Directly
@@ -173,11 +219,10 @@ func example6_pickettN16ESAnnotationTest() -> SlideRuleConfiguration {
 /// Demonstrates how to use ScaleConfigurationResolver in rendering code
 func example7_usingResolverDirectly() {
     // Build a configuration
-    let config = SlideRuleConfiguration.build { builder in
-        builder
-            .colorLogLogScales(.blue)
-            .suppressOddScaleNames(for: .specific(side: .front, component: .topStator))
-    }
+    let config = SlideRuleConfigurationBuilder()
+        .colorLogLogScales(.blue)
+        .suppressOddScaleNames()
+        .build()
     
     // Get resolver for a specific component
     let resolver = config.resolverFor(side: .front, component: .topStator)
@@ -197,11 +242,10 @@ func example7_usingResolverDirectly() {
         )
         
         // Use resolved settings in rendering
-        if display.showName {
-            let nameToShow = display.customName ?? scaleName
-            let color = display.nameColor ?? .defaultLabel
-            // In real code: render nameToShow with color
-            print("Scale \(scaleName): show name '\(nameToShow)' with color \(color)")
+        if display.nameMargin != .none {
+            let color = display.labelColor ?? LabelColor.black
+            // In real code: render scale name with color
+            print("Scale \(scaleName): show name with color \(color)")
         } else {
             print("Scale \(scaleName): name hidden")
         }
@@ -213,24 +257,20 @@ func example7_usingResolverDirectly() {
 
 /// Configures all scales matching a pattern
 func example8_patternBasedConfiguration() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            // Configure all Log-Log scales (LL0, LL1, LL2, LL3, LL00, LL01, etc.)
-            .configure(.global) {
-                ScaleConfiguration.colorLabels(
-                    for: .matching(pattern: "LL[0-9]+"),
-                    nameColor: .blue
-                )
-            }
-            
-            // Configure all trig scales
-            .configure(.global) {
-                ScaleConfiguration.colorLabels(
-                    for: .matching(pattern: "(S|ST|T|T1|T2|Cos)"),
-                    nameColor: .green
-                )
-            }
-    }
+    SlideRuleConfigurationBuilder()
+        // Configure all Log-Log scales (LL0, LL1, LL2, LL3, LL00, LL01, etc.)
+        .configure(.frontTopStator) {
+            ScaleConfiguration.colorLabels(.blue, for: .matching(pattern: "^LL[0-9]+$"))
+        }
+        .configure(.frontBottomStator) {
+            ScaleConfiguration.colorLabels(.blue, for: .matching(pattern: "^LL[0-9]+$"))
+        }
+        
+        // Configure all trig scales
+        .configure(.frontSlide) {
+            ScaleConfiguration.colorLabels(.green, for: .matching(pattern: "^(S|ST|T|T1|T2|Cos)$"))
+        }
+        .build()
 }
 
 // MARK: - Example 9: Formulas-Only Configuration
@@ -238,11 +278,10 @@ func example8_patternBasedConfiguration() -> SlideRuleConfiguration {
 
 /// Creates a configuration showing only formulas
 func example9_formulasOnly() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .hideScaleNames()  // Hide names
-            // Formulas shown by default
-    }
+    SlideRuleConfigurationBuilder()
+        .hideScaleNames()  // Hide names
+        // Formulas shown by default
+        .build()
 }
 
 // MARK: - Example 10: Minimal Clean Display
@@ -250,10 +289,9 @@ func example9_formulasOnly() -> SlideRuleConfiguration {
 
 /// Creates a minimal configuration with no labels
 func example10_minimalClean() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .hideAllLabels()  // Hide both names and formulas
-    }
+    SlideRuleConfigurationBuilder()
+        .hideAllLabels()  // Hide both names and formulas
+        .build()
 }
 
 // MARK: - Example 11: Split Scale Configuration
@@ -261,19 +299,16 @@ func example10_minimalClean() -> SlideRuleConfiguration {
 
 /// Configures split scales with different settings per segment
 func example11_splitScaleConfiguration() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .configure(.global) {
-                // Left segment of SQ1 - hide name (it's labeled on right)
-                ScaleConfiguration.hideNames(for: .leftSegment(.sq1))
-                
-                // Right segment of SQ1 - show name, color it
-                ScaleConfiguration.colorLabels(
-                    for: .rightSegment(.sq1),
-                    nameColor: .orange
-                )
-            }
-    }
+    SlideRuleConfigurationBuilder()
+        .configure(.frontTopStator) {
+            // Left segment of SQ1 - hide name (it's labeled on right)
+            ScaleConfiguration.hideNames(for: .leftSegment(of: .sq1))
+            
+            // Right segment of SQ1 - color it orange
+            let orange = LabelColor(red: 1.0, green: 0.5, blue: 0)
+            ScaleConfiguration.colorLabels(orange, for: .rightSegment(of: .sq1))
+        }
+        .build()
 }
 
 // MARK: - Example 12: Index-Based Selection
@@ -281,19 +316,21 @@ func example11_splitScaleConfiguration() -> SlideRuleConfiguration {
 
 /// Configures scales at specific indices
 func example12_indexBasedSelection() -> SlideRuleConfiguration {
-    SlideRuleConfiguration.build { builder in
-        builder
-            .configure(.specific(side: .front, component: .topStator)) {
-                // Hide names for scales at indices 0, 2, and 4
-                ScaleConfiguration.hideNames(for: .indices([0, 2, 4]))
-                
-                // Color the first scale
-                ScaleConfiguration.colorLabels(for: .first(1), nameColor: .red)
-                
-                // Color the last 2 scales
-                ScaleConfiguration.colorLabels(for: .last(2), nameColor: .blue)
-            }
-    }
+    let orange = LabelColor(red: 1.0, green: 0.5, blue: 0)
+    let purple = LabelColor(red: 0.5, green: 0, blue: 0.5)
+    
+    return SlideRuleConfigurationBuilder()
+        .configure(.frontTopStator) {
+            // Hide names for scales at indices 0, 2, and 4
+            ScaleConfiguration.hideNames(for: .indices([0, 2, 4]))
+            
+            // Color the first scale orange
+            ScaleConfiguration.colorLabels(orange, for: .first(1))
+            
+            // Color the last 2 scales purple
+            ScaleConfiguration.colorLabels(purple, for: .last(2))
+        }
+        .build()
 }
 
 // MARK: - Preview/Test Helpers
@@ -310,7 +347,7 @@ func printConfigurationSummary(_ config: SlideRuleConfiguration, label: String) 
     print("Rule Annotations: \(config.ruleAnnotations.count)")
     print("Scale Name Overrides: \(config.scaleNameOverrides.count)")
     for (key, name) in config.scaleNameOverrides {
-        print("  - \(key.canonicalName) → \"\(name)\"")
+        print("  - \(key) → \"\(name)\"")
     }
 }
 
@@ -342,8 +379,8 @@ func runAllConfigurationExamples() {
     printConfigurationSummary(config5, label: "Example 5: Complex Multi-Component")
     
     // Example 6
-    let config6 = example6_pickettN16ESAnnotationTest()
-    printConfigurationSummary(config6, label: "Example 6: Pickett N-16 ES Annotation Test")
+    let config6 = example6_pickettN16ESAPIDemo()
+    printConfigurationSummary(config6, label: "Example 6: Pickett N-16 ES API Demo")
     
     // Example 7 - prints its own output
     print("\n=== Example 7: Using Resolver ===")

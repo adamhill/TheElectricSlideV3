@@ -1,6 +1,6 @@
 # Scale Configuration API - Complete Reference
 
-> **Status:** Phases 1-5 Implemented | Phase 6 (SwiftData) Pending
+> **Status:** All Phases Complete (Phases 1-6 Implemented)
 
 ## Overview
 
@@ -930,24 +930,95 @@ Result for CI:
 
 ---
 
-## Phase 6: SwiftData Integration (Pending)
+## Phase 6: SwiftData Integration ✅
 
-The next phase will add persistence support:
+SwiftData persistence is now implemented in `CurrentSlideRule.swift`:
+
+### Storage Approach
+
+Instead of `@Attribute(.transformable)`, we use **JSON String storage** for better SwiftData compatibility:
 
 ```swift
-// SlideRuleDefinitionModel will gain:
-@Attribute(.transformable) 
-var configuration: SlideRuleConfiguration?
-
-// Backward-compatible computed properties
-var displaySettings: RuleDisplaySettings {
-    get { configuration?.displaySettings ?? .standard }
-    set { configuration = configuration?.withDisplaySettings(newValue) 
-                        ?? SlideRuleConfiguration.with(displaySettings: newValue) }
+@Model
+final class SlideRuleDefinitionModel {
+    // JSON-encoded SlideRuleConfiguration for persistence
+    var configurationJSON: String?
+    
+    // Computed property for type-safe access
+    var configuration: SlideRuleConfiguration {
+        get {
+            guard let json = configurationJSON,
+                  let data = json.data(using: .utf8),
+                  let config = try? JSONDecoder().decode(SlideRuleConfiguration.self, from: data)
+            else { return migratedConfiguration }
+            return config
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue),
+               let json = String(data: data, encoding: .utf8) {
+                configurationJSON = json
+            }
+        }
+    }
 }
 ```
 
-This will enable:
-- Persisting custom configurations per rule
-- Migrating existing rules automatically
-- Full backward compatibility with current code
+### Backward Compatibility
+
+Legacy properties are preserved as computed properties with backing storage:
+
+```swift
+// Internal storage for migration
+private var _showScaleNames: Bool = true
+private var _showFormulas: Bool = true
+private var _suppressEvenScaleNames: Bool = false
+
+// Computed property that reads from configuration first
+var showScaleNames: Bool {
+    get { configuration.displaySettings.showScaleNames }
+    set {
+        var config = configuration
+        config.displaySettings.showScaleNames = newValue
+        configuration = config
+    }
+}
+```
+
+### New Initializer
+
+Factory methods can now pass configuration directly:
+
+```swift
+// Using the new Configuration API
+let configuration = SlideRuleConfigurationBuilder()
+    .hideFormulas()
+    .suppressEvenScaleNames()
+    .addNameOverrides(["DQ": "D/Q", "L": "C/L"])
+    .addAnnotation(legendAnnotation, on: .back)
+    .build()
+
+// Create model with configuration
+SlideRuleDefinitionModel(
+    name: "Rule Name",
+    description: "Description",
+    definitionString: "(DF [ CF CI C ] D)",
+    manufacturer: SlideRuleManufacturer.pickett.rawValue,
+    configuration: configuration
+)
+```
+
+### Migration Helper
+
+```swift
+/// Migrate from legacy properties to configuration JSON
+func migrateToConfiguration() {
+    guard configurationJSON == nil else { return } // Already migrated
+    configuration = migratedConfiguration
+}
+```
+
+This enables:
+- ✅ Persisting custom configurations per rule
+- ✅ Migrating existing rules automatically via `migratedConfiguration`
+- ✅ Full backward compatibility with existing code
+- ✅ Type-safe access via computed `configuration` property

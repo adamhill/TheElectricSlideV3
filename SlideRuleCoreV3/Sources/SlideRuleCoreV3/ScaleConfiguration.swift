@@ -1182,3 +1182,321 @@ extension SlideRuleConfiguration {
         return config
     }
 }
+
+// MARK: - Phase 5: Result Builder
+
+/// Result builder for composing scale configurations in a DSL-style syntax
+///
+/// Enables declarative configuration blocks:
+/// ```swift
+/// SlideRuleConfigurationBuilder()
+///     .configure(.frontSlide) {
+///         ScaleConfiguration.hideNames(for: .evenIndices)
+///         ScaleConfiguration.colorLabels(.red, for: .matching(pattern: "^LL[0-3]$"))
+///     }
+///     .build()
+/// ```
+@resultBuilder
+public struct ScaleConfigurationResultBuilder {
+    public static func buildBlock(_ components: [ScaleConfiguration]...) -> [ScaleConfiguration] {
+        components.flatMap { $0 }
+    }
+    
+    public static func buildOptional(_ component: [ScaleConfiguration]?) -> [ScaleConfiguration] {
+        component ?? []
+    }
+    
+    public static func buildEither(first: [ScaleConfiguration]) -> [ScaleConfiguration] {
+        first
+    }
+    
+    public static func buildEither(second: [ScaleConfiguration]) -> [ScaleConfiguration] {
+        second
+    }
+    
+    public static func buildArray(_ components: [[ScaleConfiguration]]) -> [ScaleConfiguration] {
+        components.flatMap { $0 }
+    }
+    
+    public static func buildExpression(_ expression: ScaleConfiguration) -> [ScaleConfiguration] {
+        [expression]
+    }
+    
+    public static func buildExpression(_ expression: [ScaleConfiguration]) -> [ScaleConfiguration] {
+        expression
+    }
+}
+
+// MARK: - Phase 5: Fluent Builder
+
+/// Fluent builder for creating slide rule configurations
+///
+/// Provides a chainable API for building configurations with clear, readable syntax.
+///
+/// ## Usage Examples
+///
+/// ### Simple formula suppression
+/// ```swift
+/// let config = SlideRuleConfigurationBuilder()
+///     .hideFormulas()
+///     .build()
+/// ```
+///
+/// ### Even-indexed scale name suppression
+/// ```swift
+/// let config = SlideRuleConfigurationBuilder()
+///     .suppressEvenScaleNames()
+///     .build()
+/// ```
+///
+/// ### Complex per-component configuration
+/// ```swift
+/// let config = SlideRuleConfigurationBuilder()
+///     .configure(.backSlide) {
+///         ScaleConfiguration.hideNames(for: .evenIndices)
+///         ScaleConfiguration.colorLabels(.red, for: .scale(.ll1))
+///     }
+///     .addNameOverride(canonical: "DQ", display: "D/Q")
+///     .build()
+/// ```
+public struct SlideRuleConfigurationBuilder: Sendable {
+    private var config: SlideRuleConfiguration
+    
+    /// Create a new builder with default settings
+    public init() {
+        config = SlideRuleConfiguration()
+    }
+    
+    /// Create a builder starting from an existing configuration
+    public init(from existing: SlideRuleConfiguration) {
+        config = existing
+    }
+    
+    // MARK: - Rule-Level Display Settings
+    
+    /// Hide formulas globally (set showFormulas = false)
+    public func hideFormulas() -> Self {
+        var copy = self
+        copy.config.displaySettings = RuleDisplaySettings(
+            showScaleNames: config.displaySettings.showScaleNames,
+            showFormulas: false,
+            defaultScaleNameMargin: config.displaySettings.defaultScaleNameMargin,
+            defaultFormulaMargin: config.displaySettings.defaultFormulaMargin
+        )
+        return copy
+    }
+    
+    /// Hide scale names globally (set showScaleNames = false)
+    public func hideScaleNames() -> Self {
+        var copy = self
+        copy.config.displaySettings = RuleDisplaySettings(
+            showScaleNames: false,
+            showFormulas: config.displaySettings.showFormulas,
+            defaultScaleNameMargin: config.displaySettings.defaultScaleNameMargin,
+            defaultFormulaMargin: config.displaySettings.defaultFormulaMargin
+        )
+        return copy
+    }
+    
+    /// Hide all margin labels (both names and formulas)
+    public func hideAllLabels() -> Self {
+        var copy = self
+        copy.config.displaySettings = RuleDisplaySettings(
+            showScaleNames: false,
+            showFormulas: false,
+            defaultScaleNameMargin: config.displaySettings.defaultScaleNameMargin,
+            defaultFormulaMargin: config.displaySettings.defaultFormulaMargin
+        )
+        return copy
+    }
+    
+    /// Set the default margin for scale names
+    public func defaultScaleNameMargin(_ margin: MarginSide) -> Self {
+        var copy = self
+        copy.config.displaySettings = RuleDisplaySettings(
+            showScaleNames: config.displaySettings.showScaleNames,
+            showFormulas: config.displaySettings.showFormulas,
+            defaultScaleNameMargin: margin,
+            defaultFormulaMargin: config.displaySettings.defaultFormulaMargin
+        )
+        return copy
+    }
+    
+    /// Set the default margin for formulas
+    public func defaultFormulaMargin(_ margin: MarginSide) -> Self {
+        var copy = self
+        copy.config.displaySettings = RuleDisplaySettings(
+            showScaleNames: config.displaySettings.showScaleNames,
+            showFormulas: config.displaySettings.showFormulas,
+            defaultScaleNameMargin: config.displaySettings.defaultScaleNameMargin,
+            defaultFormulaMargin: margin
+        )
+        return copy
+    }
+    
+    // MARK: - Component Configuration
+    
+    /// Configure a specific component with scale configurations
+    ///
+    /// - Parameters:
+    ///   - component: The component selector (e.g., `.frontSlide`, `.backTopStator`)
+    ///   - configs: A result builder block producing scale configurations
+    /// - Returns: Updated builder
+    public func configure(
+        _ component: ComponentSelector,
+        @ScaleConfigurationResultBuilder _ configs: () -> [ScaleConfiguration]
+    ) -> Self {
+        var copy = self
+        let componentConfig = ComponentConfiguration(
+            selector: component,
+            scaleConfigs: configs(),
+            annotations: []
+        )
+        copy.config.componentConfigs.append(componentConfig)
+        return copy
+    }
+    
+    /// Configure a component with both scale configs and annotations
+    public func configure(
+        _ component: ComponentSelector,
+        scaleConfigs: [ScaleConfiguration],
+        annotations: [ComponentAnnotation]
+    ) -> Self {
+        var copy = self
+        let componentConfig = ComponentConfiguration(
+            selector: component,
+            scaleConfigs: scaleConfigs,
+            annotations: annotations
+        )
+        copy.config.componentConfigs.append(componentConfig)
+        return copy
+    }
+    
+    // MARK: - Common Patterns
+    
+    /// Suppress scale names on even-indexed scales across all components
+    ///
+    /// This is a common pattern to reduce visual clutter on densely-packed rules.
+    public func suppressEvenScaleNames() -> Self {
+        var copy = self
+        let evenHide = ScaleConfiguration.hideNames(for: .evenIndices)
+        
+        for selector in ComponentSelector.all {
+            copy.config.componentConfigs.append(ComponentConfiguration(
+                selector: selector,
+                scaleConfigs: [evenHide]
+            ))
+        }
+        return copy
+    }
+    
+    /// Suppress scale names on odd-indexed scales across all components
+    public func suppressOddScaleNames() -> Self {
+        var copy = self
+        let oddHide = ScaleConfiguration.hideNames(for: .oddIndices)
+        
+        for selector in ComponentSelector.all {
+            copy.config.componentConfigs.append(ComponentConfiguration(
+                selector: selector,
+                scaleConfigs: [oddHide]
+            ))
+        }
+        return copy
+    }
+    
+    /// Color all log-log scales with a specific color
+    public func colorLogLogScales(_ color: LabelColor) -> Self {
+        var copy = self
+        let llColor = ScaleConfiguration.colorLabels(color, for: .matching(pattern: "^LL[0-3]$"))
+        let ll0xColor = ScaleConfiguration.colorLabels(color, for: .matching(pattern: "^LL0[0-3]$"))
+        
+        for selector in ComponentSelector.all {
+            copy.config.componentConfigs.append(ComponentConfiguration(
+                selector: selector,
+                scaleConfigs: [llColor, ll0xColor]
+            ))
+        }
+        return copy
+    }
+    
+    /// Color all inverted scales (CI, DI, CIF, etc.) with a specific color
+    public func colorInvertedScales(_ color: LabelColor) -> Self {
+        var copy = self
+        let invertedColor = ScaleConfiguration.colorLabels(color, for: .matching(pattern: "^[CD]I[F]?$"))
+        
+        for selector in ComponentSelector.all {
+            copy.config.componentConfigs.append(ComponentConfiguration(
+                selector: selector,
+                scaleConfigs: [invertedColor]
+            ))
+        }
+        return copy
+    }
+    
+    // MARK: - Scale Name Overrides
+    
+    /// Add a single scale name override
+    public func addNameOverride(canonical: String, display: String) -> Self {
+        var copy = self
+        copy.config.scaleNameOverrides[canonical] = display
+        return copy
+    }
+    
+    /// Add multiple scale name overrides
+    public func addNameOverrides(_ overrides: [String: String]) -> Self {
+        var copy = self
+        for (canonical, display) in overrides {
+            copy.config.scaleNameOverrides[canonical] = display
+        }
+        return copy
+    }
+    
+    // MARK: - Annotations
+    
+    /// Add a rule-level annotation on a specific side
+    public func addAnnotation(_ annotation: ComponentAnnotation, on side: RuleSideSelector) -> Self {
+        var copy = self
+        var annotations = copy.config.ruleAnnotations[side] ?? []
+        annotations.append(annotation)
+        copy.config.ruleAnnotations[side] = annotations
+        return copy
+    }
+    
+    /// Add a component-level annotation
+    public func addAnnotation(on component: ComponentSelector, _ annotation: ComponentAnnotation) -> Self {
+        var copy = self
+        copy.config.componentConfigs.append(ComponentConfiguration(
+            selector: component,
+            scaleConfigs: [],
+            annotations: [annotation]
+        ))
+        return copy
+    }
+    
+    // MARK: - Build
+    
+    /// Build the final configuration
+    public func build() -> SlideRuleConfiguration {
+        config
+    }
+}
+
+// MARK: - Convenience Extensions
+
+extension SlideRuleConfiguration {
+    /// Create a configuration using the fluent builder
+    ///
+    /// Usage:
+    /// ```swift
+    /// let config = SlideRuleConfiguration.build { builder in
+    ///     builder
+    ///         .hideFormulas()
+    ///         .suppressEvenScaleNames()
+    /// }
+    /// ```
+    public static func build(
+        _ configure: (SlideRuleConfigurationBuilder) -> SlideRuleConfigurationBuilder
+    ) -> SlideRuleConfiguration {
+        configure(SlideRuleConfigurationBuilder()).build()
+    }
+}

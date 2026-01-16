@@ -665,3 +665,302 @@ struct SlideRuleConfigurationCodableTests {
         #expect(decoded.componentConfigs.isEmpty)
     }
 }
+
+// MARK: - Phase 5: Fluent Builder Tests
+
+@Suite("SlideRuleConfigurationBuilder")
+struct SlideRuleConfigurationBuilderTests {
+    
+    @Test("Empty builder creates standard configuration")
+    func emptyBuilder() {
+        let config = SlideRuleConfigurationBuilder()
+            .build()
+        
+        #expect(config.displaySettings.showScaleNames == true)
+        #expect(config.displaySettings.showFormulas == true)
+        #expect(config.componentConfigs.isEmpty)
+    }
+    
+    @Test("hideFormulas sets showFormulas to false")
+    func hideFormulas() {
+        let config = SlideRuleConfigurationBuilder()
+            .hideFormulas()
+            .build()
+        
+        #expect(config.displaySettings.showScaleNames == true)
+        #expect(config.displaySettings.showFormulas == false)
+    }
+    
+    @Test("hideScaleNames sets showScaleNames to false")
+    func hideScaleNames() {
+        let config = SlideRuleConfigurationBuilder()
+            .hideScaleNames()
+            .build()
+        
+        #expect(config.displaySettings.showScaleNames == false)
+        #expect(config.displaySettings.showFormulas == true)
+    }
+    
+    @Test("hideAllLabels hides both names and formulas")
+    func hideAllLabels() {
+        let config = SlideRuleConfigurationBuilder()
+            .hideAllLabels()
+            .build()
+        
+        #expect(config.displaySettings.showScaleNames == false)
+        #expect(config.displaySettings.showFormulas == false)
+    }
+    
+    @Test("configure adds component configuration with result builder")
+    func configureWithResultBuilder() {
+        let config = SlideRuleConfigurationBuilder()
+            .configure(.frontSlide) {
+                ScaleConfiguration.hideNames(for: .evenIndices)
+                ScaleConfiguration.colorLabels(.red, for: .scale(.ll1))
+            }
+            .build()
+        
+        #expect(config.componentConfigs.count == 1)
+        #expect(config.componentConfigs[0].selector == .frontSlide)
+        #expect(config.componentConfigs[0].scaleConfigs.count == 2)
+    }
+    
+    @Test("configure with arrays adds component configuration")
+    func configureWithArrays() {
+        let config = SlideRuleConfigurationBuilder()
+            .configure(
+                .backTopStator,
+                scaleConfigs: [ScaleConfiguration.hideFormulas(for: .all)],
+                annotations: []
+            )
+            .build()
+        
+        #expect(config.componentConfigs.count == 1)
+        #expect(config.componentConfigs[0].selector == .backTopStator)
+    }
+    
+    @Test("suppressEvenScaleNames adds configs to all components")
+    func suppressEvenScaleNames() {
+        let config = SlideRuleConfigurationBuilder()
+            .suppressEvenScaleNames()
+            .build()
+        
+        // Should have 6 component configs (all front + all back)
+        #expect(config.componentConfigs.count == 6)
+        
+        // Each should have evenIndices selector
+        for componentConfig in config.componentConfigs {
+            #expect(componentConfig.scaleConfigs.count == 1)
+            #expect(componentConfig.scaleConfigs[0].selector == .evenIndices)
+        }
+    }
+    
+    @Test("colorLogLogScales adds color configs to all components")
+    func colorLogLogScales() {
+        let config = SlideRuleConfigurationBuilder()
+            .colorLogLogScales(.red)
+            .build()
+        
+        // Should have 6 component configs
+        #expect(config.componentConfigs.count == 6)
+        
+        // Each should have 2 scale configs (LL[0-3] and LL0[0-3])
+        for componentConfig in config.componentConfigs {
+            #expect(componentConfig.scaleConfigs.count == 2)
+            #expect(componentConfig.scaleConfigs[0].labelColor == .red)
+            #expect(componentConfig.scaleConfigs[1].labelColor == .red)
+        }
+    }
+    
+    @Test("addNameOverride adds single override")
+    func addNameOverride() {
+        let config = SlideRuleConfigurationBuilder()
+            .addNameOverride(canonical: "DQ", display: "D/Q")
+            .build()
+        
+        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
+    }
+    
+    @Test("addNameOverrides adds multiple overrides")
+    func addNameOverrides() {
+        let config = SlideRuleConfigurationBuilder()
+            .addNameOverrides([
+                "DQ": "D/Q",
+                "Cos": "cos",
+                "Sin": "sin"
+            ])
+            .build()
+        
+        #expect(config.scaleNameOverrides.count == 3)
+        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
+        #expect(config.scaleNameOverrides["Cos"] == "cos")
+    }
+    
+    @Test("addAnnotation on side adds rule-level annotation")
+    func addAnnotationOnSide() {
+        let annotation = ComponentAnnotation(
+            content: .text("Test"),
+            color: LabelColor.black,
+            horizontalPosition: 0.5,
+            verticalPosition: 0.5,
+            anchor: .center,
+            fontSize: 12,
+            fontWeight: .medium,
+            textAlignment: .center
+        )
+        
+        let config = SlideRuleConfigurationBuilder()
+            .addAnnotation(annotation, on: .front)
+            .build()
+        
+        #expect(config.ruleAnnotations[.front]?.count == 1)
+        #expect(config.ruleAnnotations[.back] == nil)
+    }
+    
+    @Test("addAnnotation on component adds component annotation")
+    func addAnnotationOnComponent() {
+        let annotation = ComponentAnnotation(
+            content: .text("Legend"),
+            color: LabelColor.green,
+            horizontalPosition: 0.1,
+            verticalPosition: 0.9,
+            anchor: .bottomLeading,
+            fontSize: 10,
+            fontWeight: .regular,
+            textAlignment: .leading
+        )
+        
+        let config = SlideRuleConfigurationBuilder()
+            .addAnnotation(on: .backSlide, annotation)
+            .build()
+        
+        #expect(config.componentConfigs.count == 1)
+        #expect(config.componentConfigs[0].selector == .backSlide)
+        #expect(config.componentConfigs[0].annotations.count == 1)
+    }
+    
+    @Test("Chained methods accumulate correctly")
+    func chainedMethods() {
+        let config = SlideRuleConfigurationBuilder()
+            .hideFormulas()
+            .suppressEvenScaleNames()
+            .addNameOverride(canonical: "DQ", display: "D/Q")
+            .configure(.backSlide) {
+                ScaleConfiguration.colorLabels(.blue, for: .scale(.c))
+            }
+            .build()
+        
+        #expect(config.displaySettings.showFormulas == false)
+        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
+        // 6 from suppressEvenScaleNames + 1 from configure
+        #expect(config.componentConfigs.count == 7)
+    }
+    
+    @Test("Builder from existing configuration preserves settings")
+    func builderFromExisting() {
+        let existing = SlideRuleConfiguration(
+            displaySettings: RuleDisplaySettings(showFormulas: false),
+            scaleNameOverrides: ["A": "B"]
+        )
+        
+        let config = SlideRuleConfigurationBuilder(from: existing)
+            .addNameOverride(canonical: "C", display: "D")
+            .build()
+        
+        #expect(config.displaySettings.showFormulas == false)
+        #expect(config.scaleNameOverrides["A"] == "B")
+        #expect(config.scaleNameOverrides["C"] == "D")
+    }
+    
+    @Test("Static build method works with closure")
+    func staticBuildMethod() {
+        let config = SlideRuleConfiguration.build { builder in
+            builder
+                .hideFormulas()
+                .suppressEvenScaleNames()
+        }
+        
+        #expect(config.displaySettings.showFormulas == false)
+        #expect(config.componentConfigs.count == 6)
+    }
+    
+    @Test("Default margin methods work correctly")
+    func defaultMarginMethods() {
+        let config = SlideRuleConfigurationBuilder()
+            .defaultScaleNameMargin(.right)
+            .defaultFormulaMargin(.left)
+            .build()
+        
+        #expect(config.displaySettings.defaultScaleNameMargin == .right)
+        #expect(config.displaySettings.defaultFormulaMargin == .left)
+    }
+}
+
+// MARK: - Result Builder Tests
+
+@Suite("ScaleConfigurationResultBuilder")
+struct ScaleConfigurationResultBuilderTests {
+    
+    @Test("Result builder combines multiple configurations")
+    func combinesConfigurations() {
+        @ScaleConfigurationResultBuilder
+        func buildConfigs() -> [ScaleConfiguration] {
+            ScaleConfiguration.hideNames(for: .evenIndices)
+            ScaleConfiguration.hideFormulas(for: .oddIndices)
+            ScaleConfiguration.colorLabels(.red, for: .scale(.ll1))
+        }
+        
+        let configs = buildConfigs()
+        #expect(configs.count == 3)
+    }
+    
+    @Test("Result builder handles conditionals")
+    func handlesConditionals() {
+        let showRed = true
+        
+        @ScaleConfigurationResultBuilder
+        func buildConfigs() -> [ScaleConfiguration] {
+            ScaleConfiguration.hideNames(for: .evenIndices)
+            if showRed {
+                ScaleConfiguration.colorLabels(.red, for: .all)
+            }
+        }
+        
+        let configs = buildConfigs()
+        #expect(configs.count == 2)
+    }
+    
+    @Test("Result builder handles else branch")
+    func handlesElseBranch() {
+        let useRed = false
+        
+        @ScaleConfigurationResultBuilder
+        func buildConfigs() -> [ScaleConfiguration] {
+            if useRed {
+                ScaleConfiguration.colorLabels(.red, for: .all)
+            } else {
+                ScaleConfiguration.colorLabels(.blue, for: .all)
+            }
+        }
+        
+        let configs = buildConfigs()
+        #expect(configs.count == 1)
+        #expect(configs[0].labelColor == .blue)
+    }
+    
+    @Test("Result builder handles arrays in loops")
+    func handlesArrays() {
+        let keys: [ScaleKey] = [.ll1, .ll2, .ll3]
+        
+        @ScaleConfigurationResultBuilder
+        func buildConfigs() -> [ScaleConfiguration] {
+            for key in keys {
+                ScaleConfiguration.colorLabels(.red, for: .scale(key))
+            }
+        }
+        
+        let configs = buildConfigs()
+        #expect(configs.count == 3)
+    }
+}
+

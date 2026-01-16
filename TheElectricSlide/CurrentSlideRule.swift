@@ -59,34 +59,176 @@ final class SlideRuleDefinitionModel {
         return SlideRuleManufacturer(rawValue: manufacturer)
     }
     
-    // MARK: - Annotation Features (Persisted)
-    // These properties support annotation configuration and ARE stored in SwiftData
+    // MARK: - Configuration System (Phase 6)
     
-    /// Whether to show scale names (default: true)
-    /// When false, all scale names are hidden regardless of per-scale settings
-    var showScaleNames: Bool = true
+    /// JSON-encoded SlideRuleConfiguration for full configuration support
+    /// This replaces individual boolean properties while maintaining backward compatibility
+    var configurationJSON: String?
     
-    /// Whether to show formulas (default: true)
-    /// When false, all formulas are hidden regardless of per-scale settings
-    var showFormulas: Bool = true
-    
-    /// Whether to suppress scale names for even-indexed scales (0, 2, 4, ...)
-    var suppressEvenScaleNames: Bool = false
-    
-    /// JSON-encoded annotation data for back slide (text blocks, logos, etc.)
-    /// Stored as String for SwiftData compatibility - decoded at parse time
-    var backSlideAnnotationsJSON: String?
-    
-    /// Computed property to get RuleDisplaySettings from persisted booleans
-    var displaySettings: RuleDisplaySettings {
-        RuleDisplaySettings(
-            showScaleNames: showScaleNames,
-            showFormulas: showFormulas
-        )
+    /// Full configuration object - encodes/decodes from JSON automatically
+    var configuration: SlideRuleConfiguration {
+        get {
+            guard let json = configurationJSON,
+                  let data = json.data(using: .utf8) else {
+                // Return migrated configuration from legacy properties
+                return migratedConfiguration
+            }
+            do {
+                return try JSONDecoder().decode(SlideRuleConfiguration.self, from: data)
+            } catch {
+                print("⚠️ Failed to decode configuration: \(error)")
+                return migratedConfiguration
+            }
+        }
+        set {
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .sortedKeys
+                let data = try encoder.encode(newValue)
+                configurationJSON = String(data: data, encoding: .utf8)
+            } catch {
+                print("⚠️ Failed to encode configuration: \(error)")
+            }
+        }
     }
     
-    /// Computed property to decode back slide annotations from JSON
+    /// Creates a configuration from legacy properties (backward compatibility)
+    private var migratedConfiguration: SlideRuleConfiguration {
+        SlideRuleConfiguration.build { builder in
+            var b = builder
+            
+            // Apply display settings
+            if !_showScaleNames {
+                b = b.hideScaleNames()
+            }
+            if !_showFormulas {
+                b = b.hideFormulas()
+            }
+            
+            // Apply even scale name suppression
+            if _suppressEvenScaleNames {
+                b = b.suppressEvenScaleNames()
+            }
+            
+            // Apply scale name overrides
+            if !scaleNameOverrides.isEmpty {
+                b = b.addNameOverrides(scaleNameOverrides)
+            }
+            
+            // Apply back slide annotations
+            if let json = backSlideAnnotationsJSON,
+               let data = json.data(using: .utf8),
+               let annotations = try? JSONDecoder().decode([ComponentAnnotation].self, from: data) {
+                for annotation in annotations {
+                    b = b.addAnnotation(annotation, for: .backSlide)
+                }
+            }
+            
+            return b
+        }
+    }
+    
+    // MARK: - Legacy Properties (Backward Compatibility)
+    // These are stored for migration but accessed through computed properties
+    
+    /// Internal storage for showScaleNames (legacy)
+    private var _showScaleNames: Bool = true
+    
+    /// Internal storage for showFormulas (legacy)
+    private var _showFormulas: Bool = true
+    
+    /// Internal storage for suppressEvenScaleNames (legacy)
+    private var _suppressEvenScaleNames: Bool = false
+    
+    /// JSON-encoded annotation data for back slide (legacy - now in configuration)
+    var backSlideAnnotationsJSON: String?
+    
+    /// Whether to show scale names (computed from configuration)
+    var showScaleNames: Bool {
+        get { 
+            if configurationJSON != nil {
+                return configuration.displaySettings.showScaleNames
+            }
+            return _showScaleNames
+        }
+        set {
+            if configurationJSON != nil {
+                var config = configuration
+                config.displaySettings.showScaleNames = newValue
+                configuration = config
+            } else {
+                _showScaleNames = newValue
+            }
+        }
+    }
+    
+    /// Whether to show formulas (computed from configuration)
+    var showFormulas: Bool {
+        get {
+            if configurationJSON != nil {
+                return configuration.displaySettings.showFormulas
+            }
+            return _showFormulas
+        }
+        set {
+            if configurationJSON != nil {
+                var config = configuration
+                config.displaySettings.showFormulas = newValue
+                configuration = config
+            } else {
+                _showFormulas = newValue
+            }
+        }
+    }
+    
+    /// Whether to suppress scale names for even-indexed scales
+    var suppressEvenScaleNames: Bool {
+        get {
+            if configurationJSON != nil {
+                // Check if any component config has even-index hiding
+                return configuration.componentConfigs.contains { componentConfig in
+                    componentConfig.scaleConfigs.contains { scaleConfig in
+                        scaleConfig.selector == .evenIndices && scaleConfig.nameMargin == MarginSide.none
+                    }
+                }
+            }
+            return _suppressEvenScaleNames
+        }
+        set {
+            if configurationJSON != nil {
+                var config = configuration
+                if newValue {
+                    // Add even name suppression to all components
+                    let evenHide = ScaleConfiguration.hideNames(for: .evenIndices)
+                    for selector in ComponentSelector.all {
+                        config.addComponentConfig(ComponentConfiguration(
+                            selector: selector,
+                            scaleConfigs: [evenHide]
+                        ))
+                    }
+                }
+                // Note: Removing suppression is complex - would need to filter existing configs
+                configuration = config
+            } else {
+                _suppressEvenScaleNames = newValue
+            }
+        }
+    }
+    
+    /// Computed property to get RuleDisplaySettings
+    var displaySettings: RuleDisplaySettings {
+        configuration.displaySettings
+    }
+    
+    /// Computed property to decode back slide annotations
     var backSlideAnnotations: [ComponentAnnotation] {
+        // First check configuration
+        let configAnnotations = configuration.ruleAnnotations[.back] ?? []
+        if !configAnnotations.isEmpty {
+            return configAnnotations
+        }
+        
+        // Fall back to legacy JSON
         guard let json = backSlideAnnotationsJSON,
               let data = json.data(using: .utf8) else {
             return []

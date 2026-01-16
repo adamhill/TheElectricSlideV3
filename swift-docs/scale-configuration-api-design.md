@@ -1,5 +1,20 @@
 # Scale Configuration API Design
 
+> ⚠️ **NOTE:** This is the original **design document**. For complete API reference with all implemented types, examples, and usage patterns, see:
+> 
+> **→ [scale-configuration-api-reference.md](scale-configuration-api-reference.md)**
+
+## Implementation Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Core Types (ScaleKey, PositionNudge, AnnotationPosition) | ✅ Complete |
+| Phase 2 | ScaleConfiguration, ScaleSelector, Resolver | ✅ Complete |
+| Phase 3 | ComponentConfiguration | ✅ Complete |
+| Phase 4 | SlideRuleConfiguration | ✅ Complete |
+| Phase 5 | Fluent Builder API | ✅ Complete |
+| Phase 6 | SwiftData Integration | ⏳ Pending |
+
 ## Overview
 
 This document outlines a comprehensive, fluent, declarative configuration system for slide rule scale customization. The design replaces ad-hoc manual JSON encoding with a properly typed, multi-level configuration system.

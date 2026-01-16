@@ -47,7 +47,14 @@ struct SlideRuleLibrary {
     /// Version 29: Added annotation property sync to library update logic (SlideRulePicker + SlideRuleSidebarView)
     ///            Without this, existing rules didn't get the new annotation properties copied during updates.
     // Version 30: Fixed annotation horizontalPosition from 0.92 to 0.99 for Pickett N-16 ES test
-    static let libraryVersion = 30
+    // Version 31: Added Phase 1 fluent configuration API types (ScaleKey, PositionNudge, AnnotationPosition, ScaleSelector)
+    //            Added nudge demo annotation to Pickett N-16 ES Annotation Test rule
+    static let libraryVersion = 31
+    
+    /// Force refresh all library rules on next app launch, regardless of version number.
+    /// Set to `true` during development to iterate on rule definitions without bumping libraryVersion.
+    /// Set to `false` for production releases (only version changes trigger updates).
+    static let forceRefresh = true
     
     /// All standard slide rule definitions from the PostScript engine
     /// Each rule is tagged with the current library version
@@ -159,6 +166,7 @@ struct SlideRuleLibrary {
     /// - Rule-level display settings (formulas disabled)
     /// - Even-indexed scale names suppressed
     /// - Back slide has legend text block annotation
+    /// - PositionNudge for fine-grained position adjustment (Phase 1 API test)
     static func pickettN16ESAnnotationTest() -> SlideRuleDefinitionModel {
         // Create the legend annotation and encode to JSON for persistence
         let legendAnnotation: ComponentAnnotation = ComponentAnnotation(
@@ -182,9 +190,23 @@ struct SlideRuleLibrary {
             textAlignment: .leading
         )
         
+        // NEW: Demonstration of PositionNudge - fine-grained position adjustment
+        // This annotation uses the new fluent API types from ScaleConfiguration.swift
+        let nudgeTestAnnotation: ComponentAnnotation = ComponentAnnotation(
+            content: .text("← Nudged 10pt left"),
+            color: LabelColor(red: 0, green: 0.5, blue: 0, alpha: 1),  // Green
+            horizontalPosition: 0.5,   // Center of slide
+            verticalPosition: 0.0,     // Near top
+            anchor: .top,              // Top edge anchored
+            fontSize: 13,
+            fontWeight: .medium,
+            textAlignment: .center,
+            nudge: PositionNudge.left(10)  // Demonstrate nudge API
+        )
+        
         // Encode annotations to JSON for SwiftData persistence
         let annotationsJSON: String? = {
-            let annotations = [legendAnnotation]
+            let annotations = [legendAnnotation, nudgeTestAnnotation]
             guard let data = try? JSONEncoder().encode(annotations),
                   let json = String(data: data, encoding: .utf8) else {
                 return nil

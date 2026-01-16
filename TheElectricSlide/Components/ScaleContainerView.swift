@@ -247,6 +247,17 @@ struct ComponentAnnotationView: View {
     let containerWidth: CGFloat
     let containerHeight: CGFloat
     
+    /// Compute nudge offset (applying PositionNudge if present)
+    private var nudgeOffset: (x: CGFloat, y: CGFloat) {
+        guard let nudge = annotation.nudge else {
+            return (x: 0, y: 0)
+        }
+        return (
+            x: CGFloat(nudge.horizontalOffset),
+            y: CGFloat(nudge.verticalOffset)
+        )
+    }
+    
     var body: some View {
         // Use a ZStack with proper alignment at the anchor point
         // The annotation is placed so its anchor edge aligns with the specified position
@@ -256,7 +267,7 @@ struct ComponentAnnotationView: View {
                 // For trailing anchor: right edge at position, so leading = position - width
                 // For leading anchor: left edge at position, so leading = -position  
                 // For center: center at position, so leading = width/2 - position
-                let targetX = CGFloat(annotation.horizontalPosition) * containerWidth
+                let targetX = CGFloat(annotation.horizontalPosition) * containerWidth + nudgeOffset.x
                 switch annotation.anchor {
                 case .topLeading, .leading, .bottomLeading:
                     // Left edge should be at targetX
@@ -270,7 +281,7 @@ struct ComponentAnnotationView: View {
                 }
             }
             .alignmentGuide(.top) { dim in
-                let targetY = CGFloat(annotation.verticalPosition) * containerHeight
+                let targetY = CGFloat(annotation.verticalPosition) * containerHeight + nudgeOffset.y
                 switch annotation.anchor {
                 case .topLeading, .top, .topTrailing:
                     // Top edge should be at targetY

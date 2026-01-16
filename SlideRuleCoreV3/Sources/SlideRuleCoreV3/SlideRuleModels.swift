@@ -359,6 +359,10 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
     /// Text alignment for multi-line text
     public let textAlignment: AnnotationTextAlignment
     
+    /// Fine-grained position adjustment (applied after main positioning)
+    /// Use this for small tweaks without changing the base position
+    public let nudge: PositionNudge?
+    
     public init(
         content: AnnotationContent,
         color: LabelColor? = nil,
@@ -368,7 +372,8 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
         size: (width: Double, height: Double)? = nil,
         fontSize: Double? = nil,
         fontWeight: LabelFontStyle = .medium,
-        textAlignment: AnnotationTextAlignment = .leading
+        textAlignment: AnnotationTextAlignment = .leading,
+        nudge: PositionNudge? = nil
     ) {
         self.content = content
         self.color = color
@@ -379,6 +384,7 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
         self.fontSize = fontSize
         self.fontWeight = fontWeight
         self.textAlignment = textAlignment
+        self.nudge = nudge
     }
     
     // MARK: - Hashable (manual due to tuple)
@@ -396,6 +402,7 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
         hasher.combine(fontSize)
         hasher.combine(fontWeight)
         hasher.combine(textAlignment)
+        hasher.combine(nudge)
     }
     
     public static func == (lhs: ComponentAnnotation, rhs: ComponentAnnotation) -> Bool {
@@ -408,7 +415,8 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
         lhs.size?.height == rhs.size?.height &&
         lhs.fontSize == rhs.fontSize &&
         lhs.fontWeight == rhs.fontWeight &&
-        lhs.textAlignment == rhs.textAlignment
+        lhs.textAlignment == rhs.textAlignment &&
+        lhs.nudge == rhs.nudge
     }
 }
 
@@ -417,7 +425,7 @@ public struct ComponentAnnotation: Sendable, Equatable, Hashable {
 extension ComponentAnnotation: Codable {
     enum CodingKeys: String, CodingKey {
         case content, color, horizontalPosition, verticalPosition, anchor
-        case sizeWidth, sizeHeight, fontSize, fontWeight, textAlignment
+        case sizeWidth, sizeHeight, fontSize, fontWeight, textAlignment, nudge
     }
     
     public init(from decoder: Decoder) throws {
@@ -439,6 +447,7 @@ extension ComponentAnnotation: Codable {
         fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
         fontWeight = try container.decode(LabelFontStyle.self, forKey: .fontWeight)
         textAlignment = try container.decode(AnnotationTextAlignment.self, forKey: .textAlignment)
+        nudge = try container.decodeIfPresent(PositionNudge.self, forKey: .nudge)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -458,6 +467,7 @@ extension ComponentAnnotation: Codable {
         try container.encodeIfPresent(fontSize, forKey: .fontSize)
         try container.encode(fontWeight, forKey: .fontWeight)
         try container.encode(textAlignment, forKey: .textAlignment)
+        try container.encodeIfPresent(nudge, forKey: .nudge)
     }
 }
 
@@ -509,13 +519,15 @@ extension ComponentAnnotation {
     ///   - anchor: Which part of the text block is at the position
     ///   - fontSize: Optional font size; nil = default
     ///   - alignment: Text alignment for multi-line text
+    ///   - nudge: Optional fine-grained position adjustment
     public static func textBlock(
         _ text: String,
         color: LabelColor = .black,
         at position: (h: Double, v: Double),
         anchor: AnnotationAnchor = .topLeading,
         fontSize: Double? = nil,
-        alignment: AnnotationTextAlignment = .leading
+        alignment: AnnotationTextAlignment = .leading,
+        nudge: PositionNudge? = nil
     ) -> ComponentAnnotation {
         ComponentAnnotation(
             content: .text(text),
@@ -524,7 +536,8 @@ extension ComponentAnnotation {
             verticalPosition: position.v,
             anchor: anchor,
             fontSize: fontSize,
-            textAlignment: alignment
+            textAlignment: alignment,
+            nudge: nudge
         )
     }
     

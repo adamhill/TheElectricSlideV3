@@ -111,10 +111,14 @@ struct SlideRulePicker: View {
                 modelContext.insert(rule)
             }
         } else {
-            // Check if library version has changed
+            // Check if library version has changed or force refresh is enabled
             let maxExistingVersion = availableRules.map { $0.libraryVersion }.max() ?? 0
+            let shouldUpdate = SlideRuleLibrary.forceRefresh || maxExistingVersion < SlideRuleLibrary.libraryVersion
             
-            if maxExistingVersion < SlideRuleLibrary.libraryVersion {
+            if shouldUpdate {
+                if SlideRuleLibrary.forceRefresh {
+                    print("📚 Force refreshing slide rule library (forceRefresh=true)")
+                }
                 print("📚 Updating slide rule library: v\(maxExistingVersion) → v\(SlideRuleLibrary.libraryVersion)")
                 
                 // Create a lookup of existing rules by name

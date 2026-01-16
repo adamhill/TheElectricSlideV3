@@ -869,3 +869,316 @@ public struct ScaleConfigurationResolver: Sendable {
         )
     }
 }
+
+// MARK: - Phase 3: Component Configuration
+
+/// Configuration for a slide rule component (stator or slide)
+///
+/// `ComponentConfiguration` groups scale-level configurations and annotations
+/// for a specific component on a specific side of the rule.
+///
+/// ## Usage
+/// ```swift
+/// let config = ComponentConfiguration(
+///     selector: .backSlide,
+///     scaleConfigs: [
+///         ScaleConfiguration.hideNames(for: .evenIndices),
+///         ScaleConfiguration.colorLabels(.red, for: .matching(pattern: "^LL[0-3]$"))
+///     ],
+///     annotations: [legendAnnotation]
+/// )
+/// ```
+public struct ComponentConfiguration: Sendable, Codable, Equatable, Hashable {
+    /// Which component this configuration applies to
+    public let selector: ComponentSelector
+    
+    /// Scale-level configurations (applied in order, priority used for conflicts)
+    public let scaleConfigs: [ScaleConfiguration]
+    
+    /// Component-level annotations (text blocks, legends, etc.)
+    public let annotations: [ComponentAnnotation]
+    
+    public init(
+        selector: ComponentSelector,
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) {
+        self.selector = selector
+        self.scaleConfigs = scaleConfigs
+        self.annotations = annotations
+    }
+    
+    // MARK: - Convenience Factories
+    
+    /// Create configuration for front top stator
+    public static func frontTopStator(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .frontTopStator, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    /// Create configuration for front slide
+    public static func frontSlide(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .frontSlide, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    /// Create configuration for front bottom stator
+    public static func frontBottomStator(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .frontBottomStator, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    /// Create configuration for back top stator
+    public static func backTopStator(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .backTopStator, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    /// Create configuration for back slide
+    public static func backSlide(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .backSlide, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    /// Create configuration for back bottom stator
+    public static func backBottomStator(
+        scaleConfigs: [ScaleConfiguration] = [],
+        annotations: [ComponentAnnotation] = []
+    ) -> Self {
+        .init(selector: .backBottomStator, scaleConfigs: scaleConfigs, annotations: annotations)
+    }
+    
+    // MARK: - Matching
+    
+    /// Check if this configuration applies to the given component
+    public func appliesTo(side: RuleSideSelector, component: ComponentType) -> Bool {
+        switch selector.side {
+        case .front:
+            return side == .front && selector.component == component
+        case .back:
+            return side == .back && selector.component == component
+        case .both:
+            return selector.component == component
+        }
+    }
+    
+    /// Create a resolver for this component's scale configurations
+    public func resolver(defaults: ResolvedScaleDisplay = .default) -> ScaleConfigurationResolver {
+        ScaleConfigurationResolver(configurations: scaleConfigs, defaults: defaults)
+    }
+}
+
+// MARK: - Phase 4: Rule-Level Configuration
+
+/// Complete slide rule configuration
+///
+/// `SlideRuleConfiguration` is the top-level container for all configuration,
+/// replacing individual boolean properties with a unified, structured approach.
+///
+/// ## Configuration Hierarchy
+/// ```
+/// SlideRuleConfiguration
+/// ├── displaySettings (RuleDisplaySettings) - global toggles
+/// ├── componentConfigs ([ComponentConfiguration]) - per-component settings
+/// │   └── scaleConfigs ([ScaleConfiguration]) - per-scale settings
+/// │       └── ResolvedScaleDisplay - final computed settings
+/// ├── ruleAnnotations - rule-level annotations
+/// └── scaleNameOverrides - canonical → display name mapping
+/// ```
+///
+/// ## Usage
+/// ```swift
+/// let config = SlideRuleConfiguration(
+///     displaySettings: .namesOnly,  // No formulas globally
+///     componentConfigs: [
+///         .backSlide(scaleConfigs: [
+///             .hideNames(for: .evenIndices)
+///         ], annotations: [legendAnnotation])
+///     ],
+///     scaleNameOverrides: ["DQ": "D/Q"]
+/// )
+/// ```
+public struct SlideRuleConfiguration: Sendable, Codable, Equatable, Hashable {
+    /// Global display settings (baseline for all components)
+    public var displaySettings: RuleDisplaySettings
+    
+    /// Per-component configurations
+    public var componentConfigs: [ComponentConfiguration]
+    
+    /// Rule-level annotations keyed by side
+    /// These are rendered on the rule itself, not on specific components
+    public var ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]]
+    
+    /// Scale name overrides (canonical → display)
+    /// Applied after all other name resolution
+    public var scaleNameOverrides: [String: String]
+    
+    public init(
+        displaySettings: RuleDisplaySettings = .standard,
+        componentConfigs: [ComponentConfiguration] = [],
+        ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]] = [:],
+        scaleNameOverrides: [String: String] = [:]
+    ) {
+        self.displaySettings = displaySettings
+        self.componentConfigs = componentConfigs
+        self.ruleAnnotations = ruleAnnotations
+        self.scaleNameOverrides = scaleNameOverrides
+    }
+    
+    // MARK: - Convenience Factories
+    
+    /// Standard configuration with default settings
+    public static var standard: Self { .init() }
+    
+    /// Names only (no formulas) - common for simpler rules
+    public static var namesOnly: Self {
+        .init(displaySettings: .namesOnly)
+    }
+    
+    /// Formulas only (no names) - rare
+    public static var formulasOnly: Self {
+        .init(displaySettings: .formulasOnly)
+    }
+    
+    /// No margin labels at all
+    public static var noLabels: Self {
+        .init(displaySettings: .none)
+    }
+    
+    // MARK: - Query Methods
+    
+    /// Get component configuration for a specific component
+    public func configuration(for side: RuleSideSelector, component: ComponentType) -> ComponentConfiguration? {
+        componentConfigs.first { $0.appliesTo(side: side, component: component) }
+    }
+    
+    /// Get all configurations that apply to a side
+    public func configurations(for side: RuleSideSelector) -> [ComponentConfiguration] {
+        componentConfigs.filter { config in
+            config.selector.side == side || config.selector.side == .both
+        }
+    }
+    
+    /// Get annotations for a specific side
+    public func annotations(for side: RuleSideSelector) -> [ComponentAnnotation] {
+        ruleAnnotations[side] ?? []
+    }
+    
+    /// Resolve display name for a scale (applying overrides)
+    public func resolvedName(for canonicalName: String) -> String {
+        scaleNameOverrides[canonicalName] ?? canonicalName
+    }
+    
+    /// Create a resolver for a specific component
+    /// - Parameters:
+    ///   - side: The side of the rule (front/back)
+    ///   - component: The component type (topStator/slide/bottomStator)
+    /// - Returns: A resolver configured with the component's scale configurations
+    public func resolver(
+        for side: RuleSideSelector,
+        component: ComponentType
+    ) -> ScaleConfigurationResolver {
+        // Build defaults from display settings
+        let defaults = ResolvedScaleDisplay(
+            visible: true,
+            nameMargin: displaySettings.showScaleNames ? displaySettings.defaultScaleNameMargin : MarginSide.none,
+            formulaMargin: displaySettings.showFormulas ? displaySettings.defaultFormulaMargin : MarginSide.none,
+            nameNudge: .zero,
+            formulaNudge: .zero,
+            labelColor: nil,
+            formulaOverride: nil
+        )
+        
+        // Find component configuration
+        if let componentConfig = configuration(for: side, component: component) {
+            return componentConfig.resolver(defaults: defaults)
+        }
+        
+        // No component config - return resolver with just defaults
+        return ScaleConfigurationResolver(configurations: [], defaults: defaults)
+    }
+    
+    // MARK: - Mutation Methods
+    
+    /// Add a component configuration
+    public mutating func addComponentConfig(_ config: ComponentConfiguration) {
+        componentConfigs.append(config)
+    }
+    
+    /// Add a scale name override
+    public mutating func addNameOverride(canonical: String, display: String) {
+        scaleNameOverrides[canonical] = display
+    }
+    
+    /// Add a rule-level annotation
+    public mutating func addAnnotation(_ annotation: ComponentAnnotation, on side: RuleSideSelector) {
+        var annotations = ruleAnnotations[side] ?? []
+        annotations.append(annotation)
+        ruleAnnotations[side] = annotations
+    }
+}
+
+// MARK: - Migration Helpers
+
+extension SlideRuleConfiguration {
+    /// Create configuration from legacy boolean properties
+    ///
+    /// This provides backward compatibility with the old per-property approach.
+    ///
+    /// - Parameters:
+    ///   - showScaleNames: Whether to show scale names
+    ///   - showFormulas: Whether to show formulas
+    ///   - suppressEvenScaleNames: Whether to suppress even-indexed scale names
+    ///   - backSlideAnnotationsJSON: JSON-encoded annotations for back slide
+    ///   - scaleNameOverrides: Scale name overrides dictionary
+    /// - Returns: A SlideRuleConfiguration matching the legacy settings
+    public static func fromLegacy(
+        showScaleNames: Bool = true,
+        showFormulas: Bool = true,
+        suppressEvenScaleNames: Bool = false,
+        backSlideAnnotationsJSON: String? = nil,
+        scaleNameOverrides: [String: String] = [:]
+    ) -> SlideRuleConfiguration {
+        var config = SlideRuleConfiguration(
+            displaySettings: RuleDisplaySettings(
+                showScaleNames: showScaleNames,
+                showFormulas: showFormulas
+            ),
+            scaleNameOverrides: scaleNameOverrides
+        )
+        
+        // Handle suppressEvenScaleNames
+        if suppressEvenScaleNames {
+            // Apply to all components on both sides
+            let evenHide = ScaleConfiguration.hideNames(for: .evenIndices)
+            for selector in ComponentSelector.all {
+                config.addComponentConfig(ComponentConfiguration(
+                    selector: selector,
+                    scaleConfigs: [evenHide]
+                ))
+            }
+        }
+        
+        // Handle backSlideAnnotationsJSON
+        if let json = backSlideAnnotationsJSON,
+           let data = json.data(using: .utf8),
+           let annotations = try? JSONDecoder().decode([ComponentAnnotation].self, from: data) {
+            config.addComponentConfig(ComponentConfiguration(
+                selector: .backSlide,
+                annotations: annotations
+            ))
+        }
+        
+        return config
+    }
+}

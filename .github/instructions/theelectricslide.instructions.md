@@ -9,6 +9,35 @@ applyTo: "TheElectricSlide/**/*.swift"
 - **Note**: SwiftUI app requires Xcode and simulators - cannot be run or tested on Linux runners (CI/CD environments like GitHub Actions)
 - Remote agents can still read, analyze, and understand SwiftUI code for architectural context
 
+## ⚠️ MANDATORY: macOS is the PRIMARY Testing Platform
+
+**ALWAYS use macOS (`mcp_xcodebuildmcp_build_run_macos`) as your FIRST and DEFAULT choice when:**
+- Running the app to test UI changes
+- Validating layouts, rendering, or visual appearance
+- Testing gesture interactions (slide dragging, cursor movement, taps)
+- Taking screenshots for verification
+- Inspecting UI hierarchy with `mcp_xcodebuildmcp_describe_ui`
+- Debugging any visual or interaction issues
+
+**Why macOS MUST be primary:**
+- ✅ **Fastest build/run cycle** - No simulator boot time, native execution
+- ✅ **Most reliable results** - Direct hardware, no virtualization quirks
+- ✅ **Best debugging experience** - Full Xcode/Instruments integration
+- ✅ **Developer preference** - User manually tests on real iOS devices for iOS-specific validation
+
+**iOS/iPad simulators are SECONDARY - Use ONLY when:**
+- Testing iPhone-only UI (e.g., `FlipButton`, `.compact` size class layouts)
+- Validating iPad-specific features (sidebar, split view)
+- User explicitly requests simulator testing for a specific device
+
+```swift
+// ✅ CORRECT - Always start with macOS
+mcp_xcodebuildmcp_build_run_macos()
+
+// ❌ WRONG - Don't jump to iOS simulator by default
+mcp_xcodebuildmcp_build_run_sim()  // Only use for iPhone-specific features!
+```
+
 ## Architecture Overview
 
 The app uses a clean component-based architecture with strict separation of concerns:

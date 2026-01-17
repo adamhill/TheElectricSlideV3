@@ -13,10 +13,32 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - List available simulators: `mcp_xcodebuildmcp_list_sims`
   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
   - Interactive testing with UI feedback
-  - **Recommended test devices:**
-    - iOS: iPhone 17 Pro Max
-    - iPadOS: iPad 13-inch (M5)
-    - macOS: My Mac (native)
+  
+  ### ⚠️ MANDATORY: Use macOS as PRIMARY Platform for UI Testing
+  
+  **ALWAYS use macOS (`mcp_xcodebuildmcp_build_run_macos`) as the PRIMARY platform when:**
+  - Testing UI changes, layouts, or visual rendering
+  - Validating gesture interactions (drag, tap, swipe)
+  - Inspecting UI hierarchy with `mcp_xcodebuildmcp_describe_ui`
+  - Taking screenshots for verification
+  - Running the app to observe behavior
+  - Debugging visual issues or layout problems
+  
+  **Why macOS First:**
+  - ✅ **Fastest iteration** - Native execution, no simulator overhead
+  - ✅ **Most reliable** - Direct hardware access, consistent behavior
+  - ✅ **Best debugging** - Full Xcode integration, Instruments support
+  - ✅ **User preference** - Developer manually tests on real iOS devices
+  
+  **iOS/iPad simulators are SECONDARY** - Use only when:
+  - Specifically testing iPhone-only features (FlipButton, compact layouts)
+  - Validating device-specific breakpoints or size classes
+  - User explicitly requests iOS simulator testing
+  
+  - **Platform priority (in order):**
+    - 🥇 **macOS: My Mac (native)** ← DEFAULT CHOICE
+    - 🥈 iOS: iPhone 17 Pro Max (only for iPhone-specific features)
+    - 🥉 iPadOS: iPad 13-inch (M5) (only for iPad-specific features)
   - Use `mcp_xcodebuildmcp_screenshot` to capture UI state
   - Use `mcp_xcodebuildmcp_describe_ui` to inspect accessibility hierarchy and UI element structure
   - Use `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text` to interact with simulator
@@ -337,30 +359,41 @@ static func generateCombinations() -> [String] {
 CRITICAL: Prefer using Terminal commands first to build the app for checking for syntax errors and running tests
 
 **Using Xcodebuild MCP Server (Recommended for Local Agents):**
+
+### ⚠️ ALWAYS START WITH macOS - THIS IS MANDATORY
+
 ```swift
+// ========================================
+// 🥇 STEP 1: BUILD AND RUN ON macOS FIRST
+// ========================================
+// This is the PRIMARY and DEFAULT choice for ALL UI testing.
+// iPad is next in priority if macOS testing is failing
+// Do NOT skip to iOS simulators unless specifically needed.
 
-// List available iOS simulators
-mcp_xcodebuildmcp_list_sims({ enabled: true })
+mcp_xcodebuildmcp_build_run_macos()
 
-// Build and run on iOS simulator (iPhone 17 Pro Max - recommended)
-mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide",
-    simulatorName: "iPhone 17 Pro Max"
-})
+// ========================================
+// 🥉 STEP 2: iPad Simulator (ONLY IF NEEDED)  
+// ========================================
+// Use ONLY when testing iPad-specific features:
+// - Split view layouts
+// - Sidebar behavior on iPad
+// - Regular size class with different dimensions than Mac
+// macOS simualtor is not working for some reason
 
-// Build and run on iPad simulator (iPad 13-inch M5 - recommended)
-mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide",
-    simulatorName: "iPad 13-inch (M5)"
-})
+mcp_xcodebuildmcp_build_run_sim()  // For iPad 13-inch (M5)
+```
 
-// Build and run on macOS (My Mac - native)
-mcp_xcodebuildmcp_build_run_mac_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide"
-})
+// ========================================
+// 🥈 STEP 3: iOS Simulator (ONLY IF NEEDED)
+// ========================================
+// Use ONLY when testing iPhone-specific features:
+// - FlipButton behavior (iPhone-only control)
+// - Compact size class layouts
+// - Touch-specific gestures
+
+mcp_xcodebuildmcp_build_run_sim()  // For iPhone 17 Pro Max
+
 
 // Interactive simulator testing workflow:
 // 1. Take screenshot to observe current state
@@ -490,12 +523,16 @@ swift test --verbose
 3. **Performance context:** Read `swift-docs/swift-sliderule-rendering-improvements.md` solutions 1-5
 4. **Testing patterns:** Check existing tests in `SlideRuleCoreV3Tests/` for @Suite/@Test examples
 5. **Rendering flow:** Trace `ContentView.swift` → `StatorView`/`SlideView` → `ScaleView` → Canvas
-6. **Interactive testing workflow:**
-   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim_name_proj` with "iPhone 17 Pro Max"
+6. **Interactive testing workflow (⚠️ ALWAYS USE macOS FIRST):**
+   - **🥇 PRIMARY:** Build and run on macOS: `mcp_xcodebuildmcp_build_run_macos()` ← START HERE
    - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
+   `mcp_xcodebuild_describe_ui` to DETERMINISTICALLY observe UI states and read scale names, formulas, annotations and other text on the slide rule and UI.
    - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
    - Verify: Take another screenshot to confirm expected behavior
+   - **Only use iOS simulator** if testing iPhone-specific features (FlipButton, compact layout)
 7. **API documentation lookup:**
    - Quick search: `mcp_sosumi_searchAppleDocumentation` for Swift/SwiftUI APIs
    - Detailed docs: `mcp_apple-docs_get_apple_doc_content` for full API references
    - Local docsets: `mcp_dash-api_search_documentation` for fast offline lookup
+
+   NOTE: UI testing is flaky, even with mcp_

@@ -418,6 +418,14 @@ public struct ScaleDefinition: Sendable {
     /// If empty/nil and suppressFormulaLabel is false, the formula is rendered.
     public let rightAnnotations: [MarginAnnotation]
     
+    /// Position nudge for scale name label (for fine-tuning layout)
+    /// Applied as an offset to the rendered scale name position
+    public let nameNudge: PositionNudge?
+    
+    /// Position nudge for formula label (for fine-tuning layout)
+    /// Applied as an offset to the rendered formula position
+    public let formulaNudge: PositionNudge?
+    
     public init(
         name: String,
         formula: String = ScaleDefinition.defaultFormula,
@@ -448,7 +456,9 @@ public struct ScaleDefinition: Sendable {
         scaleNameMargin: MarginSide? = nil,
         formulaMargin: MarginSide? = nil,
         leftAnnotations: [MarginAnnotation] = [],
-        rightAnnotations: [MarginAnnotation] = []
+        rightAnnotations: [MarginAnnotation] = [],
+        nameNudge: PositionNudge? = nil,
+        formulaNudge: PositionNudge? = nil
     ) {
         self.name = name
         self.displayName = displayName
@@ -480,6 +490,8 @@ public struct ScaleDefinition: Sendable {
         self.formulaMargin = formulaMargin
         self.leftAnnotations = leftAnnotations
         self.rightAnnotations = rightAnnotations
+        self.nameNudge = nameNudge
+        self.formulaNudge = formulaNudge
     }
     
     /// Whether this is a circular scale
@@ -541,6 +553,8 @@ public struct ScaleBuilder {
     private var formulaMargin: MarginSide?
     private var leftAnnotations: [MarginAnnotation] = []
     private var rightAnnotations: [MarginAnnotation] = []
+    private var nameNudge: PositionNudge?
+    private var formulaNudge: PositionNudge?
     
     public init() {}
     
@@ -578,6 +592,8 @@ public struct ScaleBuilder {
         self.formulaMargin = definition.formulaMargin
         self.leftAnnotations = definition.leftAnnotations
         self.rightAnnotations = definition.rightAnnotations
+        self.nameNudge = definition.nameNudge
+        self.formulaNudge = definition.formulaNudge
     }
     
     public func withName(_ name: String) -> ScaleBuilder {
@@ -807,6 +823,26 @@ public struct ScaleBuilder {
         return withFormulaMargin(.left)
     }
     
+    // MARK: - Label Position Nudge
+    
+    /// Set the position nudge for the scale name label
+    /// - Parameter nudge: The position nudge to apply
+    /// - Returns: Updated builder
+    public func withNameNudge(_ nudge: PositionNudge?) -> ScaleBuilder {
+        var copy = self
+        copy.nameNudge = nudge
+        return copy
+    }
+    
+    /// Set the position nudge for the formula label
+    /// - Parameter nudge: The position nudge to apply
+    /// - Returns: Updated builder
+    public func withFormulaNudge(_ nudge: PositionNudge?) -> ScaleBuilder {
+        var copy = self
+        copy.formulaNudge = nudge
+        return copy
+    }
+    
     // MARK: - Margin Annotations
     
     /// Set left margin annotations (replaces scale name)
@@ -914,7 +950,9 @@ public struct ScaleBuilder {
             scaleNameMargin: scaleNameMargin,
             formulaMargin: formulaMargin,
             leftAnnotations: leftAnnotations,
-            rightAnnotations: rightAnnotations
+            rightAnnotations: rightAnnotations,
+            nameNudge: nameNudge,
+            formulaNudge: formulaNudge
         )
     }
 }

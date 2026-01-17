@@ -121,19 +121,40 @@ ScaleKey.matching(pattern: "LL[0-3]").matches("LL2") // true
 
 ### PositionNudge - Fine-Grained Position Adjustment
 
-Small adjustments to label positioning without changing the base position:
+Small adjustments to label positioning without changing the base position. Uses directional properties (`up`, `down`, `left`, `right`) with computed offsets for rendering.
 
 ```swift
 public struct PositionNudge: Sendable, Equatable, Hashable, Codable {
-    public let horizontal: Double  // Points (positive = right)
-    public let vertical: Double    // Points (positive = down)
+    /// Points to nudge upward
+    public let up: Double
+    
+    /// Points to nudge downward
+    public let down: Double
+    
+    /// Points to nudge leftward
+    public let left: Double
+    
+    /// Points to nudge rightward
+    public let right: Double
+    
+    /// Net vertical offset in screen coordinates (positive = down)
+    public var verticalOffset: Double { down - up }
+    
+    /// Net horizontal offset in screen coordinates (positive = right)
+    public var horizontalOffset: Double { right - left }
+    
+    /// CGPoint representation of the net offset
+    public var asCGOffset: (x: Double, y: Double)
     
     // Convenience factories
-    static let zero = PositionNudge(horizontal: 0, vertical: 0)
-    static func right(_ points: Double) -> PositionNudge
-    static func left(_ points: Double) -> PositionNudge
-    static func up(_ points: Double) -> PositionNudge
-    static func down(_ points: Double) -> PositionNudge
+    public static var zero: PositionNudge
+    public static func right(_ points: Double) -> PositionNudge
+    public static func left(_ points: Double) -> PositionNudge
+    public static func up(_ points: Double) -> PositionNudge
+    public static func down(_ points: Double) -> PositionNudge
+    
+    /// Combine two nudges
+    public func combined(with other: PositionNudge) -> PositionNudge
 }
 ```
 
@@ -143,11 +164,15 @@ public struct PositionNudge: Sendable, Equatable, Hashable, Codable {
 // Move label 2 points right
 let nudge = PositionNudge.right(2)
 
-// Move label up and right
-let nudge = PositionNudge(horizontal: 3, vertical: -2)
+// Move label up and right using directional initializer
+let nudge = PositionNudge(up: 2, right: 4)
 
-// Combine directions
-let nudge = PositionNudge.down(1.5)
+// Get the computed offset for SwiftUI .offset() modifier
+let xOffset = nudge.horizontalOffset  // 4.0 (right - left)
+let yOffset = nudge.verticalOffset    // -2.0 (down - up, negative = up)
+
+// Combine nudges
+let combined = nudge.combined(with: .down(1))  // up: 2, down: 1, right: 4
 ```
 
 ### PositionTransform - Coordinate Transformation
@@ -707,9 +732,9 @@ let config = SlideRuleConfiguration.build { builder in
 }
 ```
 
-### Example 3: Custom Component Configuration
+### Example 3: Custom Component Configuration (with Scale Nudging)
 
-Fine-grained control over a specific component:
+Fine-grained control over a specific component, including position adjustments:
 
 ```swift
 let config = SlideRuleConfiguration.build { builder in
@@ -717,10 +742,16 @@ let config = SlideRuleConfiguration.build { builder in
         .configure(.specific(side: .front, component: .slide)) {
             ScaleConfiguration.hideNames(for: .first(2))
             ScaleConfiguration.colorLabels(for: .scale(.ci), nameColor: .red)
-            ScaleConfiguration.nudgeName(for: .scale(.c), nudge: .right(3))
+            // Nudge the C scale name 5 points to the right
+            ScaleConfiguration.nudgeName(.right(5), for: .scale(.c))
         }
 }
 ```
+
+**How Nudging Works:**
+1. The `ScaleConfiguration.nudgeName()` factory creates a config with `nameNudge` set
+2. During rule parsing, `applyScaleConfig()` copies the nudge to `ScaleDefinition`
+3. At render time, `ScaleView` applies `.offset(x: horizontalOffset, y: verticalOffset)`
 
 ### Example 4: Scale Name Overrides
 
@@ -923,10 +954,45 @@ Result for CI:
 | Type | Location |
 |------|----------|
 | All Configuration Types | `SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleConfiguration.swift` |
+| ScaleDefinition (with nameNudge) | `SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleDefinition.swift` |
 | RuleDisplaySettings | `SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift` |
 | LabelColor | `SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift` |
 | ComponentAnnotation | `SlideRuleCoreV3/Sources/SlideRuleCoreV3/SlideRuleModels.swift` |
 | Configuration Tests | `SlideRuleCoreV3/Tests/SlideRuleCoreV3Tests/ScaleConfigurationTests.swift` |
+| Configuration to Scale Wiring | `TheElectricSlide/CurrentSlideRule.swift` (applyScaleConfig) |
+| Scale Rendering (nudge applied) | `TheElectricSlide/Components/ScaleView.swift` |
+
+---
+
+## Implementation Notes: nameNudge/formulaNudge Data Flow
+
+The `nameNudge` and `formulaNudge` properties flow through the system as follows:
+
+```
+SlideRuleConfiguration
+    └── ComponentConfiguration
+        └── ScaleConfiguration.nameNudge: PositionNudge?
+                    │
+                    ▼ (during rule parsing in CurrentSlideRule.swift)
+            applyScaleConfig() copies to ScaleBuilder
+                    │
+                    ▼
+            ScaleDefinition.nameNudge: PositionNudge?
+                    │
+                    ▼ (during rendering in ScaleView.swift)
+            GeneratedScale.definition.nameNudge
+                    │
+                    ▼
+            Text(scaleLabel)
+                .offset(x: nameNudge.horizontalOffset, y: nameNudge.verticalOffset)
+```
+
+**Key Points:**
+- `ScaleConfiguration.nameNudge` is configuration-level (what the user specifies)
+- `ScaleDefinition.nameNudge` is scale-level storage (attached to each scale)
+- `ScaleBuilder.withNameNudge()` is the builder method to set the nudge
+- `applyScaleConfig()` in `CurrentSlideRule.swift` bridges configuration to definition
+- `ScaleView` reads `generatedScale.definition.nameNudge` and applies SwiftUI `.offset()`
 
 ---
 

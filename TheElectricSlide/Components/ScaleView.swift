@@ -189,6 +189,10 @@ struct ScaleView: View, Equatable {
             Text(scaleLabel)
                 .font(nameFont)
                 .foregroundColor(scaleLabelColor)
+                .offset(
+                    x: generatedScale.definition.nameNudge?.horizontalOffset ?? 0,
+                    y: generatedScale.definition.nameNudge?.verticalOffset ?? 0
+                )
                 .frame(width: leftMarginWidth, alignment: .trailing)
                 .accessibilityIdentifier("scale-name-\(scaleLabel)")
         }
@@ -231,6 +235,10 @@ struct ScaleView: View, Equatable {
             Text(scaleLabel)
                 .font(nameFont)
                 .foregroundColor(scaleLabelColor)
+                .offset(
+                    x: generatedScale.definition.nameNudge?.horizontalOffset ?? 0,
+                    y: generatedScale.definition.nameNudge?.verticalOffset ?? 0
+                )
                 .frame(width: rightMarginWidth, alignment: .leading)
                 .accessibilityIdentifier("scale-name-right-\(scaleLabel)")
         }

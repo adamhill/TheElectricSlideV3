@@ -121,9 +121,23 @@ struct SlideRulePicker: View {
                 }
                 print("📚 Updating slide rule library: v\(maxExistingVersion) → v\(SlideRuleLibrary.libraryVersion)")
                 
-                // Create a lookup of existing rules by name
+                // Clean up rules with old names (renamed rules)
+                let renamedRules: Set<String> = [
+                    "Pickett N-16 ES (Annotation Test)",  // Renamed to "Configuration Playground"
+                    "Pickett N-16 ES (API Demo)"          // Also renamed to "Configuration Playground"
+                ]
+                var deletedRuleNames = Set<String>()
+                for oldName in renamedRules {
+                    if let oldRule = availableRules.first(where: { $0.name == oldName }) {
+                        print("  🗑 Deleting renamed rule: \(oldName)")
+                        modelContext.delete(oldRule)
+                        deletedRuleNames.insert(oldName)
+                    }
+                }
+                
+                // Create a lookup of existing rules by name (excluding deleted ones)
                 var existingRulesByName: [String: SlideRuleDefinitionModel] = [:]
-                for rule in availableRules {
+                for rule in availableRules where !deletedRuleNames.contains(rule.name) {
                     existingRulesByName[rule.name] = rule
                 }
                 
@@ -141,10 +155,11 @@ struct SlideRulePicker: View {
                         existingRule.sortOrder = standardRule.sortOrder
                         existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
-                        // Sync annotation features (added Version 28)
-                        existingRule.showScaleNames = standardRule.showScaleNames
-                        existingRule.showFormulas = standardRule.showFormulas
-                        existingRule.suppressEvenScaleNames = standardRule.suppressEvenScaleNames
+                        // Sync configuration JSON (Phase 6 - full configuration system)
+                        print("    📝 configurationJSON sync: standard=\(standardRule.configurationJSON?.prefix(100) ?? "nil") → existing=\(existingRule.configurationJSON?.prefix(100) ?? "nil")")
+                        existingRule.configurationJSON = standardRule.configurationJSON
+                        print("    ✅ After sync: \(existingRule.configurationJSON?.prefix(100) ?? "nil")")
+                        // Legacy annotation features (keeping for backward compatibility)
                         existingRule.backSlideAnnotationsJSON = standardRule.backSlideAnnotationsJSON
                         // Preserve user's favorite status
                     } else {

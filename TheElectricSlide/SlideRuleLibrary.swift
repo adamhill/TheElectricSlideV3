@@ -54,7 +54,11 @@ struct SlideRuleLibrary {
     //            - Trig scales (green via pattern), index-based coloring (first orange, last purple),
     //            - Component-specific nudge on C scale, front side annotation
     // Version 33: Simplified API Demo rule - all scales visible, annotations restored
-    static let libraryVersion = 33
+    // Version 34: Testing orange/purple coloring with all scale names visible
+    // Version 35: Added front side "API Demo →" annotation (orange, nudged 5pt right)
+    // Version 36: Duplicated scale name overrides for visual verification (D/Q → "D/Q D/Q")
+    // Version 37: Fixed scale name override keys to use canonical names (cos Θ, D or Q, F)
+    static let libraryVersion = 37
     
     /// Force refresh all library rules on next app launch, regardless of version number.
     /// Set to `true` during development to iterate on rule definitions without bumping libraryVersion.
@@ -66,7 +70,7 @@ struct SlideRuleLibrary {
     static func standardRules() -> [SlideRuleDefinitionModel] {
         let rules = [
             pickettN16ESElectronic(),
-            pickettN16ESAnnotationTest(),  // Test version with annotation features
+            pickettN16ESConfigurationPlayground(),  // Configuration API playground
             keuffelEsser4081_3(),
             fabercastell6283N(),
             hemmi266(),
@@ -166,30 +170,60 @@ struct SlideRuleLibrary {
         )
     }
     
-    /// Pickett N-16 ES Electronic - ANNOTATION TEST VERSION
-    /// Demonstrates new annotation features:
+    /// Pickett N-16 ES Electronic - CONFIGURATION PLAYGROUND
+    /// Demonstrates Configuration API features:
     /// - All scale names visible
     /// - Front side: names on LEFT
     /// - Back side: names on RIGHT
     /// - Back slide has legend text block annotation
     /// - PositionNudge demonstration
-    static func pickettN16ESAnnotationTest() -> SlideRuleDefinitionModel {
-        // Build configuration - simplified to verify basics work
+    static func pickettN16ESConfigurationPlayground() -> SlideRuleDefinitionModel {
+        // Build configuration - demonstrating ALL Configuration API features
         let configuration = SlideRuleConfigurationBuilder()
-            // All scale names visible (no suppression)
-            // Formulas visible by default
+            // FEATURE 1: Hide all formulas rule-wide
+            .hideFormulas()
+            
+            // FEATURE 2: Suppress even-indexed scale names (dense stator effect)
+            //.suppressEvenScaleNames()
             
             // Front side: names on LEFT (this is the default, but be explicit)
+            // Front side: names on LEFT (this is the default, but be explicit)
+            // FEATURE 3: First scale orange (index-based selection)
+            // FEATURE 4: Last scale purple (index-based selection)
+            // FEATURE 5: Trig scales green (SH1, SH2, TH, S, Cos, ST, T)
             .configure(.frontTopStator) {
                 ScaleConfiguration.setNameMargin(.left, for: .all)
+                ScaleConfiguration.colorLabels(LabelColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0), for: .first(1))  // Orange
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.5, green: 0.0, blue: 0.5, alpha: 1.0), for: .last(1))   // Purple
+                // Trig scales green: SH1, SH2, TH (in top stator) - using .named() for custom scale names
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.named("SH1")))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.named("SH2")))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.named("TH")))
             }
             .configure(.frontSlide) {
                 ScaleConfiguration.setNameMargin(.left, for: .all)
+                ScaleConfiguration.colorLabels(LabelColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0), for: .first(1))  // Orange
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.5, green: 0.0, blue: 0.5, alpha: 1.0), for: .last(1))   // Purple
+                // FEATURE 5: Trig scales green: S, Cos, ST, T (in slide)
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.s))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.named("Cos")))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.st))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.6, blue: 0.0, alpha: 1.0), for: .scale(.t))
+                // FEATURE 6: Inverted scales red (CI in slide)
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0), for: .scale(.ci))
+                // FEATURE 8: C scale nudged 5pt right
+                ScaleConfiguration.nudgeName(PositionNudge.right(5), for: .scale(.c))
             }
             .configure(.frontBottomStator) {
                 ScaleConfiguration.setNameMargin(.left, for: .all)
+                ScaleConfiguration.colorLabels(LabelColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0), for: .first(1))  // Orange
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.5, green: 0.0, blue: 0.5, alpha: 1.0), for: .last(1))   // Purple
+                // FEATURE 7: Log-Log scales blue (LL3, LL2, LL1, Ln in bottom stator)
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.0, blue: 0.8, alpha: 1.0), for: .scale(.ll3))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.0, blue: 0.8, alpha: 1.0), for: .scale(.ll2))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.0, blue: 0.8, alpha: 1.0), for: .scale(.ll1))
+                ScaleConfiguration.colorLabels(LabelColor(red: 0.0, green: 0.0, blue: 0.8, alpha: 1.0), for: .scale(.ln))
             }
-            
             // Back side: names on RIGHT, formulas on LEFT (swap from traditional)
             .configure(.backTopStator) {
                 ScaleConfiguration.setNameMargin(.right, for: .all)
@@ -203,18 +237,23 @@ struct SlideRuleLibrary {
                 ScaleConfiguration.setNameMargin(.right, for: .all)
                 ScaleConfiguration.setFormulaMargin(.left, for: .all)
             }
-            
             // Scale name overrides for electrical engineering scales
+            // DUPLICATED FORMAT: If override works, you'll see "D/Q D/Q"; if not, the canonical name
+            // NOTE: Keys must match the CANONICAL names from ScaleDefinition.name, NOT definition string
+            //   - "Cos" in definition → cosScale() → cosinePowerFactorScale() → name="cos Θ"
+            //   - "CosΘ" in definition → cosinePowerFactorScale() → name="cos Θ"
+            //   - "PF" in definition → pickettFScale() → name="F"
+            //   - "DQ" in definition → pickettDQScale() → name="D or Q"
             .addNameOverrides([
-                "DQ": "D/Q",
-                "L": "C/L",
-                "Cos": "cos",
-                "CosΘ": "cos Θ",
-                "Θ": "θ",
-                "λ": "λ",
-                "ω": "ω",
-                "τ": "τ",
-                "PF": "F"
+                "D or Q": "D/Q D/Q",    // Was "DQ" - canonical is "D or Q" from pickettDQScale()
+                "L": "C/L C/L",
+                "cos Θ": "cos cos",     // Was "Cos" - canonical is "cos Θ" from cosScale()
+                // Note: CosΘ is the same scale as Cos - both map to "cos Θ"
+                "Θ": "θ θ",
+                "λ": "λ λ",
+                "ω": "ω ω",
+                "τ": "τ τ",
+                "F": "F F"              // Was "PF" - canonical is "F" from pickettFScale()
             ])
             
             // Legend annotation on back slide
@@ -257,12 +296,28 @@ struct SlideRuleLibrary {
                 ),
                 on: RuleSideSelector.back
             )
+            
+            // FEATURE 9: Front side "API Demo →" annotation (orange, nudged 5pt right)
+            .addAnnotation(
+                ComponentAnnotation(
+                    content: .text("API Demo →"),
+                    color: LabelColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0),  // Orange
+                    horizontalPosition: 0.01,  // Left side
+                    verticalPosition: 0.5,     // Vertically centered
+                    anchor: .leading,
+                    fontSize: 12,
+                    fontWeight: .bold,  // Using bold instead of semiBold (not available)
+                    textAlignment: .leading,
+                    nudge: PositionNudge.right(5)  // Nudged 5pt right
+                ),
+                on: RuleSideSelector.front
+            )
             .build()
         
         return SlideRuleDefinitionModel(
-            name: "Pickett N-16 ES (API Demo)",
+            name: "Pickett N-16 ES (Configuration Playground)",
             description: """
-                CONFIGURATION API DEMO: \
+                CONFIGURATION API PLAYGROUND: \
                 • All scale names visible \
                 • Front side: names on LEFT \
                 • Back side: names on RIGHT \

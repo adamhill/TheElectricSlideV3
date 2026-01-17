@@ -493,6 +493,16 @@ final class SlideRuleDefinitionModel {
             builder = builder.withLabelColor(labelColor)
         }
         
+        // Apply name nudge (position offset for scale name)
+        if let nameNudge = config.nameNudge {
+            builder = builder.withNameNudge(nameNudge)
+        }
+        
+        // Apply formula nudge (position offset for formula)
+        if let formulaNudge = config.formulaNudge {
+            builder = builder.withFormulaNudge(formulaNudge)
+        }
+        
         return builder.build()
     }
     

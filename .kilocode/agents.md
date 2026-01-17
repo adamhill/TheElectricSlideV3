@@ -1,7 +1,9 @@
 # AI Coding Agent Instructions for The Electric Slide
 
 ## Project Overview
-A modern macOS/iOS slide rule application with a **strict separation** between calculation engine (`SlideRuleCoreV3` Swift package) and SwiftUI rendering (`TheElectricSlide` app). The calculation engine is a pure functional implementation based on PostScript slide rule algorithms and mathematical foundations.
+A modern macOS/iOS slide rule application with a **strict separation** between calculation engine (`SlideRuleCoreV3` Swift package) and SwiftUI rendering (`TheElectricSlide` app). The calculation engine is a pure functional implementation based on PostScript slide rule program and mathematical foundations.
+
+## Physical Makeup of a Slide Rule
 
 ## Agent Capabilities: Local vs Remote
 
@@ -9,12 +11,34 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 **Full Access** - Can build, run, and test everything:
 - ✅ **App Development**: Use Xcodebuild MCP server to list simulators, build, and run `TheElectricSlide` app
   - List available simulators: `mcp_xcodebuildmcp_list_sims`
-  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_mac_sim` or iOS target
+  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
   - Interactive testing with UI feedback
-  - **Recommended test devices:**
-    - iOS: iPhone 17 Pro Max
-    - iPadOS: iPad 13-inch (M5)
-    - macOS: My Mac (native)
+  
+  ### ⚠️ MANDATORY: Use macOS as PRIMARY Platform for UI Testing
+  
+  **ALWAYS use macOS (`mcp_xcodebuildmcp_build_run_macos`) as the PRIMARY platform when:**
+  - Testing UI changes, layouts, or visual rendering
+  - Validating gesture interactions (drag, tap, swipe)
+  - Inspecting UI hierarchy with `mcp_xcodebuildmcp_describe_ui`
+  - Taking screenshots for verification
+  - Running the app to observe behavior
+  - Debugging visual issues or layout problems
+  
+  **Why macOS First:**
+  - ✅ **Fastest iteration** - Native execution, no simulator overhead
+  - ✅ **Most reliable** - Direct hardware access, consistent behavior
+  - ✅ **Best debugging** - Full Xcode integration, Instruments support
+  - ✅ **User preference** - Developer manually tests on real iOS devices
+  
+  **iOS/iPad simulators are SECONDARY** - Use only when:
+  - Specifically testing iPhone-only features (FlipButton, compact layouts)
+  - Validating device-specific breakpoints or size classes
+  - User explicitly requests iOS simulator testing
+  
+  - **Platform priority (in order):**
+    - 🥇 **macOS: My Mac (native)** ← DEFAULT CHOICE
+    - 🥈 iOS: iPhone 17 Pro Max (only for iPhone-specific features)
+    - 🥉 iPadOS: iPad 13-inch (M5) (only for iPad-specific features)
   - Use `mcp_xcodebuildmcp_screenshot` to capture UI state
   - Use `mcp_xcodebuildmcp_describe_ui` to inspect accessibility hierarchy and UI element structure
   - Use `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text` to interact with simulator
@@ -29,13 +53,16 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - `mcp_apple-docs_*` tools - Comprehensive Apple API documentation, WWDC videos, sample code
   - `mcp_dash-api_search_documentation` - Search installed Dash docsets (Swift, SwiftUI, UIKit, etc.)
 
-### Remote Agents (Cloud/Sandbox Environments)
-**Limited Access** - Focus on calculation engine:
-- ✅ Can modify and test `SlideRuleCoreV3` package code
+### Remote Agents (Cloud/Sandbox Environments - Linux Runners)
+**Swift Package Development** - Full capability for calculation engine:
+- ✅ **Swift 6.2+ available** - Can build and test Swift packages on Linux (compile code, execute tests)
+- ✅ Can modify and test `SlideRuleCoreV3` package code using `swift build` and `swift test`
 - ✅ Can read and analyze `TheElectricSlide` app code
-- ❌ Cannot run the SwiftUI app (no simulator/UI access)
+- ✅ Can run all `SlideRuleCoreV3Tests/` unit tests in Linux environment
+- ✅ Can validate calculation logic, scale functions, and parser behavior
+- ❌ Cannot run the SwiftUI app (no simulator/UI access - iOS/macOS only)
 - ❌ Cannot use Xcodebuild MCP (no local Xcode installation)
-- 💡 **Strategy**: Focus work on `SlideRuleCoreV3Tests/` where changes can be validated
+- 💡 **Strategy**: Focus work on `SlideRuleCoreV3` package where changes can be fully validated via `swift test`
 
 ## Architecture: Three-Layer Design
 
@@ -43,15 +70,18 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 
 **Location:** `SlideRuleCoreV3/Sources/SlideRuleCoreV3/`  
 **Type:** Local Swift Package (modifiable by agents)  
-**Platform:** iOS 18+, macOS 15+, Swift 6.2  
+**Platform:** iOS 18+, macOS 15+, Swift 6  
 **Purpose:** Pure calculation engine for scale creation, manipulation, tick mark calculations, and value-from-position lookups - **NO drawing/rendering code by design**
 
 **⚠️ AGENT CAPABILITY:** This package is where remote agents should focus their work. You can:
+- ✅ **Build with `swift build`** - Compiles on Linux runners (Swift 6.2+)
+- ✅ **Test with `swift test`** - Full test suite runs on Linux
 - ✅ Add new tests to `SlideRuleCoreV3Tests/`
 - ✅ Modify scale logic and calculations
 - ✅ Add new scale types and functions
 - ✅ Fix bugs in the calculation engine
-- ❌ Cannot run the SwiftUI app (remote agents only - no sandbox support)
+- ✅ Validate all changes via automated tests in CI/CD
+- ❌ Cannot run the SwiftUI app (remote agents only - requires Xcode/simulators)
 
 
 **Core Files (read these first):**
@@ -66,7 +96,6 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 2. **Electrical Engineering Scales** (`ElectricalEngineeringScalesExtension.swift`) - Specialized but complete
 3. **Hyperbolic Scales** (`HyperbolicScalesExtension.swift`) - Advanced mathematical functions
 4. **Circular Scales** - ⚠️ Not yet implemented (future work, see `circularSpec` in models)
-5. **Various Specialty Scales** - (`PickettN16ES-Theta-AlphaScalesExtension.swift`) Named after the specific manufacturer and scale sometimes - There may be more later on
 
 **Key Pattern - Pre-computed Tick Marks:**
 ```swift
@@ -95,9 +124,54 @@ let rule = try RuleDefinitionParser.parse(
 4. **No Drawing** - Calculations return data; rendering is separate responsibility
 
 ### Layer 2: TheElectricSlide App (SwiftUI Rendering)
-**Location:** `TheElectricSlide/ContentView.swift`  
+**Location:** `TheElectricSlide/`  
 **Platform:** macOS 15+, iOS 18+ (uses `onGeometryChange` from WWDC 2024)  
-**⚠️ AGENT LIMITATION:** Agents cannot run or test this app directly (no sandbox support). Focus on SlideRuleCoreV3 package instead.
+**⚠️ AGENT LIMITATION:** Remote agents cannot run or test this app directly (requires Xcode/simulators). Focus on SlideRuleCoreV3 package instead.
+
+**Architecture Overview:**
+The app follows a clean MVVM-inspired architecture with separate concerns:
+
+**Entry Point & Data:**
+- `TheElectricSlideApp.swift` - App entry, SwiftData container setup (`CurrentSlideRule`, `SlideRuleDefinitionModel`)
+- `ContentView.swift` - Root view orchestrating all components, gesture handling, state management
+- `SlideRuleViewModel.swift` - Hot/cold property pattern for performance-optimized state
+
+**Core Components** (`Components/`):
+- `SlideRuleDetailView.swift` - Main slide rule display container
+- `DynamicSlideRuleContent.swift` - Responsive layout handler for different view modes (front/back/both)
+- `SideView.swift` - Single side container (front or back), manages stator-slide-stator layout
+- `StatorView.swift` / `SlideView.swift` - Individual stator/slide rendering with multiple scales
+- `ScaleView.swift` - Single scale rendering via Canvas, tick marks, labels
+- `ScaleLabelRenderer.swift` / `ScaleTickRenderer.swift` - Separate rendering concerns
+- `ScaleContainerView.swift` - Scale wrapper with hit testing
+- `FlipButton.swift` - iPhone-specific flip control
+- `SlideRuleSidebarView.swift` - Rule selection sidebar (macOS/iPad)
+- `CursorReadingsContainer.swift` - Cursor value display
+
+**Cursor System** (`Cursor/`):
+- `CursorState.swift` - Observable cursor state (@Observable class)
+- `CursorOverlay.swift` - Draggable glass cursor view with gradients
+- `CursorReadings.swift` - Value computation at cursor position
+- See "Glass Cursor System" section below for detailed patterns
+
+**Models** (`Models/`):
+- `LayoutConfiguration.swift` - Dimensions, LayoutTier (4 responsive breakpoints)
+- `ViewMode.swift` - Front/Back/Both display modes
+- `CursorDisplayMode.swift` - Cursor display options (gradients/values/both)
+- `RuleSide.swift` - Front/Back enumeration
+- `ScaleContainer.swift` - Scale metadata wrapper
+- `GestureTypes.swift` - Gesture-related type definitions
+
+**Extensions** (`Extensions/`):
+- `ContentView+Gestures.swift` - Drag, zoom, pan gesture handlers
+- `ContentView+Persistence.swift` - SwiftData load/save/parse logic
+
+**Utilities** (`Utilities/`):
+- `GestureHandler.swift` - Centralized gesture coordination (Phase 4 refactor)
+- `PrecisionDragCoordinator.swift` - Unified precision mode for slide/cursor
+- `TickHapticCoordinator.swift` - Haptic feedback on tick mark crossings
+- `DeviceDetection.swift` - Device category detection (iPhone/iPad/Mac)
+- `ScrollWheelZoomModifier.swift` - Mouse wheel zoom support (macOS)
 
 **Performance-Critical Patterns (see `swift-docs/swift-sliderule-rendering-improvements.md`):**
 
@@ -285,30 +359,41 @@ static func generateCombinations() -> [String] {
 CRITICAL: Prefer using Terminal commands first to build the app for checking for syntax errors and running tests
 
 **Using Xcodebuild MCP Server (Recommended for Local Agents):**
+
+### ⚠️ ALWAYS START WITH macOS - THIS IS MANDATORY
+
 ```swift
+// ========================================
+// 🥇 STEP 1: BUILD AND RUN ON macOS FIRST
+// ========================================
+// This is the PRIMARY and DEFAULT choice for ALL UI testing.
+// iPad is next in priority if macOS testing is failing
+// Do NOT skip to iOS simulators unless specifically needed.
 
-// List available iOS simulators
-mcp_xcodebuildmcp_list_sims({ enabled: true })
+mcp_xcodebuildmcp_build_run_macos()
 
-// Build and run on iOS simulator (iPhone 17 Pro Max - recommended)
-mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide",
-    simulatorName: "iPhone 17 Pro Max"
-})
+// ========================================
+// 🥉 STEP 2: iPad Simulator (ONLY IF NEEDED)  
+// ========================================
+// Use ONLY when testing iPad-specific features:
+// - Split view layouts
+// - Sidebar behavior on iPad
+// - Regular size class with different dimensions than Mac
+// macOS simualtor is not working for some reason
 
-// Build and run on iPad simulator (iPad 13-inch M5 - recommended)
-mcp_xcodebuildmcp_build_run_ios_sim_name_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide",
-    simulatorName: "iPad 13-inch (M5)"
-})
+mcp_xcodebuildmcp_build_run_sim()  // For iPad 13-inch (M5)
+```
 
-// Build and run on macOS (My Mac - native)
-mcp_xcodebuildmcp_build_run_mac_proj({
-    projectPath: "/Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/TheElectricSlide.xcodeproj",
-    scheme: "TheElectricSlide"
-})
+// ========================================
+// 🥈 STEP 3: iOS Simulator (ONLY IF NEEDED)
+// ========================================
+// Use ONLY when testing iPhone-specific features:
+// - FlipButton behavior (iPhone-only control)
+// - Compact size class layouts
+// - Touch-specific gestures
+
+mcp_xcodebuildmcp_build_run_sim()  // For iPhone 17 Pro Max
+
 
 // Interactive simulator testing workflow:
 // 1. Take screenshot to observe current state
@@ -328,18 +413,29 @@ mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
 
 **Using Terminal Commands:**
 ```bash
+# ====== Local Agents (macOS with Xcode) ======
 # Xcode project (not workspace)
 open TheElectricSlide.xcodeproj
 
 # Command line build (app + tests)
 xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide
 
-# Swift package tests only (fast iteration - works for remote agents)
+# ====== Remote Agents (Linux Runners) & Local Agents ======
+# Swift package tests only (fast iteration - works everywhere)
 cd SlideRuleCoreV3
 swift test
 
+# Build package to verify compilation
+swift build
+
 # Run specific test suite with tags
 swift test --filter .fast
+
+# Verbose test output
+swift test --verbose
+
+# Note: Test execution times differ significantly by platform
+# macOS: 10-20 seconds | Linux runners: >60 seconds (due to virtualization/limited resources)
 ```
 
 ### Performance Profiling
@@ -373,6 +469,15 @@ swift test --filter .fast
 - Use Unicode directly: `"x²"`, `"x³"`, `"e⁰·⁰¹ˣ"`, `"100/x²"`
 - No AttributedString helper functions
 
+### Color Centralization (Design System)
+- **All manufacturer colors centralized** in `SlideRuleColorScheme.swift`
+- **Precision mode colors** defined per manufacturer:
+  - `precisionOverlayColor` - Slide overlay color (green for Faber-Castell, red-orange for others)
+  - `cursorPrecisionColor` - Cursor gradient color (matches overlay color)
+- **Never hardcode RGB values** - Always reference `SlideRuleColorScheme` properties
+- **Pattern**: `colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)` (fallback only)
+- **Documentation**: Add `**Color Source:**` comments referencing `SlideRuleColorScheme` property
+
 ## Critical "Don'ts"
 
 1. **Don't add drawing code to SlideRuleCoreV3** - It's a calculation engine only
@@ -384,9 +489,8 @@ swift test --filter .fast
 ## Reference Materials
 
 **In-Repo Documentation:**
-- `reference/postscript-rule-engine.ps - Original PostScript scale and slide rule defintion system (2000+ lines)
-- `reference/postscript-rule-engine-explainer.md - Explanation of the  PostScript engine functions and operation(1100+ lines)
-- `reference/manthematical-foundations-of-the-slide-rule.md` - **CRITICAL** Mathematical theory of the abstracttion of using physical lengths to do complex calculations with the properties of logarithms and a sliding rule and cursor
+- `reference/postscript-rule-engine-explainer.md` - Original PostScript algorithm (1000+ lines)
+- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory
 - `swift-docs/swift-sliderule-rendering-improvements.md` - Performance optimization guide
 - `swift-docs/swift-testing-playbook.md` - Testing best practices
 - `swift-docs/responsive-margin-implementation.md` - Responsive layout system
@@ -419,12 +523,16 @@ swift test --filter .fast
 3. **Performance context:** Read `swift-docs/swift-sliderule-rendering-improvements.md` solutions 1-5
 4. **Testing patterns:** Check existing tests in `SlideRuleCoreV3Tests/` for @Suite/@Test examples
 5. **Rendering flow:** Trace `ContentView.swift` → `StatorView`/`SlideView` → `ScaleView` → Canvas
-6. **Interactive testing workflow:**
-   - Build and run on simulator: `mcp_xcodebuildmcp_build_run_mac_sim_name_proj` with "My Mac"
+6. **Interactive testing workflow (⚠️ ALWAYS USE macOS FIRST):**
+   - **🥇 PRIMARY:** Build and run on macOS: `mcp_xcodebuildmcp_build_run_macos()` ← START HERE
    - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
+   `mcp_xcodebuild_describe_ui` to DETERMINISTICALLY observe UI states and read scale names, formulas, annotations and other text on the slide rule and UI.
    - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
    - Verify: Take another screenshot to confirm expected behavior
+   - **Only use iOS simulator** if testing iPhone-specific features (FlipButton, compact layout)
 7. **API documentation lookup:**
    - Quick search: `mcp_sosumi_searchAppleDocumentation` for Swift/SwiftUI APIs
    - Detailed docs: `mcp_apple-docs_get_apple_doc_content` for full API references
    - Local docsets: `mcp_dash-api_search_documentation` for fast offline lookup
+
+   NOTE: UI testing is flaky, even with mcp_

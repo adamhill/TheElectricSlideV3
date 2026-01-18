@@ -612,7 +612,7 @@ func denseStatorConfig() -> [ScaleConfiguration] {
 Chainable builder for constructing configurations:
 
 ```swift
-public final class SlideRuleConfigurationBuilder: @unchecked Sendable {
+public struct SlideRuleConfigurationBuilder: Sendable {
     // Start with defaults
     public init()
     

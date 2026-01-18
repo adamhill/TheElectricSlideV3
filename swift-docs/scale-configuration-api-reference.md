@@ -1088,3 +1088,36 @@ This enables:
 - ✅ Migrating existing rules automatically via `migratedConfiguration`
 - ✅ Full backward compatibility with existing code
 - ✅ Type-safe access via computed `configuration` property
+
+---
+
+## End-to-End Configuration Flow
+
+The following diagram shows the complete flow from developer configuration through persistence and rendering:
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Builder as SlideRuleConfigurationBuilder
+    participant Model as SlideRuleDefinitionModel
+    participant Parser as RuleDefinitionParser
+    participant SlideRule as SlideRule
+    participant Applier as ConfigurationApplier
+    participant View as ScaleView
+    participant Resolver as ScaleConfigurationResolver
+    participant Canvas as RenderingCanvas
+
+    Dev->>Builder: build configuration (configure / addAnnotation / build)
+    Builder-->>Dev: SlideRuleConfiguration (codable JSON)
+    Dev->>Model: persist configurationJSON / create/update model
+    Model->>Parser: parse(definition, displaySettings: config.displaySettings)
+    Parser-->>SlideRule: parsed SlideRule (with displaySettings)
+    Model->>Applier: applyConfiguration(config, to: SlideRule)
+    Applier->>SlideRule: inject annotations, name overrides, per-component configs
+    SlideRule->>View: present (environment(\.ruleDisplaySettings) set)
+    loop per scale render
+        View->>Resolver: resolver(for: side, component)
+        Resolver-->>View: ResolvedScaleDisplay (margins, nudges, colors)
+        View->>Canvas: draw ticks, labels, margin annotations
+    end
+```

@@ -1552,14 +1552,16 @@ extension StandardScales {
             .withLength(length)
             .withTickDirection(.up)
             .withSubsections([
-                // Cursor Precision: 5 decimals (from 0.000005 quaternary interval, capped at 5)
-                // Mathematical: Reciprocal of LL3 at e^-10, extreme precision for ultra-small decay values
-                // Historical: LL03 start (0.00005 = e^-10) required finest marks on K&E reciprocal scales
-                ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00001, 0.000005], labelLevels: [0]),
-                // Cursor Precision: 5 decimals (from 0.000005 quaternary interval, capped at 5)
-                // Mathematical: Ultra-fine marks for e^-9 to e^-7 range, mirrors LL3 upper precision
-                // Historical: K&E LL03 low end readable to 0.00001 by experts for decay calculations
-                ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0001, 0.00005, 0.00001, 0.000005], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
+                // Mathematical: Reciprocal of LL3 at e^-10, THINNED for visual clarity in densest region
+                // Historical: LL03 start (0.00005 = e^-10) - reduced tick density, NO LABELS to avoid overlap
+                // MODIFIED: Coarser quaternary (0.00002 vs 0.000005), empty labelLevels to reduce visual clutter
+                ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00002], labelLevels: []),
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
+                // Mathematical: e^-9 to e^-7 range, THINNED for visual clarity
+                // Historical: K&E LL03 low end - reduced from 0.000005 to 0.00002 quaternary (4x coarser)
+                // MODIFIED: Coarser quaternary, reduced label frequency (labels at primary ticks only)
+                ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0002, 0.0001, 0.00005, 0.00002], labelLevels: [0]),
                 // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
                 // Mathematical: e^-7 to e^-5 range, 0.00005 marks for precise decay/attenuation work
                 // Historical: Mid-LL03 maintains 4-5 sig figs per K&E reciprocal scale standards

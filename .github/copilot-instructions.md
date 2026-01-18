@@ -536,7 +536,7 @@ swift test --verbose
 6. **Interactive testing workflow (⚠️ ALWAYS USE macOS FIRST):**
    - **🥇 PRIMARY:** Build and run on macOS: `mcp_xcodebuildmcp_build_run_macos()` ← START HERE
    - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
-   `mcp_xcodebuild_describe_ui` to DETERMINISTICALLY observe UI states and read scale names, formulas, annotations and other text on the slide rule and UI.
+   `mcp_xcodebuildmcp_describe_ui` to DETERMINISTICALLY observe UI states and read scale names, formulas, annotations and other text on the slide rule and UI.
    - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
    - Verify: Take another screenshot to confirm expected behavior
    - **Only use iOS simulator** if testing iPhone-specific features (FlipButton, compact layout)

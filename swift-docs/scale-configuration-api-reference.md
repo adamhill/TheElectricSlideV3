@@ -895,7 +895,7 @@ public struct LabelColor: Sendable, Equatable, Hashable, Codable {
 ### MarginSide (from SlideRuleModels.swift)
 
 ```swift
-public enum MarginSide: String, Sendable, Equatable, Hashable, Codable, CaseIterable {
+public enum MarginSide: String, Sendable, Equatable, Hashable, Codable {
     case top
     case bottom
     case none

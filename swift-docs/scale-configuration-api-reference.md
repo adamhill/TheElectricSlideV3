@@ -896,7 +896,7 @@ public struct LabelColor: Sendable, Equatable, Hashable, Codable {
 
 ```swift
 public enum MarginSide: String, Sendable, Equatable, Hashable, Codable {
-    case top
+    case left
     case bottom
     case none
 }

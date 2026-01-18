@@ -11,7 +11,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 [Bottom Stator]    |
             --------
 - Top Stator - static, does not move
-- Slide - slides right and left between the two stators. It is positioned via the index (edge) at either end being positioned at a value under or obove another scale.
+- Slide - slides right and left between the two stators. It is positioned via the index (edge) at either end being positioned at a value under or above another scale.
 - Bottom Stators - static, does not move
 - Cursor - transparent piece that slides over, on top of  the stators and slide. It has a thin hairlne that runs horizontally. It allows you to "mark" a scales value on the sliderule, then read a value off of another scale under the harlines position.
 

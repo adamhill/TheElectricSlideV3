@@ -21,7 +21,7 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
 **Full Access** - Can build, run, and test everything:
 - ✅ **App Development**: Use Xcodebuild MCP server to list simulators, build, and run `TheElectricSlide` app
   - List available simulators: `mcp_xcodebuildmcp_list_sims`
-  - Build and run on simulator: `mcp_xcodebuildmcp_build_run_ios_sim` or macOS target
+- Build and run on simulator: `mcp_xcodebuildmcp_build_run_sim` or macOS target
   - Interactive testing with UI feedback
   
   ### ⚠️ MANDATORY: Use macOS as PRIMARY Platform for UI Testing

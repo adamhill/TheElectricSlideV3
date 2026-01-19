@@ -42,10 +42,6 @@ final class SlideRuleDefinitionModel {
     /// Order for sorting
     var sortOrder: Int
     
-    /// Scale name overrides for custom display labels
-    /// Key: canonical scale name (e.g., "L"), Value: display name (e.g., "dB L")
-    var scaleNameOverrides: [String: String] = [:]
-    
     /// Library version this rule was created/updated with
     var libraryVersion: Int = 0
     
@@ -108,11 +104,6 @@ final class SlideRuleDefinitionModel {
             // Apply even scale name suppression
             if _suppressEvenScaleNames {
                 b = b.suppressEvenScaleNames()
-            }
-            
-            // Apply scale name overrides
-            if !scaleNameOverrides.isEmpty {
-                b = b.addNameOverrides(scaleNameOverrides)
             }
             
             // Apply back slide annotations
@@ -251,7 +242,6 @@ final class SlideRuleDefinitionModel {
         circularSpec: String? = nil,
         isFavorite: Bool = false,
         sortOrder: Int = 0,
-        scaleNameOverrides: [String: String] = [:],
         libraryVersion: Int = 0,
         manufacturer: String? = nil,
         showScaleNames: Bool = true,
@@ -270,7 +260,6 @@ final class SlideRuleDefinitionModel {
         self.circularSpec = circularSpec
         self.isFavorite = isFavorite
         self.sortOrder = sortOrder
-        self.scaleNameOverrides = scaleNameOverrides
         self.libraryVersion = libraryVersion
         self.manufacturer = manufacturer
         
@@ -318,7 +307,6 @@ final class SlideRuleDefinitionModel {
             circularSpec: circularSpec,
             isFavorite: isFavorite,
             sortOrder: sortOrder,
-            scaleNameOverrides: configuration.scaleNameOverrides,
             libraryVersion: libraryVersion,
             manufacturer: manufacturer,
             showScaleNames: configuration.displaySettings.showScaleNames,
@@ -372,11 +360,6 @@ final class SlideRuleDefinitionModel {
     /// Apply full SlideRuleConfiguration to a parsed rule
     private func applyConfiguration(_ config: SlideRuleConfiguration, to rule: SlideRule) -> SlideRule {
         var result = rule
-        
-        // Apply scale name overrides
-        if !config.scaleNameOverrides.isEmpty {
-            result = applyScaleNameOverrides(config.scaleNameOverrides, to: result)
-        }
         
         // Apply component configurations (scale display settings)
         if !config.componentConfigs.isEmpty {
@@ -560,84 +543,6 @@ final class SlideRuleDefinitionModel {
             result = applyAnnotations(annotations, side: .back, to: result)
             return result
         }
-    }
-    
-    /// Apply scale name overrides to a parsed slide rule
-    private func applyScaleNameOverrides(_ overrides: [String: String], to rule: SlideRule) -> SlideRule {
-        guard !overrides.isEmpty else { return rule }
-        
-        // Shared helper to override a single GeneratedScale
-        func overrideGeneratedScale(_ generatedScale: GeneratedScale) -> GeneratedScale {
-            let scaleName = generatedScale.definition.name
-            guard let overrideName = overrides[scaleName] else {
-                return generatedScale
-            }
-            
-            let newDefinition = ScaleDefinition(
-                name: overrideName,
-                formula: generatedScale.definition.formula,
-                function: generatedScale.definition.function,
-                beginValue: generatedScale.definition.beginValue,
-                endValue: generatedScale.definition.endValue,
-                scaleLengthInPoints: generatedScale.definition.scaleLengthInPoints,
-                layout: generatedScale.definition.layout,
-                tickDirection: generatedScale.definition.tickDirection,
-                subsections: generatedScale.definition.subsections,
-                defaultTickStyles: generatedScale.definition.defaultTickStyles,
-                labelFormatter: generatedScale.definition.labelFormatter,
-                labelColor: generatedScale.definition.labelColor,
-                colorApplication: generatedScale.definition.colorApplication,
-                constants: generatedScale.definition.constants,
-                showBaseline: generatedScale.definition.showBaseline,
-                formulaTracking: generatedScale.definition.formulaTracking
-            )
-            return GeneratedScale(definition: newDefinition, noLineBreak: generatedScale.noLineBreak)
-        }
-        
-        // Helper function to override scale names in a Stator
-        func overrideStatorScales(_ stator: Stator) -> Stator {
-            return Stator(
-                name: stator.name,
-                scales: stator.scales.map(overrideGeneratedScale),
-                heightInPoints: stator.heightInPoints,
-                showBorder: stator.showBorder,
-                annotations: stator.annotations
-            )
-        }
-        
-        // Helper function to override scale names in a Slide
-        func overrideSlideScales(_ slide: Slide) -> Slide {
-            return Slide(
-                name: slide.name,
-                scales: slide.scales.map(overrideGeneratedScale),
-                heightInPoints: slide.heightInPoints,
-                showBorder: slide.showBorder,
-                annotations: slide.annotations
-            )
-        }
-        
-        // Apply overrides to front side
-        let newFrontTopStator = overrideStatorScales(rule.frontTopStator)
-        let newFrontSlide = overrideSlideScales(rule.frontSlide)
-        let newFrontBottomStator = overrideStatorScales(rule.frontBottomStator)
-        
-        // Apply overrides to back side (if it exists)
-        let newBackTopStator = rule.backTopStator.map { overrideStatorScales($0) }
-        let newBackSlide = rule.backSlide.map { overrideSlideScales($0) }
-        let newBackBottomStator = rule.backBottomStator.map { overrideStatorScales($0) }
-        
-        return SlideRule(
-            frontTopStator: newFrontTopStator,
-            frontSlide: newFrontSlide,
-            frontBottomStator: newFrontBottomStator,
-            backTopStator: newBackTopStator,
-            backSlide: newBackSlide,
-            backBottomStator: newBackBottomStator,
-            totalLengthInPoints: rule.totalLengthInPoints,
-            diameter: rule.diameter,
-            radialPositions: rule.radialPositions,
-            displaySettings: rule.displaySettings
-        )
     }
     
     // MARK: - Migration Helpers

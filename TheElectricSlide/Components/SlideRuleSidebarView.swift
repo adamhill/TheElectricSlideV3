@@ -235,7 +235,6 @@ struct SlideRuleSidebarView: View {
                         existingRule.bottomStatorMM = standardRule.bottomStatorMM
                         existingRule.circularSpec = standardRule.circularSpec
                         existingRule.sortOrder = standardRule.sortOrder
-                        existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
                         existingRule.manufacturer = standardRule.manufacturer  // Sync manufacturer
                         // Sync configuration JSON (Phase 6 - full configuration system)

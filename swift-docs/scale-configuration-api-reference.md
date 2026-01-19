@@ -497,11 +497,11 @@ public struct SlideRuleConfiguration: Sendable, Equatable, Hashable, Codable {
     
     /// Rule-level annotations (branding, model numbers, etc.)
     public let ruleAnnotations: [ComponentAnnotation]
-    
-    /// Global scale name overrides
-    public let scaleNameOverrides: [ScaleKey: String]
 }
 ```
+
+> **Note**: Scale name customization is handled via `ScaleBuilder.withDisplayName()` at scale
+> factory time. See [scale-naming-architecture.md](scale-naming-architecture.md) for details.
 
 **Factory Constructors:**
 

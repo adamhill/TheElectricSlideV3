@@ -539,16 +539,8 @@ struct SlideRuleConfigurationTests {
         #expect(frontTopConfig == nil)
     }
     
-    @Test("resolvedName applies overrides")
-    func nameOverrides() {
-        var config = SlideRuleConfiguration()
-        config.addNameOverride(canonical: "DQ", display: "D/Q")
-        config.addNameOverride(canonical: "Cos", display: "cos")
-        
-        #expect(config.resolvedName(for: "DQ") == "D/Q")
-        #expect(config.resolvedName(for: "Cos") == "cos")
-        #expect(config.resolvedName(for: "C") == "C")  // No override
-    }
+    // NOTE: Scale name customization now handled via displayName at scale definition time
+    // See StandardScales.swift factory functions for examples
     
     @Test("resolver(for:component:) uses display settings")
     func resolverFromConfig() {
@@ -585,13 +577,11 @@ struct SlideRuleConfigurationTests {
         let config = SlideRuleConfiguration.fromLegacy(
             showScaleNames: true,
             showFormulas: false,
-            suppressEvenScaleNames: true,
-            scaleNameOverrides: ["PF": "F"]
+            suppressEvenScaleNames: true
         )
         
         #expect(config.displaySettings.showScaleNames == true)
         #expect(config.displaySettings.showFormulas == false)
-        #expect(config.scaleNameOverrides["PF"] == "F")
         
         // Should have component configs for even name suppression
         #expect(!config.componentConfigs.isEmpty)
@@ -632,8 +622,7 @@ struct SlideRuleConfigurationCodableTests {
     @Test("Full configuration round-trips through JSON")
     func fullRoundTrip() throws {
         var config = SlideRuleConfiguration(
-            displaySettings: RuleDisplaySettings(showFormulas: false),
-            scaleNameOverrides: ["DQ": "D/Q"]
+            displaySettings: RuleDisplaySettings(showFormulas: false)
         )
         config.addComponentConfig(ComponentConfiguration.frontSlide(
             scaleConfigs: [ScaleConfiguration.hideNames(for: .evenIndices)]
@@ -646,7 +635,6 @@ struct SlideRuleConfigurationCodableTests {
         let decoded = try decoder.decode(SlideRuleConfiguration.self, from: data)
         
         #expect(decoded.displaySettings.showFormulas == false)
-        #expect(decoded.scaleNameOverrides["DQ"] == "D/Q")
         #expect(decoded.componentConfigs.count == 1)
     }
     
@@ -772,30 +760,6 @@ struct SlideRuleConfigurationBuilderTests {
         }
     }
     
-    @Test("addNameOverride adds single override")
-    func addNameOverride() {
-        let config = SlideRuleConfigurationBuilder()
-            .addNameOverride(canonical: "DQ", display: "D/Q")
-            .build()
-        
-        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
-    }
-    
-    @Test("addNameOverrides adds multiple overrides")
-    func addNameOverrides() {
-        let config = SlideRuleConfigurationBuilder()
-            .addNameOverrides([
-                "DQ": "D/Q",
-                "Cos": "cos",
-                "Sin": "sin"
-            ])
-            .build()
-        
-        #expect(config.scaleNameOverrides.count == 3)
-        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
-        #expect(config.scaleNameOverrides["Cos"] == "cos")
-    }
-    
     @Test("addAnnotation on side adds rule-level annotation")
     func addAnnotationOnSide() {
         let annotation = ComponentAnnotation(
@@ -844,14 +808,12 @@ struct SlideRuleConfigurationBuilderTests {
         let config = SlideRuleConfigurationBuilder()
             .hideFormulas()
             .suppressEvenScaleNames()
-            .addNameOverride(canonical: "DQ", display: "D/Q")
             .configure(.backSlide) {
                 ScaleConfiguration.colorLabels(.blue, for: .scale(.c))
             }
             .build()
         
         #expect(config.displaySettings.showFormulas == false)
-        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
         // 6 from suppressEvenScaleNames + 1 from configure
         #expect(config.componentConfigs.count == 7)
     }
@@ -859,17 +821,15 @@ struct SlideRuleConfigurationBuilderTests {
     @Test("Builder from existing configuration preserves settings")
     func builderFromExisting() {
         let existing = SlideRuleConfiguration(
-            displaySettings: RuleDisplaySettings(showFormulas: false),
-            scaleNameOverrides: ["A": "B"]
+            displaySettings: RuleDisplaySettings(showFormulas: false)
         )
         
         let config = SlideRuleConfigurationBuilder(from: existing)
-            .addNameOverride(canonical: "C", display: "D")
+            .hideScaleNames()
             .build()
         
         #expect(config.displaySettings.showFormulas == false)
-        #expect(config.scaleNameOverrides["A"] == "B")
-        #expect(config.scaleNameOverrides["C"] == "D")
+        #expect(config.displaySettings.showScaleNames == false)
     }
     
     @Test("Static build method works with closure")

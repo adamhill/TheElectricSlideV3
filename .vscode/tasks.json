@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build SlideRuleCoreV3",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift build",
+			"group": "build"
+		},
+		{
+			"label": "Test Hemmi 266 scales",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter 'Hemmi|H266'",
+			"group": "test"
+		},
+		{
+			"label": "Test Hemmi 266 scales (verbose)",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter 'Hemmi|H266' 2>&1 | tail -100",
+			"group": "test"
+		},
+		{
+			"label": "Build App",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide && xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide -destination 'platform=macOS' build 2>&1 | tail -20",
+			"group": "build"
+		},
+		{
+			"label": "Build App (errors)",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide && xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide -destination 'platform=macOS' build 2>&1 | grep -E '(error:|warning:)' | head -20",
+			"group": "build"
+		}
+	]
+}

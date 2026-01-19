@@ -153,7 +153,6 @@ struct SlideRulePicker: View {
                         existingRule.bottomStatorMM = standardRule.bottomStatorMM
                         existingRule.circularSpec = standardRule.circularSpec
                         existingRule.sortOrder = standardRule.sortOrder
-                        existingRule.scaleNameOverrides = standardRule.scaleNameOverrides
                         existingRule.libraryVersion = standardRule.libraryVersion
                         // Sync configuration JSON (Phase 6 - full configuration system)
                         print("    📝 configurationJSON sync: standard=\(standardRule.configurationJSON?.prefix(100) ?? "nil") → existing=\(existingRule.configurationJSON?.prefix(100) ?? "nil")")

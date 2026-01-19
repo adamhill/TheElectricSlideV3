@@ -490,7 +490,8 @@ extension StandardScales {
         let frequencyFunction = PickettFFunction(cycles: 6)
         
         return ScaleBuilder()
-            .withName("F")  // F for Frequency scale (matches real Pickett N16-ES)
+            .withName("PF")  // PF token for Pickett F scale (used in definition string)
+            .withDisplayName("F")  // Displays as "F" for Frequency (matches real Pickett N16-ES)
             .withFormula("F (MHz)")
             .withFunction(frequencyFunction)
             .withRange(begin: 0.1, end: 10.0)  // 0.1 to 10 MHz (2 decades, low values on left)
@@ -938,7 +939,8 @@ extension StandardScales {
     /// Note: This is identical to the standard A scale, just with explicit .1 to 10 labeling.
     public static func pickettDQScale(length: Distance = 250.0) -> ScaleDefinition {
         ScaleBuilder()
-            .withName("D or Q")
+            .withName("DQ")
+            .withDisplayName("D/Q")  // Decimal keeper with Q-factor dual mode
             .withFormula("log₁₀(x)")
             .withFunction(DecimalKeeperQFunction(isQMode: false))
             .withRange(begin: 0.1, end: 10.0)  // Two decades: 0.1 to 10
@@ -1005,5 +1007,49 @@ extension StandardScales {
     public static func cosScale(length: Distance = 250.0) -> ScaleDefinition {
         // Note: cosinePowerFactorScale already has suppressFormulaLabel applied
         cosinePowerFactorScale(length: length)
+    }
+    
+    // MARK: - N-16 ES Specific Scale Variants
+    
+    /// N16Cos - Pickett N-16 ES front slide cosine scale
+    ///
+    /// **Description:** Cosine scale for front slide, displays as lowercase "cos"
+    /// **Display Name:** cos (lowercase, no theta symbol)
+    /// **Used in:** Pickett N-16 ES front slide position
+    public static func n16CosScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder(from: cosinePowerFactorScale(length: length))
+            .withName("N16Cos")
+            .withDisplayName("cos")  // Lowercase for front slide clarity
+            .build()
+    }
+    
+    /// N16CosΘ - Pickett N-16 ES back stator cosine theta scale
+    ///
+    /// **Description:** Cosine theta scale for back stator, displays as "cos Θ"
+    /// **Display Name:** cos Θ (with space and Greek theta)
+    /// **Used in:** Pickett N-16 ES back bottom stator position
+    public static func n16CosThetaScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder(from: cosinePowerFactorScale(length: length))
+            .withName("N16CosΘ")
+            .withDisplayName("cos Θ")  // Phase power factor with Greek letter
+            .build()
+    }
+    
+    /// N16L - Pickett N-16 ES combined capacitance/inductance scale
+    ///
+    /// **Description:** Standard L scale used in Pickett N-16 ES design
+    /// **Formula:** Same as L scale: linear mapping 0-1
+    /// **Display Name:** C/L (combined capacitance/inductance notation)
+    /// **Used in:** Pickett N-16 ES front slide and back slide positions
+    ///
+    /// **Note:** This is the same mathematical function as the standard L scale,
+    /// but with a display name matching the Pickett N-16 ES labeling convention.
+    /// The C/L notation indicates this scale's dual use for both capacitance
+    /// and inductance logarithm readings.
+    public static func n16LScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder(from: lScale(length: length))
+            .withName("N16L")
+            .withDisplayName("C/L")  // Combined capacitance/inductance scale
+            .build()
     }
 }

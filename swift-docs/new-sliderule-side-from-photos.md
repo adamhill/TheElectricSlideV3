@@ -711,8 +711,7 @@ private static let availableDefinitions: [SlideRuleDefinitionModel] = [
         topStatorMM: 14,          // Height of top stator in mm
         slideMM: 13,              // Height of slide in mm
         bottomStatorMM: 14,       // Height of bottom stator in mm
-        sortOrder: 0,             // Lower = appears first in library
-        scaleNameOverrides: [:]   // Optional: customize display names
+        sortOrder: 0              // Lower = appears first in library
     ),
     
     // ... rest of definitions ...
@@ -732,17 +731,25 @@ Measure or estimate the heights of each component:
 - 5-inch pocket rules: Scale proportionally (7mm, 6.5mm, 7mm)
 - Specialty rules: Measure from the photo if possible
 
-### 5.4 Add Scale Name Overrides (Optional)
+### 5.4 Custom Scale Display Names (Optional)
 
-If you want to customize how scale names appear in the UI:
+If a manufacturer uses non-standard scale labels, create a custom scale factory with
+`ScaleBuilder.withDisplayName()`. For example, Hemmi 266 displays "㏈ L" instead of "L":
 
 ```swift
-scaleNameOverrides: [
-    "L": "dB L",           // Display "dB L" instead of "L"
-    "D": "D 10-100",       // Display "D 10-100" instead of "D"
-    "LL01": "LL₀�?"         // Use subscript formatting
-]
+// In StandardScales.swift
+case "H266L": return hemmi266LScale()
+
+public static func hemmi266LScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: lScale(length: length))
+        .withDisplayName("㏈ L")
+        .build()
+}
 ```
+
+Then use the custom token in your definition string: `"(... H266L ...)"`
+
+See [scale-naming-architecture.md](scale-naming-architecture.md) for full details.
 
 ### 5.5 Increment Library Version
 
@@ -1143,8 +1150,7 @@ SlideRuleDefinitionModel(
     topStatorMM: 14,
     slideMM: 13,
     bottomStatorMM: 14,
-    sortOrder: 10,
-    scaleNameOverrides: [:]
+    sortOrder: 10
 )
 ```
 

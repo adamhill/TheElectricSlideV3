@@ -1,218 +1,254 @@
-# Scale Name Customization System
+# Scale Name Customization
 
 ## Overview
 
-The Electric Slide now supports customizing displayed scale names on a per-slide-rule basis. This allows historical accuracy where different manufacturers labeled the same scale differently (e.g., Hemmi 266 labels the L scale as "dB L").
+The Electric Slide uses a simple two-layer naming system that allows scales to display custom labels while maintaining stable internal identifiers. This supports historical accuracy where different manufacturers labeled the same scale differently (e.g., Hemmi 266 labels the L scale as "㏈ L").
 
 ## Architecture
 
-### 1. ScaleName Enum (`SlideRuleCoreV3/Sources/ScaleName.swift`)
+### The Two-Name Model
 
-Type-safe enumeration of all known scale names with:
-- **Canonical names**: Standard scale identifiers (C, D, CI, L, LL1, etc.)
-- **Human-readable descriptions**: Purpose of each scale
-- **Aliases**: Alternative names accepted during parsing (e.g., "C10-100" = "C10.100")
+Every scale has two name properties:
+
+| Property | Purpose | Required | Example |
+|----------|---------|----------|---------|
+| **`name`** | Internal canonical identifier | ✅ Yes | `"L"`, `"Sq1"`, `"DQ"` |
+| **`displayName`** | Rendered label override | ❌ No | `"㏈ L"`, `"W1"`, `"D/Q"` |
+
+**Rendering rule**: `displayName ?? name`
+
+If `displayName` is set, that's what the user sees. Otherwise, `name` is rendered.
+
+### Setting Names via ScaleBuilder
 
 ```swift
-public enum ScaleName: String, CaseIterable, Sendable {
-    case c = "C"
-    case l = "L"
-    case ll1 = "LL1"
-    // ... 80+ scale types
-    
-    public var description: String { /* ... */ }
-    public var aliases: [String] { /* ... */ }
-    public static func lookup(_ name: String) -> ScaleName? { /* ... */ }
+public static func hemmi266LScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: lScale(length: length))
+        .withName("L")             // Internal identifier (for config, accessibility)
+        .withDisplayName("㏈ L")   // What user sees rendered
+        .build()
 }
 ```
 
-### 2. Scale Name Overrides Dictionary
+---
 
-`SlideRuleDefinitionModel` now includes a `scaleNameOverrides` property:
+## When to Customize Display Names
+
+### 1. Manufacturer-Specific Notation
+
+Different manufacturers used different labels for equivalent scales:
 
 ```swift
-@Model
-final class SlideRuleDefinitionModel {
-    // ... existing properties
-    
-    /// Scale name overrides for custom display labels
-    /// Key: canonical scale name (e.g., "L")
-    /// Value: display name (e.g., "dB L")
-    var scaleNameOverrides: [String: String]
+// Hemmi 266: L scale shows decibel notation
+public static func hemmi266LScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: lScale(length: length))
+        .withDisplayName("㏈ L")
+        .build()
+}
+
+// Standard slide rules: L scale shows just "L"
+public static func lScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder()
+        .withName("L")
+        // No displayName needed — "L" renders directly
+        .build()
 }
 ```
 
-### 3. Override Application
+### 2. Dual-Purpose Scales
 
-When parsing a slide rule definition, overrides are automatically applied:
+Some scales serve multiple functions and should show both purposes:
 
 ```swift
-func parseSlideRule(scaleLength: Distance = 1000.0) throws -> SlideRule {
-    var rule = try RuleDefinitionParser.parse(/* ... */)
-    
-    if !scaleNameOverrides.isEmpty {
-        rule = applyScaleNameOverrides(to: rule)
-    }
-    
-    return rule
+// Pickett N-16 ES: D scale that doubles as Q scale for electronics
+public static func pickettN16DQScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: dScale(length: length))
+        .withName("DQ")           // Unique internal ID
+        .withDisplayName("D/Q")   // Shows both functions
+        .build()
+}
+
+// Pickett N-16 ES: Combined impedance scales
+public static func pickettN16ZsXcScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder()
+        .withName("ZsXc")
+        .withDisplayName("Zs/Xc")
+        .build()
 }
 ```
 
-The `applyScaleNameOverrides` method:
-1. Iterates through all scales in the slide rule (front/back, stators/slides)
-2. Checks if each scale's canonical name has an override
-3. Creates new `ScaleDefinition` with overridden name
-4. Preserves all other scale properties (tick marks, formulas, etc.)
+### 3. Mathematical Notation
 
-## Usage
-
-### Example: Hemmi 266 with "dB L" Label
+Use Unicode for proper mathematical symbols:
 
 ```swift
-static func hemmi266() -> SlideRuleDefinitionModel {
-    SlideRuleDefinitionModel(
-        name: "Hemmi 266",
-        description: "Japanese precision slide rule...",
-        definitionString: "(H266LL03 ... D L- S T- : ...)",
-        topStatorMM: 15,
-        slideMM: 15,
-        bottomStatorMM: 15,
-        sortOrder: 1,
-        scaleNameOverrides: [
-            "L": "dB L"  // Display as "dB L" instead of "L"
-        ]
-    )
+// Log-Log scales with overbar notation
+public static func hemmi266LL01Scale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: ll01Scale(length: length))
+        .withDisplayName("L̅L̅1")  // Overbar notation
+        .build()
+}
+
+// Reciprocal scales
+public static func ciScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder()
+        .withName("CI")
+        .withDisplayName("C⁻¹")   // Or keep as "CI" — manufacturer preference
+        .build()
 }
 ```
 
-### Example: Multiple Overrides
+---
+
+## How It Works
+
+### Parser Behavior
+
+The `RuleDefinitionParser` has automatic display name handling:
+
+1. **Token lookup**: Parser reads token from definition string (e.g., "W1")
+2. **Factory call**: Calls `StandardScales.scale(named: "W1")` → returns `r1Scale()`
+3. **Auto-assignment check**:
+   - If factory already set `displayName` → **keep it**
+   - If factory's `name` ≠ token AND `displayName` is nil → **set displayName = token**
+4. **Result**: Scale has correct internal name AND correct display name
 
 ```swift
+// In SlideRuleAssembly.swift (simplified)
+let definition = StandardScales.scale(named: token)
+
+// Preserve original token as displayName if:
+// 1. Factory didn't set displayName
+// 2. Factory's name differs from token
+if definition.displayName == nil && definition.name != token {
+    definition = ScaleBuilder(from: definition)
+        .withDisplayName(token)
+        .build()
+}
+```
+
+### Example Flow
+
+**Definition string**: `"(... W1 ...)"`
+
+```
+Token "W1" 
+  → StandardScales.scale(named: "W1")
+  → r1Scale() returns: name="Sq1", displayName=nil
+  → Parser sees: "Sq1" ≠ "W1", displayName=nil
+  → Parser sets: displayName="W1"
+  → Final: name="Sq1", displayName="W1"
+  → Renders: "W1" ✓
+```
+
+---
+
+## Implementation Guidelines
+
+### Creating a New Manufacturer Scale
+
+1. **Add case to switch statement**:
+```swift
+case "H266L": return hemmi266LScale()
+```
+
+2. **Create factory function**:
+```swift
+public static func hemmi266LScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: lScale(length: length))
+        .withName("L")             // Keep canonical name for config
+        .withDisplayName("㏈ L")   // Custom display
+        .build()
+}
+```
+
+3. **Use in definition string**:
+```swift
+definitionString: "(... H266L ...)"
+```
+
+### Creating Aliases (No Custom Display Needed)
+
+For simple aliases where the token should display as-is:
+
+```swift
+// Multiple tokens → same factory
+case "R1", "SQ1", "W1", "W1'", "W1P": return r1Scale()
+
+// Factory does NOT set displayName
+public static func r1Scale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder()
+        .withName("Sq1")  // Canonical internal name
+        // Parser will auto-set displayName to match whichever token was used
+        .build()
+}
+```
+
+---
+
+## Migration from scaleNameOverrides (Historical)
+
+The previous system used a `scaleNameOverrides` dictionary that was applied post-parse. This has been simplified:
+
+### Before (Removed)
+```swift
+// OLD: Post-parse dictionary override
 SlideRuleDefinitionModel(
-    name: "Custom Rule",
-    definitionString: "(A [ B CI C ] D L)",
-    scaleNameOverrides: [
-        "L": "Log₁₀",      // More explicit logarithm label
-        "CI": "C⁻¹",       // Mathematical notation for reciprocal
-        "A": "x²"          // Direct formula notation
-    ]
+    definitionString: "(... L ...)",
+    scaleNameOverrides: ["L": "㏈ L"]  // ❌ No longer supported
 )
 ```
 
-## Key Features
-
-### 1. Type Safety
-- Use `ScaleName` enum for autocomplete and compile-time checking
-- Dictionary keys are strings for SwiftData persistence
-
-### 2. Canonical Name Preservation
-- Parser uses canonical names (from `StandardScales` factory)
-- Overrides applied post-parsing
-- Cursor readings still use canonical names internally
-
-### 3. SwiftData Persistence
-- Overrides stored as `[String: String]` dictionary
-- Automatic migration support
-- No schema changes required for new scale types
-
-### 4. Historical Accuracy
-- Each slide rule definition can match original manufacturer labeling
-- Preserves historical context (e.g., Hemmi's decibel focus)
-- User sees authentic scale labels
-
-## Scale Name Reference
-
-### Basic Scales
-- C, D, CI, DI - Logarithmic scales
-- A, B, AI, BI - Square scales
-- K - Cube scale
-
-### Log-Log Scales
-- LL00, LL01, LL02, LL03 (or LL0-LL3) - Exponential scales
-
-### Trigonometric
-- S - Sine scale
-- T - Tangent scale
-- ST - Small tangent scale
-
-### Logarithmic
-- L - Common logarithm (log₁₀)
-- Ln - Natural logarithm (ln)
-
-### Electrical Engineering (Hemmi 266)
-- XL - Inductive reactance
-- Xc - Capacitive reactance
-- F - Frequency
-- r1, r2 - Resistance/Impedance
-- Q - Quality factor
-- Li - Inductance
-- Cf, Cz - Capacitance
-- Z - Impedance
-- Fo - Resonant frequency
-
-### Full List
-See `ScaleName.swift` for complete enumeration of 80+ scale types.
-
-## Implementation Notes
-
-### Performance
-- Overrides applied once during parsing (not per render)
-- Pre-computed tick marks reused (no recalculation)
-- Minimal memory overhead (~8 bytes per override)
-
-### Future Enhancements
-Potential additions:
-1. **Formula overrides**: Custom formula strings per scale
-2. **Color overrides**: Per-rule color customization
-3. **UI editor**: Visual scale name editor in app settings
-4. **Import/export**: Share custom rule definitions
-
-### Migration Strategy
-Existing slide rule definitions work unchanged:
-- Empty `scaleNameOverrides` dictionary by default
-- No breaking changes to API
-- Backward compatible with existing data
-
-## Testing
-
-Verify overrides work correctly:
-
+### After (Current)
 ```swift
-let hemmi = SlideRuleLibrary.hemmi266()
-let parsed = try hemmi.parseSlideRule(scaleLength: 1000)
+// NEW: Factory sets displayName directly
+case "H266L": return hemmi266LScale()
 
-// Check front bottom stator for L scale
-let lScale = parsed.frontBottomStator.scales.first { $0.definition.name == "dB L" }
-XCTAssertNotNil(lScale, "L scale should be overridden to 'dB L'")
+public static func hemmi266LScale(length: Distance = 250.0) -> ScaleDefinition {
+    ScaleBuilder(from: lScale(length: length))
+        .withDisplayName("㏈ L")  // ✅ Set at creation time
+        .build()
+}
+
+// Definition string uses manufacturer-specific token
+SlideRuleDefinitionModel(
+    definitionString: "(... H266L ...)"  // Uses custom token
+)
 ```
 
-## Example Customizations
+### Benefits of New Approach
 
-### K&E 4081-3 (Standard)
-No overrides needed - uses canonical names.
+1. **Single source of truth** — Look at factory to see what renders
+2. **No mutation** — Scale definition immutable after creation
+3. **Type-safe** — No string dictionary keys to mistype
+4. **Discoverable** — IDE autocomplete shows available scales
 
-### Hemmi 266 (Japanese)
-```swift
-scaleNameOverrides: ["L": "dB L"]
-```
+---
 
-### Pickett N3 (NASA Apollo)
-No overrides - uses standard naming.
+## Quick Reference
 
-### Future: Faber-Castell 2/83N (German)
-```swift
-scaleNameOverrides: [
-    "ST": "P",  // German "P" for Prozent (percent)
-    "K": "W"    // German "W" for Wurfel (cube)
-]
-```
+### Common Patterns
 
-## Conclusion
+| Scenario | `name` | `displayName` | Notes |
+|----------|--------|---------------|-------|
+| Standard scale | `"C"` | `nil` | Name renders directly |
+| Alias | `"Sq1"` | `"W1"` (auto) | Parser sets from token |
+| Manufacturer label | `"L"` | `"㏈ L"` | Factory sets explicitly |
+| Dual-purpose | `"DQ"` | `"D/Q"` | Factory sets explicitly |
+| Unicode notation | `"LL01"` | `"L̅L̅1"` | Factory sets explicitly |
 
-The scale name customization system provides:
-- ✅ Historical accuracy for manufacturer-specific labeling
-- ✅ Type-safe scale name enumeration
-- ✅ Simple dictionary-based override mechanism
-- ✅ SwiftData persistence support
-- ✅ No performance impact on rendering
-- ✅ Backward compatible with existing rules
+### Checklist for New Scales
+
+- [ ] Add case(s) to `StandardScales.scale(named:)` switch
+- [ ] Create factory function with `.withName()`
+- [ ] Add `.withDisplayName()` only if rendering should differ from name
+- [ ] Update definition strings to use new token
+- [ ] Add tests verifying correct rendering
+
+---
+
+## See Also
+
+- [Scale Naming Architecture](scale-naming-architecture.md) — Full technical details
+- [StandardScales.swift](../SlideRuleCoreV3/Sources/SlideRuleCoreV3/StandardScales.swift) — Scale factory implementations
+- [ScaleDefinition.swift](../SlideRuleCoreV3/Sources/SlideRuleCoreV3/ScaleDefinition.swift) — Core type definitions

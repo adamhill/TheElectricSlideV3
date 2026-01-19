@@ -103,6 +103,52 @@ public enum LL03LabelFormatters {
         // Default formatting for other values (0.009, 0.008, etc.)
         return String(format: "%.3f", rounded)
     }
+    
+    // MARK: - Decade Region Formatters (0.01 to 0.00001)
+    
+    /// Helper to convert integer exponent to superscript string
+    private static func superscript(_ n: Int) -> String {
+        let superscriptDigits: [Character: Character] = [
+            "-": "⁻", "0": "⁰", "1": "¹", "2": "²", "3": "³",
+            "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"
+        ]
+        return String("\(n)".map { superscriptDigits[$0] ?? $0 })
+    }
+    
+    /// LL03 decade region formatter (0.01 to 0.00001 region)
+    /// - Decade boundaries (0.01, 0.001, 0.0001, 0.00001): "10⁻²", "10⁻³", "10⁻⁴", "10⁻⁵"
+    /// - Mantissa 5 values (0.005, 0.0005, 0.00005): "5"
+    /// - Mantissa 2 values (0.002, 0.0002, 0.00002): "2"
+    /// - Other values: "" (no label)
+    ///
+    /// Historical: Faber-Castell 62/83N shows decade boundaries with exponential notation,
+    /// intermediate 5 and 2 positions with mantissa-only labels for visual clarity.
+    public static let ll03DecadeRegion: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite && value > 0 else { return "" }
+        
+        let log = log10(value)
+        let exponent = Int(floor(log))
+        let mantissa = value / pow(10.0, Double(exponent))
+        
+        // Check for decade boundary (mantissa ≈ 1.0)
+        // Use tight tolerance for exact power-of-10 detection
+        if abs(mantissa - 1.0) < 0.05 {
+            return "10" + superscript(exponent)  // e.g., "10⁻²", "10⁻³"
+        }
+        
+        // Check for mantissa ≈ 5
+        if abs(mantissa - 5.0) < 0.3 {
+            return "5"
+        }
+        
+        // Check for mantissa ≈ 2
+        if abs(mantissa - 2.0) < 0.15 {
+            return "2"
+        }
+        
+        // No label for other values
+        return ""
+    }
 }
 
 // MARK: - PostScript-Accurate Log-Log Scale Implementations
@@ -1709,30 +1755,44 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: LL03LabelFormatters.ll03MiddleRangeLower
                 ),
-                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
-                // Mathematical: e^-5 to e^-2 range, increasing density as values decrease
-                // Historical: Mid-LL03 shows increased density, maintains 3-4 sig figs
-                // Note: 0.01 is skipped by ll03LowerRange since it's labeled as "10⁻²" by previous subsection
+                
+                // MARK: Decade Region (0.01 to 0.00001) - Faber-Castell 62/83N Pattern
+                // Pattern: 10⁻² ... 5 ... 2 ... 10⁻³ ... 5 ... 2 ... 10⁻⁴ ... 5 ... 2 ... 10⁻⁵
+                // Major ticks only at: decade boundaries (10⁻ⁿ) and mantissa 5 and 2 positions
+                
+                // 10⁻² decade (0.01 to 0.001)
+                // Ticks at: 0.01 (10⁻²), 0.005 (5), 0.002 (2), 0.001 (10⁻³)
+                // Tick interval of 0.003 places ticks at approximately: 0.01, 0.007, 0.004, 0.001
+                // Instead, use multiple subsections for precise control
                 ScaleSubsection(
                     startValue: 0.01,
-                    tickIntervals: [0.01, 0.005, 0.001, 0.0005],
+                    tickIntervals: [0.005, 0.003],  // Primary at 0.005, 0.003 fills gaps
                     labelLevels: [0],
-                    labelFormatter: LL03LabelFormatters.ll03LowerRange
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
-                // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
-                // Mathematical: e^-7 to e^-5 range, 0.00005 marks for precise decay/attenuation work
-                // Historical: Lower-mid LL03 maintains 4-5 sig figs per K&E reciprocal scale standards
-                ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
-                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
-                // Mathematical: e^-9 to e^-7 range, dense ticks for small values
-                // Historical: K&E LL03 low end with fine quaternary marks
-                ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0002, 0.0001, 0.00005, 0.00002], labelLevels: [0]),
-                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
-                // Mathematical: Reciprocal of LL3 at e^-10, rightmost (smallest values) region
-                // Historical: LL03 RIGHT side (0.00001 = 10⁻⁵) - reduced tick density, NO LABELS to avoid overlap
-                ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00002], labelLevels: []),
-                // Final subsection for rightmost endpoint region
-                ScaleSubsection(startValue: 0.00001, tickIntervals: [0.00005, 0.00002, 0.00001], labelLevels: [])
+                // 10⁻³ decade (0.001 to 0.0001)
+                // Ticks at: 0.001 (10⁻³), 0.0005 (5), 0.0002 (2), 0.0001 (10⁻⁴)
+                ScaleSubsection(
+                    startValue: 0.001,
+                    tickIntervals: [0.0005, 0.0003],  // Primary at 0.0005, 0.0003 fills gaps
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                ),
+                // 10⁻⁴ decade (0.0001 to 0.00001)
+                // Ticks at: 0.0001 (10⁻⁴), 0.00005 (5), 0.00002 (2), 0.00001 (10⁻⁵)
+                ScaleSubsection(
+                    startValue: 0.0001,
+                    tickIntervals: [0.00005, 0.00003],  // Primary at 0.00005, 0.00003 fills gaps
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                ),
+                // Endpoint region for 10⁻⁵
+                ScaleSubsection(
+                    startValue: 0.00001,
+                    tickIntervals: [0.000005],  // Minimal ticks at endpoint
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                )
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(.red)  // Red labels
@@ -1740,8 +1800,22 @@ extension StandardScales {
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e
-                    label: "1/e",
-                )
+                    label: "1/e"
+                ),
+                // MARK: Decade region "5" and "2" mantissa gauge marks
+                // These explicit tick marks ensure the key intermediate positions are visible
+                // in the decade region (0.01 to 0.00001) where regular tick intervals don't
+                // naturally land on these values.
+                //
+                // 10⁻² decade (0.01 to 0.001)
+                ScaleConstant(value: 0.005, label: "5", style: .major),
+                ScaleConstant(value: 0.002, label: "2", style: .major),
+                // 10⁻³ decade (0.001 to 0.0001)
+                ScaleConstant(value: 0.0005, label: "5", style: .major),
+                ScaleConstant(value: 0.0002, label: "2", style: .major),
+                // 10⁻⁴ decade (0.0001 to 0.00001)
+                ScaleConstant(value: 0.00005, label: "5", style: .major),
+                ScaleConstant(value: 0.00002, label: "2", style: .major)
             ])
             .build()
     }

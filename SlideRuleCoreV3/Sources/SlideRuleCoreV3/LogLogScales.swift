@@ -3,6 +3,108 @@ import Foundation
 /// Label formatter that can optionally suppress labels by returning nil
 public typealias LabelFormatter = @Sendable (ScaleValue) -> String?
 
+// MARK: - LL03 Scale Label Formatters
+
+/// Specialized label formatters for LL03 scale subsections
+/// Based on Faber-Castell 62/83N reference implementation
+public enum LL03LabelFormatters {
+    
+    /// LL03 upper range formatter (0.4 to 0.1 range)
+    /// - Primary labels (0.4, 0.3, 0.2, 0.1): One decimal place (e.g., ".4")
+    /// - Secondary labels (0.35, 0.25, 0.15): Two decimal places (e.g., ".35")
+    ///
+    /// Historical: Faber-Castell 62/83N shows 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1
+    /// The tenths (0.4, 0.3, 0.2, 0.1) are displayed with one decimal point
+    /// The half-tenths (0.35, 0.25, 0.15) are displayed with two decimal points
+    public static let ll03UpperRange: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
+        
+        // Round to 2 decimal places to avoid floating point issues
+        let rounded = (value * 100).rounded() / 100
+        
+        // Check if value is a multiple of 0.1 (i.e., 0.4, 0.3, 0.2, 0.1)
+        // Using modulo with tolerance for floating point comparison
+        let tenthsMultiple = (rounded * 10).rounded()
+        let isTenthsMultiple = abs(rounded - tenthsMultiple / 10) < 0.001
+        
+        if isTenthsMultiple {
+            // Primary labels: one decimal place (0.4, 0.3, 0.2, 0.1)
+            return String(format: "%.1f", rounded)
+        } else {
+            // Secondary labels: two decimal places (0.35, 0.25, 0.15)
+            return String(format: "%.2f", rounded)
+        }
+    }
+    
+    /// LL03 middle range UPPER formatter (0.1 to 0.02 subsection)
+    /// - Labels: Values with EVEN last digit (0.08, 0.06, 0.04, 0.02)
+    /// - Skips: 0.01 (handled by next subsection as 10⁻²)
+    ///
+    /// Historical: Faber-Castell 62/83N labels only even-digit hundredths in this range
+    public static let ll03MiddleRangeUpper: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
+        
+        // Round to 4 decimal places to avoid floating point issues
+        let rounded = (value * 10000).rounded() / 10000
+        let formatted = String(format: "%.2f", rounded)
+        
+        // Skip anything that formats as 0.01 (handled by next subsection as 10⁻²)
+        if formatted == "0.01" {
+            return ""
+        }
+        
+        // Get the hundredths digit (last significant digit for 0.0X values)
+        let hundredths = Int((rounded * 100).rounded()) % 10
+        
+        // Only label if the hundredths digit is EVEN (2, 4, 6, 8)
+        if hundredths % 2 == 0 && hundredths != 0 {
+            return String(format: "%.2f", rounded)
+        }
+        
+        // Skip odd digits (1, 3, 5, 7, 9) and 0.10 (handled by previous subsection)
+        return ""
+    }
+    
+    /// LL03 middle range LOWER formatter (0.02 to 0.01 subsection)
+    /// - Labels: 0.01 as "10⁻²" ONLY
+    /// - Skips: 0.02 (already labeled by previous subsection)
+    ///
+    /// Historical: Faber-Castell 62/83N shows 0.01 as 10⁻²
+    public static let ll03MiddleRangeLower: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
+        
+        let rounded = (value * 10000).rounded() / 10000
+        
+        // 0.01 displays as "10⁻²" - use tight numeric check (within 0.0005)
+        // This prevents 0.015 or other nearby values from matching
+        if rounded >= 0.0095 && rounded <= 0.0105 {
+            return "10⁻²"
+        }
+        
+        // Skip everything else (0.02 is already labeled by previous subsection)
+        return ""
+    }
+    
+    /// LL03 lower range formatter (0.01 to 0.001 range)
+    /// - Skips 0.01 since it's already labeled as "10⁻²" by the previous subsection
+    /// - Uses default formatting for other values
+    public static let ll03LowerRange: @Sendable (ScaleValue) -> String = { value in
+        guard value.isFinite else { return "—" }
+        
+        // Round to 5 decimal places to avoid floating point issues
+        let rounded = (value * 100000).rounded() / 100000
+        let formatted = String(format: "%.2f", rounded)
+        
+        // Skip anything that formats as 0.01 - already labeled as "10⁻²"
+        if formatted == "0.01" {
+            return ""
+        }
+        
+        // Default formatting for other values (0.009, 0.008, etc.)
+        return String(format: "%.3f", rounded)
+    }
+}
+
 // MARK: - PostScript-Accurate Log-Log Scale Implementations
 //
 // This file implements Log-Log scales with EXACT subsection patterns from the PostScript
@@ -1548,32 +1650,89 @@ extension StandardScales {
             .withName("LL03")
             .withFormula("e⁻ˣ")
             .withFunction(ll03Function)
-            .withRange(begin: 0.00005, end: 0.368)  // e^-10 to e^-1
+            .withRange(begin: 0.4, end: 0.00001)  // Large on left (0.4 ≈ e^-0.92), small on right (10⁻⁵)
             .withLength(length)
             .withTickDirection(.up)
+            // Faber-Castell 62/83N: Level 0 and Level 1 ticks same height/font (0.4-0.1 region)
+            // Level 0: Primary labels (0.4, 0.3, 0.2, 0.1) - full height
+            // Level 1: Secondary labels (0.35, 0.25, 0.15) - SAME full height as primary
+            // Level 2: Minor ticks (0.01 interval) - shorter, unlabeled
+            // Level 3: Tiny ticks (0.002 interval) - shortest, unlabeled
+            .withDefaultTickStyles([
+                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 0: Full height, labeled
+                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 1: Full height, labeled (same as Level 0)
+                TickStyle(relativeLength: 0.65, shouldLabel: false, lineWidth: 0.65), // Level 2: Half height, unlabeled
+                TickStyle(relativeLength: 0.4, shouldLabel: false, lineWidth: 0.65)  // Level 3: Quarter height, unlabeled
+            ])
             .withSubsections([
-                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
-                // Mathematical: Reciprocal of LL3 at e^-10, THINNED for visual clarity in densest region
-                // Historical: LL03 start (0.00005 = e^-10) - reduced tick density, NO LABELS to avoid overlap
-                // MODIFIED: Coarser quaternary (0.00002 vs 0.000005), empty labelLevels to reduce visual clutter
-                ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00002], labelLevels: []),
-                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
-                // Mathematical: e^-9 to e^-7 range, THINNED for visual clarity
-                // Historical: K&E LL03 low end - reduced from 0.000005 to 0.00002 quaternary (4x coarser)
-                // MODIFIED: Coarser quaternary, reduced label frequency (labels at primary ticks only)
-                ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0002, 0.0001, 0.00005, 0.00002], labelLevels: [0]),
+                // REVERSED ORDER: Largest values (leftmost) to smallest values (rightmost)
+                // Based on Faber-Castell 62/83N reference: labels read 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1... down to 10⁻⁵
+                
+                // Cursor Precision: 4 decimals (from 0.002 quaternary interval)
+                // Mathematical: Near 1/e (0.368), leftmost region of reversed scale
+                // Historical: LL03 LEFT side (0.1-0.4 = e^-2.3 to e^-0.92)
+                // Labels: Primary (0.4, 0.3, 0.2, 0.1) with 1 decimal, Secondary (0.35, 0.25, 0.15) with 2 decimals
+                // Tick marks: 24 ticks between each labeled value (0.05 interval ÷ 25 = 0.002 finest tick)
+                //   - 4 ticks at 0.01 intervals + 20 ticks at 0.002 intervals = 24 ticks per label pair
+                ScaleSubsection(
+                    startValue: 0.4,
+                    tickIntervals: [0.1, 0.05, 0.01, 0.002],
+                    labelLevels: [0, 1],  // Include both primary (0.1) and secondary (0.05) intervals
+                    labelFormatter: LL03LabelFormatters.ll03UpperRange
+                ),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Mid-upper LL03, transitioning toward smaller values
+                // Historical: Faber-Castell 62/83N shows 0.1, 0.08, 0.06, 0.04 with 19 ticks between each
+                // Labels: 0.1, 0.08, 0.06, 0.04 at 0.02 intervals
+                // Tick marks: 19 ticks between each label (0.02 interval ÷ 20 = 0.001 finest tick)
+                //   - Level 0 (0.02): labeled
+                //   - Level 1 (0.01): 1 tick mid-way
+                //   - Level 2 (0.005): 2 more ticks
+                //   - Level 3 (0.001): 16 finest ticks = 19 total
+                ScaleSubsection(
+                    startValue: 0.1,
+                    tickIntervals: [0.02, 0.01, 0.005, 0.001],
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03MiddleRangeUpper
+                ),
+                // Cursor Precision: 4 decimals (from 0.001 quaternary interval)
+                // Mathematical: Transition zone from 0.02 to 0.01
+                // Historical: Faber-Castell 62/83N shows 0.02 and 0.01 (as 10⁻²) with 9 ticks between
+                // Labels: 0.02, 0.01 (displayed as "10⁻²")
+                // Tick marks: 9 ticks between 0.02 and 0.01 (0.01 interval ÷ 10 = 0.001 finest tick)
+                //   - Level 0 (0.01): labeled
+                //   - Level 1 (0.005): 1 tick mid-way
+                //   - Level 2 (0.001): 8 finest ticks = 9 total
+                ScaleSubsection(
+                    startValue: 0.02,
+                    tickIntervals: [0.01, 0.005, 0.001],
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03MiddleRangeLower
+                ),
+                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
+                // Mathematical: e^-5 to e^-2 range, increasing density as values decrease
+                // Historical: Mid-LL03 shows increased density, maintains 3-4 sig figs
+                // Note: 0.01 is skipped by ll03LowerRange since it's labeled as "10⁻²" by previous subsection
+                ScaleSubsection(
+                    startValue: 0.01,
+                    tickIntervals: [0.01, 0.005, 0.001, 0.0005],
+                    labelLevels: [0],
+                    labelFormatter: LL03LabelFormatters.ll03LowerRange
+                ),
                 // Cursor Precision: 5 decimals (from 0.00005 quaternary interval)
                 // Mathematical: e^-7 to e^-5 range, 0.00005 marks for precise decay/attenuation work
-                // Historical: Mid-LL03 maintains 4-5 sig figs per K&E reciprocal scale standards
+                // Historical: Lower-mid LL03 maintains 4-5 sig figs per K&E reciprocal scale standards
                 ScaleSubsection(startValue: 0.001, tickIntervals: [0.001, 0.0005, 0.0001, 0.00005], labelLevels: [0]),
-                // Cursor Precision: 4 decimals (from 0.0005 quaternary interval)
-                // Mathematical: e^-5 to e^-2 range, coarsening as values approach 1/e
-                // Historical: Upper LL03 shows reduced density like LL3, maintains 3-4 sig figs
-                ScaleSubsection(startValue: 0.01, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
-                // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
-                // Mathematical: Approaching 1/e (0.368), coarsest LL03 marks at 0.005
-                // Historical: LL03 end (0.1-0.368 = e^-2.3 to e^-1) transitions to LL02, K&E standard precision
-                ScaleSubsection(startValue: 0.1, tickIntervals: [0.1, 0.05, 0.01, 0.005], labelLevels: [0])
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
+                // Mathematical: e^-9 to e^-7 range, dense ticks for small values
+                // Historical: K&E LL03 low end with fine quaternary marks
+                ScaleSubsection(startValue: 0.0001, tickIntervals: [0.0002, 0.0001, 0.00005, 0.00002], labelLevels: [0]),
+                // Cursor Precision: 5 decimals (from 0.00002 quaternary interval)
+                // Mathematical: Reciprocal of LL3 at e^-10, rightmost (smallest values) region
+                // Historical: LL03 RIGHT side (0.00001 = 10⁻⁵) - reduced tick density, NO LABELS to avoid overlap
+                ScaleSubsection(startValue: 0.00005, tickIntervals: [0.0001, 0.00005, 0.00002], labelLevels: []),
+                // Final subsection for rightmost endpoint region
+                ScaleSubsection(startValue: 0.00001, tickIntervals: [0.00005, 0.00002, 0.00001], labelLevels: [])
             ])
             .withLabelFormatter(StandardLabelFormatter.fourDecimals)
             .withLabelColor(.red)  // Red labels

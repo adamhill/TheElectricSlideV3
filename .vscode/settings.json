@@ -5,5 +5,8 @@
         "TheElectricSlide/.vscode/mcp.json: XcodeBuildMCP": {
             "allowedDuringChat": true
         }
+    },
+    "chat.tools.terminal.autoApprove": {
+        "/bin/zsh": true
     }
 }

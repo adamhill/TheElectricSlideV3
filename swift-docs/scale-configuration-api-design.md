@@ -281,8 +281,8 @@ public struct SlideRuleConfiguration: Sendable, Codable, Equatable {
     /// Rule-level annotations (rendered on front/back overall)
     public let ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]]
     
-    /// Scale name overrides (canonical → display)
-    public let scaleNameOverrides: [String: String]
+    // Note: Scale name customization is handled via ScaleBuilder.withDisplayName()
+    // at scale factory time. See scale-naming-architecture.md for details.
 }
 ```
 
@@ -326,8 +326,7 @@ public struct SlideRuleConfigurationBuilder {
         config = SlideRuleConfiguration(
             displaySettings: RuleDisplaySettings(),
             componentConfigs: [],
-            ruleAnnotations: [:],
-            scaleNameOverrides: [:]
+            ruleAnnotations: [:]
         )
     }
     

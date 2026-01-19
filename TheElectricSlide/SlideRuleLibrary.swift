@@ -110,7 +110,6 @@ struct SlideRuleLibrary {
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 20,
-            scaleNameOverrides: [:],
             manufacturer: SlideRuleManufacturer.faberCastell.rawValue
         )
     }
@@ -118,8 +117,8 @@ struct SlideRuleLibrary {
     /// Pickett N-16 ES Electronic Slide Rule (circa 1960)
     /// Professional electronics slide rule with 32 specialized scales
     /// Designed by Chan Street for RF engineering, filter design, and impedance matching
-    /// Front: SH1 SH2 TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln
-    /// Back:  Θ db D XL Xc [ L F λ ω τ Cr ] Lr db CosΘ
+    /// Front: SH1 SH2 TH DF [ CF N16L S N16Cos ST T CI C ] D LL3 LL2 LL1 Ln
+    /// Back:  Θ db D XL Xc [ N16L PF λ ω τ Cr ] Lr db N16CosΘ
     ///
     /// ## Historical Note: ω/τ Scale Alignment
     ///
@@ -151,22 +150,12 @@ struct SlideRuleLibrary {
             // Do NOT use - suffix on Θ₂ as that flips ticks DOWN (wrong direction!)
             // NOTE: db is the upper decibel scale (linear dB, correct tick marks)
             // The lower `db` is the standard dB scale (dB power scale)
-            definitionString: "(SH1 SH2- TH DF [ CF L S Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ L PF λ ω τ Cr ] Lr db CosΘ)",
+            // NOTE: N16L displays as "C/L", N16Cos displays as "cos", N16CosΘ displays as "cos Θ"
+            definitionString: "(SH1 SH2- TH DF [ CF N16L S N16Cos ST T CI C ] D LL3 LL2 LL1 Ln : Θ₁^ Θ₂ α db DQ XL Xc [ N16L PF λ ω τ Cr ] Lr db N16CosΘ)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 0,
-            scaleNameOverrides: [
-                "DQ": "D/Q",          // Decimal keeper with Q-factor dual mode
-                "L": "C/L",          // Combined capacitance/inductance scale
-                "Cos": "cos",        // Lowercase for clarity
-                "CosΘ": "cos Θ",     // Phase power factor with Greek letter
-                "Θ": "θ",            // Phase angle (lowercase Greek)
-                "λ": "λ",            // Wavelength (lowercase Greek)
-                "ω": "ω",            // Angular frequency (lowercase Greek)
-                "τ": "τ",
-                "PF": "F"            // Time constant (lowercase Greek)
-            ],
             manufacturer: SlideRuleManufacturer.pickett.rawValue
         )
     }
@@ -238,24 +227,6 @@ struct SlideRuleLibrary {
                 ScaleConfiguration.setNameMargin(.right, for: .all)
                 ScaleConfiguration.setFormulaMargin(.left, for: .all)
             }
-            // Scale name overrides for electrical engineering scales
-            // DUPLICATED FORMAT: If override works, you'll see "D/Q D/Q"; if not, the canonical name
-            // NOTE: Keys must match the CANONICAL names from ScaleDefinition.name, NOT definition string
-            //   - "Cos" in definition → cosScale() → cosinePowerFactorScale() → name="cos Θ"
-            //   - "CosΘ" in definition → cosinePowerFactorScale() → name="cos Θ"
-            //   - "PF" in definition → pickettFScale() → name="F"
-            //   - "DQ" in definition → pickettDQScale() → name="D or Q"
-            .addNameOverrides([
-                "D or Q": "D/Q D/Q",    // Was "DQ" - canonical is "D or Q" from pickettDQScale()
-                "L": "C/L C/L",
-                "cos Θ": "cos cos",     // Was "Cos" - canonical is "cos Θ" from cosScale()
-                // Note: CosΘ is the same scale as Cos - both map to "cos Θ"
-                "Θ": "θ θ",
-                "λ": "λ λ",
-                "ω": "ω ω",
-                "τ": "τ τ",
-                "F": "F F"              // Was "PF" - canonical is "F" from pickettFScale()
-            ])
             
             // Legend annotation on back slide
             .addAnnotation(
@@ -353,22 +324,17 @@ struct SlideRuleLibrary {
     }
     
     /// Hemmi 266 Standard
-    /// Front: H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo
+    /// Front: H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D H266L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo
     /// Back:  Electrical engineering scales
     static func hemmi266() -> SlideRuleDefinitionModel {
         SlideRuleDefinitionModel(
             name: "Hemmi 266",
             description: "Japanese precision slide rule with electrical engineering scales on the back.",
-            definitionString: "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)",
+            definitionString: "(H266LL03 H266LL01^ LL02B LL2B- A [ B BI CI C ] D H266L- S T- : eeXl eeXc eeF eer1 eeP^ [ eer2^ eeQ eeLi eeCf eeCz ] eeL eeZ eeFo)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,
             sortOrder: 2,
-            scaleNameOverrides: [
-                "L": "㏈ L", // Hemmi 266 labels L scale as "dB L"
-                "H266LL01": "L̅L̅1",
-                "H266LL03": "L̅L̅3"
-            ],
             manufacturer: SlideRuleManufacturer.hemmi.rawValue
         )
     }

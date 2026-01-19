@@ -549,7 +549,8 @@ public struct RuleDefinitionParser {
                         showBaseline: finalDefinition.showBaseline,
                         hasBottomSeparator: false,  // Never set separator on the scale after |
                         formulaTracking: finalDefinition.formulaTracking,
-                        displayName: originalName,
+                        // Preserve explicit displayName from scale definition; only override with token-derived name
+                        displayName: originalName ?? finalDefinition.displayName,
                         suppressBeginBoundaryLabel: finalDefinition.suppressBeginBoundaryLabel,
                         suppressBeginBoundaryTick: finalDefinition.suppressBeginBoundaryTick,
                         suppressEndBoundaryLabel: finalDefinition.suppressEndBoundaryLabel,

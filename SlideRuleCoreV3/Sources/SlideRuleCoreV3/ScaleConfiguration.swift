@@ -1002,8 +1002,7 @@ public struct ComponentConfiguration: Sendable, Codable, Equatable, Hashable {
 /// ├── componentConfigs ([ComponentConfiguration]) - per-component settings
 /// │   └── scaleConfigs ([ScaleConfiguration]) - per-scale settings
 /// │       └── ResolvedScaleDisplay - final computed settings
-/// ├── ruleAnnotations - rule-level annotations
-/// └── scaleNameOverrides - canonical → display name mapping
+/// └── ruleAnnotations - rule-level annotations
 /// ```
 ///
 /// ## Usage
@@ -1014,10 +1013,13 @@ public struct ComponentConfiguration: Sendable, Codable, Equatable, Hashable {
 ///         .backSlide(scaleConfigs: [
 ///             .hideNames(for: .evenIndices)
 ///         ], annotations: [legendAnnotation])
-///     ],
-///     scaleNameOverrides: ["DQ": "D/Q"]
+///     ]
 /// )
 /// ```
+///
+/// ## Note on Scale Names
+/// Scale display names are now set via `ScaleBuilder.withDisplayName()` at definition time,
+/// not through runtime overrides. See StandardScales.swift for examples.
 public struct SlideRuleConfiguration: Sendable, Codable, Equatable, Hashable {
     /// Global display settings (baseline for all components)
     public var displaySettings: RuleDisplaySettings
@@ -1029,20 +1031,14 @@ public struct SlideRuleConfiguration: Sendable, Codable, Equatable, Hashable {
     /// These are rendered on the rule itself, not on specific components
     public var ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]]
     
-    /// Scale name overrides (canonical → display)
-    /// Applied after all other name resolution
-    public var scaleNameOverrides: [String: String]
-    
     public init(
         displaySettings: RuleDisplaySettings = .standard,
         componentConfigs: [ComponentConfiguration] = [],
-        ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]] = [:],
-        scaleNameOverrides: [String: String] = [:]
+        ruleAnnotations: [RuleSideSelector: [ComponentAnnotation]] = [:]
     ) {
         self.displaySettings = displaySettings
         self.componentConfigs = componentConfigs
         self.ruleAnnotations = ruleAnnotations
-        self.scaleNameOverrides = scaleNameOverrides
     }
     
     // MARK: - Convenience Factories
@@ -1084,11 +1080,6 @@ public struct SlideRuleConfiguration: Sendable, Codable, Equatable, Hashable {
         ruleAnnotations[side] ?? []
     }
     
-    /// Resolve display name for a scale (applying overrides)
-    public func resolvedName(for canonicalName: String) -> String {
-        scaleNameOverrides[canonicalName] ?? canonicalName
-    }
-    
     /// Create a resolver for a specific component
     /// - Parameters:
     ///   - side: The side of the rule (front/back)
@@ -1125,11 +1116,6 @@ public struct SlideRuleConfiguration: Sendable, Codable, Equatable, Hashable {
         componentConfigs.append(config)
     }
     
-    /// Add a scale name override
-    public mutating func addNameOverride(canonical: String, display: String) {
-        scaleNameOverrides[canonical] = display
-    }
-    
     /// Add a rule-level annotation
     public mutating func addAnnotation(_ annotation: ComponentAnnotation, on side: RuleSideSelector) {
         var annotations = ruleAnnotations[side] ?? []
@@ -1150,21 +1136,18 @@ extension SlideRuleConfiguration {
     ///   - showFormulas: Whether to show formulas
     ///   - suppressEvenScaleNames: Whether to suppress even-indexed scale names
     ///   - backSlideAnnotationsJSON: JSON-encoded annotations for back slide
-    ///   - scaleNameOverrides: Scale name overrides dictionary
     /// - Returns: A SlideRuleConfiguration matching the legacy settings
     public static func fromLegacy(
         showScaleNames: Bool = true,
         showFormulas: Bool = true,
         suppressEvenScaleNames: Bool = false,
-        backSlideAnnotationsJSON: String? = nil,
-        scaleNameOverrides: [String: String] = [:]
+        backSlideAnnotationsJSON: String? = nil
     ) -> SlideRuleConfiguration {
         var config = SlideRuleConfiguration(
             displaySettings: RuleDisplaySettings(
                 showScaleNames: showScaleNames,
                 showFormulas: showFormulas
-            ),
-            scaleNameOverrides: scaleNameOverrides
+            )
         )
         
         // Handle suppressEvenScaleNames
@@ -1439,24 +1422,6 @@ public struct SlideRuleConfigurationBuilder: Sendable {
                 selector: selector,
                 scaleConfigs: [invertedColor]
             ))
-        }
-        return copy
-    }
-    
-    // MARK: - Scale Name Overrides
-    
-    /// Add a single scale name override
-    public func addNameOverride(canonical: String, display: String) -> Self {
-        var copy = self
-        copy.config.scaleNameOverrides[canonical] = display
-        return copy
-    }
-    
-    /// Add multiple scale name overrides
-    public func addNameOverrides(_ overrides: [String: String]) -> Self {
-        var copy = self
-        for (canonical, display) in overrides {
-            copy.config.scaleNameOverrides[canonical] = display
         }
         return copy
     }

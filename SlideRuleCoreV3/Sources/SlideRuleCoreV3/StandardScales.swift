@@ -1716,6 +1716,7 @@ public enum StandardScales {
         // Hemmi 266 Log-Log scales (specialized variants)
         case "H266LL01": return h266LL01Scale(length: length)
         case "H266LL03": return h266LL03Scale(length: length)
+        case "H266L": return h266LScale(length: length)  // Hemmi 266 L scale with ㏈ L display
         case "LL02B": return ll02BScale(length: length)
         case "LL2B": return ll2BScale_PostScriptAccurate(length: length)
         
@@ -1817,6 +1818,11 @@ public enum StandardScales {
         
         // Utility scales
         case "DQ", "D/Q": return pickettDQScale(length: length)
+        
+        // Pickett N-16 ES specific variants
+        case "N16COS": return n16CosScale(length: length)
+        case "N16COSΘ", "N16COSTHETA": return n16CosThetaScale(length: length)
+        case "N16L": return n16LScale(length: length)
             
         default: return nil
         }

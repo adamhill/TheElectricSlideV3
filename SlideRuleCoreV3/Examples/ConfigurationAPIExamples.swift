@@ -50,18 +50,28 @@ func example3_customComponentConfiguration() -> SlideRuleConfiguration {
         .build()
 }
 
-// MARK: - Example 4: Scale Name Overrides
-// Display custom names instead of standard abbreviations
+// MARK: - Example 4: Scale Names via displayName
+// Custom names are now set via ScaleBuilder.withDisplayName() in scale factories
+// See StandardScales.swift for examples of scales with custom display names
 
-/// Creates a configuration with custom display names
-func example4_scaleNameOverrides() -> SlideRuleConfiguration {
-    SlideRuleConfigurationBuilder()
-        .addNameOverrides([
-            "CI": "1/x",      // CI → "1/x"
-            "A": "x²",        // A → "x²"
-            "K": "x³"         // K → "x³"
-        ])
+/// Example showing how display names are now handled directly in scale definitions
+/// rather than through runtime overrides
+func example4_displayNameDocumentation() -> String {
+    """
+    Scale display names are now set at definition time using ScaleBuilder:
+    
+    // In scale factory function:
+    ScaleBuilder()
+        .withName("DQ")           // Unique lookup token
+        .withDisplayName("D/Q")   // What users see
+        .withFunction(...)
         .build()
+    
+    This approach:
+    - Keeps naming with the scale definition
+    - Works automatically through the parser
+    - No runtime overrides needed
+    """
 }
 
 // MARK: - Example 5: Complex Multi-Component Configuration
@@ -84,10 +94,6 @@ func example5_complexMultiComponent() -> SlideRuleConfiguration {
             ScaleConfiguration.colorLabels(.red, for: .scale(.cif))
         }
         
-        // Custom naming for electrical engineering scales
-        .addNameOverride(canonical: "DQ", display: "D/Q")
-        .addNameOverride(canonical: "L", display: "C/L")
-        .addNameOverride(canonical: "Cos", display: "cos")
         .build()
 }
 
@@ -160,18 +166,8 @@ func example6_pickettN16ESAPIDemo() -> SlideRuleConfiguration {
         .colorInvertedScales(.red)
         .colorLogLogScales(.blue)
         
-        // EXAMPLE 4: Scale name overrides
-        .addNameOverrides([
-            "DQ": "D/Q",
-            "L": "C/L",
-            "Cos": "cos",
-            "CosΘ": "cos Θ",
-            "Θ": "θ",
-            "λ": "λ",
-            "ω": "ω",
-            "τ": "τ",
-            "PF": "F"
-        ])
+        // Note: Scale names are now set via displayName in scale factories
+        // See PickettN16ESScalesExtension.swift for examples
         
         // EXAMPLE 3: Custom component configuration - nudge C scale
         .configure(.frontSlide) {
@@ -345,10 +341,6 @@ func printConfigurationSummary(_ config: SlideRuleConfiguration, label: String) 
     print("  - Default Formula Margin: \(config.displaySettings.defaultFormulaMargin)")
     print("Component Configs: \(config.componentConfigs.count)")
     print("Rule Annotations: \(config.ruleAnnotations.count)")
-    print("Scale Name Overrides: \(config.scaleNameOverrides.count)")
-    for (key, name) in config.scaleNameOverrides {
-        print("  - \(key) → \"\(name)\"")
-    }
 }
 
 // MARK: - Running All Examples
@@ -370,9 +362,8 @@ func runAllConfigurationExamples() {
     let config3 = example3_customComponentConfiguration()
     printConfigurationSummary(config3, label: "Example 3: Custom Component")
     
-    // Example 4
-    let config4 = example4_scaleNameOverrides()
-    printConfigurationSummary(config4, label: "Example 4: Name Overrides")
+    // Example 4 (Scale Name Overrides) - REMOVED: displayName approach used instead
+    // Scale name customization now handled via displayName at scale definition time
     
     // Example 5
     let config5 = example5_complexMultiComponent()

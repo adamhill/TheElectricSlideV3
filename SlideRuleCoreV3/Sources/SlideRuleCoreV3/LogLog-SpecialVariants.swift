@@ -494,6 +494,7 @@ extension StandardScales {
     /// **Formula:** Same as LL00B: log₁₀(-ln(x) × 100) / 2 + 0.5
     /// **Range:** 0.90 to 0.99 (truncated from LL00B)
     /// **Used for:** Hemmi-266-specific-layouts, space-optimization
+    /// **Display Name:** L̅L̅1 (with overbar notation for negative log-log)
     ///
     /// **Note:** This is essentially LL00B with a truncated range, used
     /// in the Hemmi 266 to create a more compact scale arrangement.
@@ -503,24 +504,17 @@ extension StandardScales {
         // This uses the same function as LL00B but with different range
         let ll00BScale = ll00BScale(length: length)
         
-        return ScaleDefinition(
-            name: "H266LL01",
-            function: ll00BScale.function,
-            beginValue: 0.90,  // Truncated range
-            endValue: 0.99,
-            scaleLengthInPoints: length,
-            layout: ll00BScale.layout,
-            tickDirection: ll00BScale.tickDirection,
-            subsections: [
+        return ScaleBuilder(from: ll00BScale)
+            .withName("H266LL01")
+            .withDisplayName("L̅L̅1")  // Overbar notation for negative log-log
+            .withRange(begin: 0.90, end: 0.99)  // Truncated range
+            .withSubsections([
                 ScaleSubsection(startValue: 0.900, tickIntervals: [0.05, 0.01, 0.005, 0.001], labelLevels: [0]),
                 ScaleSubsection(startValue: 0.950, tickIntervals: [0.01, 0.005, 0.001, 0.0005], labelLevels: [0]),
                 ScaleSubsection(startValue: 0.980, tickIntervals: [0.01, 0.005, 0.001, 0.0002], labelLevels: [0])
-            ],
-            defaultTickStyles: ll00BScale.defaultTickStyles,
-            labelFormatter: ll00BScale.labelFormatter,
-            labelColor: .red,  // Red labels
-            constants: []
-        )
+            ])
+            .withLabelColor(.red)  // Red labels
+            .build()
     }
     
     // MARK: - H266LL03 Scale (Hemmi 266)
@@ -583,6 +577,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("H266LL03")
+            .withDisplayName("L̅L̅3")  // Overbar notation for negative log-log
             .withFormula("e⁻⁰·¹ˣ×¹⁰⁻⁹")
             .withFunction(h266LL03Function)
             .withRange(begin: 1.0, end: 50000.0)  // Scale units, not physical values
@@ -602,6 +597,26 @@ extension StandardScales {
             ])
             .withLabelFormatter({ value in h266Formatter(value) ?? "" })
             .withLabelColor(.red)  // Red labels
+            .build()
+    }
+    
+    // MARK: - H266L Scale (Hemmi 266 L scale variant)
+    
+    /// H266L scale: Hemmi 266 variant of L scale with decibel notation
+    ///
+    /// **Description:** Standard L scale (linear 0-1) used in Hemmi 266 design
+    /// **Formula:** Same as L scale: linear mapping
+    /// **Range:** 0 to 1
+    /// **Display Name:** ㏈ L (decibel L notation as shown on Hemmi 266)
+    /// **Used for:** Hemmi-266-specific-layouts
+    ///
+    /// **Note:** This is the same mathematical function as the standard L scale,
+    /// but with a display name matching the Hemmi 266's labeling convention.
+    /// The ㏈ symbol indicates this scale's relationship to decibel calculations.
+    public static func h266LScale(length: Distance = 250.0) -> ScaleDefinition {
+        ScaleBuilder(from: lScale(length: length))
+            .withName("H266L")
+            .withDisplayName("㏈ L")  // Hemmi 266 labels L scale as "dB L"
             .build()
     }
 }

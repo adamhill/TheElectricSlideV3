@@ -27,7 +27,6 @@ struct SwiftDataConfigurationTests {
             let original = SlideRuleConfigurationBuilder()
                 .hideFormulas()
                 .suppressEvenScaleNames()
-                .addNameOverrides(["C": "Custom C", "D": "Custom D"])
                 .addAnnotation(
                     ComponentAnnotation(
                         content: .text("Test annotation"),
@@ -56,8 +55,6 @@ struct SwiftDataConfigurationTests {
             
             // Verify key properties preserved
             #expect(decoded.displaySettings.showFormulas == false)
-            #expect(decoded.scaleNameOverrides["C"] == "Custom C")
-            #expect(decoded.scaleNameOverrides["D"] == "Custom D")
             #expect(decoded.ruleAnnotations[.back]?.count == 1)
         }
         
@@ -71,7 +68,6 @@ struct SwiftDataConfigurationTests {
             
             #expect(decoded.displaySettings.showScaleNames == true)
             #expect(decoded.displaySettings.showFormulas == true)
-            #expect(decoded.scaleNameOverrides.isEmpty)
             #expect(decoded.componentConfigs.isEmpty)
         }
         
@@ -110,7 +106,6 @@ struct SwiftDataConfigurationTests {
         func modelStoresConfiguration() {
             let config = SlideRuleConfigurationBuilder()
                 .hideFormulas()
-                .addNameOverrides(["K": "K-scale"])
                 .build()
             
             let model = SlideRuleDefinitionModel(
@@ -125,7 +120,6 @@ struct SwiftDataConfigurationTests {
             
             // Verify configuration can be read back
             #expect(model.configuration.displaySettings.showFormulas == false)
-            #expect(model.configuration.scaleNameOverrides["K"] == "K-scale")
         }
         
         @Test("Model without configuration returns migrated defaults")
@@ -228,20 +222,6 @@ struct SwiftDataConfigurationTests {
             #expect(config.displaySettings.showFormulas == false)
         }
         
-        @Test("Scale name overrides migrate to configuration")
-        func scaleNameOverridesMigrate() {
-            let model = SlideRuleDefinitionModel(
-                name: "With Overrides",
-                description: "Has name overrides",
-                definitionString: "(C D)",
-                scaleNameOverrides: ["C": "Custom-C", "D": "Custom-D"]
-            )
-            
-            let config = model.configuration
-            #expect(config.scaleNameOverrides["C"] == "Custom-C")
-            #expect(config.scaleNameOverrides["D"] == "Custom-D")
-        }
-        
         @Test("Back slide annotations migrate to configuration")
         func backSlideAnnotationsMigrate() throws {
             // Create annotation JSON manually (simulating legacy data)
@@ -296,26 +276,6 @@ struct SwiftDataConfigurationTests {
             #expect(rule.displaySettings.showFormulas == false)
         }
         
-        @Test("parseSlideRule applies scale name overrides")
-        func parseAppliesNameOverrides() throws {
-            let config = SlideRuleConfigurationBuilder()
-                .addNameOverrides(["C": "Renamed-C"])
-                .build()
-            
-            let model = SlideRuleDefinitionModel(
-                name: "Test",
-                description: "Test",
-                definitionString: "([ C ] D)",
-                configuration: config
-            )
-            
-            let rule = try model.parseSlideRule()
-            
-            // Find the C scale and check its name was overridden
-            let cScale = rule.frontSlide.scales.first { $0.definition.name == "Renamed-C" }
-            #expect(cScale != nil, "C scale should be renamed to 'Renamed-C'")
-        }
-        
         @Test("parseSlideRule applies back slide annotations")
         func parseAppliesAnnotations() throws {
             let annotation = ComponentAnnotation(
@@ -353,9 +313,9 @@ struct SwiftDataConfigurationTests {
     @MainActor
     struct LibraryTests {
         
-        @Test("Annotation Test rule uses Configuration API")
-        func annotationTestUsesConfigAPI() {
-            let rule = SlideRuleLibrary.pickettN16ESAnnotationTest()
+        @Test("Configuration Playground rule uses Configuration API")
+        func configurationPlaygroundUsesConfigAPI() {
+            let rule = SlideRuleLibrary.pickettN16ESConfigurationPlayground()
             
             // Should have configurationJSON set
             #expect(rule.configurationJSON != nil)
@@ -363,13 +323,12 @@ struct SwiftDataConfigurationTests {
             // Configuration should have expected values
             let config = rule.configuration
             #expect(config.displaySettings.showFormulas == false)
-            #expect(!config.scaleNameOverrides.isEmpty)
             #expect(config.ruleAnnotations[.back]?.isEmpty == false)
         }
         
-        @Test("Annotation Test rule parses successfully")
-        func annotationTestParses() throws {
-            let model = SlideRuleLibrary.pickettN16ESAnnotationTest()
+        @Test("Configuration Playground rule parses successfully")
+        func configurationPlaygroundParses() throws {
+            let model = SlideRuleLibrary.pickettN16ESConfigurationPlayground()
             let rule = try model.parseSlideRule()
             
             #expect(rule.displaySettings.showFormulas == false)

@@ -100,25 +100,9 @@ struct ConfigurationAPIExamplesTests {
         #expect(scale3_C.nameNudge == PositionNudge.right(3), "C should be nudged right 3")
     }
     
-    // MARK: - Example 4: Scale Name Overrides
-    
-    @Test("Example 4: Scale name overrides stores custom display names")
-    func example4_scaleNameOverrides() throws {
-        // GIVEN: A configuration with custom display names
-        let config = SlideRuleConfiguration.build { builder in
-            builder
-                .addNameOverrides([
-                    "CI": "1/x",      // CI → "1/x"
-                    "A": "x²",        // A → "x²"
-                    "K": "x³"         // K → "x³"
-                ])
-        }
-        
-        // THEN: Name overrides should be stored
-        #expect(config.scaleNameOverrides["CI"] == "1/x")
-        #expect(config.scaleNameOverrides["A"] == "x²")
-        #expect(config.scaleNameOverrides["K"] == "x³")
-    }
+    // MARK: - Example 4: Scale Display Names (now via ScaleBuilder)
+    // Note: Scale name customization is now done via displayName in scale factories
+    // See PickettN16ESScalesExtension.swift for examples
     
     // MARK: - Example 5: Complex Multi-Component Configuration
     
@@ -139,9 +123,6 @@ struct ConfigurationAPIExamplesTests {
                 .configure(.frontSlide) {
                     ScaleConfiguration.colorLabels(.red, for: .scale(.ci))
                 }
-                
-                // Scale name overrides
-                .addNameOverride(canonical: "DQ", display: "D/Q")
         }
         
         // THEN: Global settings should apply
@@ -159,9 +140,6 @@ struct ConfigurationAPIExamplesTests {
         let slideResolver = config.resolver(for: .front, component: .slide)
         let ciOnSlide = slideResolver.resolve(scaleName: "CI", at: 0, totalCount: 5)
         #expect(ciOnSlide.labelColor == LabelColor.red, "CI on slide should be red")
-        
-        // AND: Name override should be stored
-        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
     }
     
     // MARK: - Example 6: Pickett N-16 ES Annotation Test Configuration
@@ -198,22 +176,12 @@ struct ConfigurationAPIExamplesTests {
             builder
                 .hideFormulas()
                 .suppressEvenScaleNames()
-                .addNameOverrides([
-                    "DQ": "D/Q",
-                    "L": "C/L",
-                    "Cos": "cos"
-                ])
                 .addAnnotation(legendAnnotation, on: .back)
                 .addAnnotation(nudgeDemoAnnotation, on: .back)
         }
         
         // THEN: Display settings should be correct
         #expect(!config.displaySettings.showFormulas, "Formulas should be hidden")
-        
-        // AND: Scale name overrides should be stored
-        #expect(config.scaleNameOverrides["DQ"] == "D/Q")
-        #expect(config.scaleNameOverrides["L"] == "C/L")
-        #expect(config.scaleNameOverrides["Cos"] == "cos")
         
         // AND: Annotations should be stored
         let backAnnotations = config.ruleAnnotations[.back] ?? []

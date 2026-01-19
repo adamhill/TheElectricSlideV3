@@ -370,8 +370,51 @@ struct LL03ScaleLabelTests {
                 let source = tick.labels.first?.source ?? .subsection
                 print("  \(String(format: "%.7f", tick.value)) → '\(label)' (relLength: \(level), source: \(source))")
             }
-            print("\n==========================================\n")
+            print("==========================================\n")
             
+            #expect(true)
+        }
+        
+        @Test("Debug 10⁻³ to 10⁻⁴ decade")
+        func debugDecade3to4() {
+            // Check ticks in the 10⁻³ to 10⁻⁴ decade (0.001 to 0.0001)
+            let rangeMin = 0.0001
+            let rangeMax = 0.001
+            let ticksInRange = ticks.filter { $0.value >= rangeMin && $0.value <= rangeMax }
+                .sorted { $0.value > $1.value }
+            
+            print("\n=== Debug: 10⁻³ to 10⁻⁴ Decade ===")
+            for tick in ticksInRange {
+                let label = tick.label ?? "(none)"
+                let level = tick.style.relativeLength
+                print("  \(String(format: "%.7f", tick.value)) → '\(label.isEmpty ? "(empty)" : label)' (relLength: \(level))")
+            }
+            print("==================================\n")
+            
+            #expect(true)
+        }
+        
+        @Test("Debug 10⁻⁴ to 10⁻⁵ decade")
+        func debugDecade4to5() {
+            // Check ticks in the 10⁻⁴ to 10⁻⁵ decade (0.0001 to 0.00001)
+            let rangeMin = 0.00001
+            let rangeMax = 0.0001
+            let ticksInRange = ticks.filter { $0.value >= rangeMin && $0.value <= rangeMax }
+                .sorted { $0.value > $1.value }
+            
+            print("\n=== Debug: 10⁻⁴ to 10⁻⁵ Decade ===")
+            for tick in ticksInRange {
+                let label = tick.label ?? "(none)"
+                let level = tick.style.relativeLength
+                print("  \(String(format: "%.8f", tick.value)) → '\(label.isEmpty ? "(empty)" : label)' (relLength: \(level))")
+            }
+            print("==================================\n")
+            
+            #expect(true)
+        }
+        
+        @Test("Manual formatter test")
+        func manualFormatterTest() {
             // Test the "2" formatter manually
             let testValue = 0.002
             let log = log10(testValue)

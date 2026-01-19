@@ -417,9 +417,9 @@ extension StandardScales {
             // Level 3: Tiny ticks (0.002 interval) - shortest, unlabeled
             .withDefaultTickStyles([
                 TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 0: Full height, labeled
-                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 1: Full height, labeled (same as Level 0)
-                TickStyle(relativeLength: 0.65, shouldLabel: false, lineWidth: 0.65), // Level 2: Half height, unlabeled
-                TickStyle(relativeLength: 0.4, shouldLabel: false, lineWidth: 0.65)  // Level 3: Quarter height, unlabeled
+                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 0.85),   // Level 1: Full height, labeled (same as Level 0)
+                TickStyle(relativeLength: 0.65, shouldLabel: false, lineWidth: 0.55), // Level 2: Half height, unlabeled
+                TickStyle(relativeLength: 0.4, shouldLabel: false, lineWidth: 0.45)  // Level 3: Quarter height, unlabeled
             ])
             .withSubsections([
                 // REVERSED ORDER: Largest values (leftmost) to smallest values (rightmost)

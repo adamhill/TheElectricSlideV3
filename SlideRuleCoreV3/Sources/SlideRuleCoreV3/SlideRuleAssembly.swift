@@ -508,8 +508,13 @@ public struct RuleDefinitionParser {
                     throw ParseError.unknownScale(scaleName)
                 }
                 
-                // Preserve original scale name from definition string if different from canonical name
-                let originalName = (definition.name != scaleName) ? scaleName : nil
+                // Preserve original scale name from definition string if different from canonical name.
+                // This handles aliases like "W1" → Sq1 (we want to display "W1").
+                // 
+                // IMPORTANT: If a scale explicitly sets displayName (e.g., via ScaleBuilder.withDisplayName()),
+                // that takes precedence and we don't override it. This allows custom scales like FC283N_LL03
+                // to display as "LL03" by setting displayName="LL03" in their definition.
+                let originalName = (definition.displayName == nil && definition.name != scaleName) ? scaleName : nil
                 
                 // Calculate the appropriate height for this scale based on its component
                 let scaleHeight: Distance

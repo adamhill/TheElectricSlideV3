@@ -58,7 +58,8 @@ struct SlideRuleLibrary {
     // Version 35: Added front side "API Demo →" annotation (orange, nudged 5pt right)
     // Version 36: Duplicated scale name overrides for visual verification (D/Q → "D/Q D/Q")
     // Version 37: Fixed scale name override keys to use canonical names (cos Θ, D or Q, F)
-    static let libraryVersion = 37
+    // Version 38: Added specific FC 2/83N variants for LL0x scales
+    static let libraryVersion = 38
     
     /// Force refresh all library rules on next app launch, regardless of version number.
     /// Set to `true` during development to iterate on rule definitions without bumping libraryVersion.
@@ -104,7 +105,7 @@ struct SlideRuleLibrary {
                 "split tangent scales, Pythagorean P scale, and " +
                 "self-documenting formula annotations. 12.5cm scales.",
             definitionString: "(T1 T2 K A DF [ CF B CIF CI C ] D DI S ST P : " +
-                "LL03 LL02 LL01 LL00 W2 [ W2' CI L C W1' ] W1 D^ LL0 LL1 LL2 LL3)",
+                "FC283N_LL03 FC283N_LL02- FC283N_LL01 FC283N_LL00- W2 [ W2' CI L C W1' ] W1 D^ LL0 LL1 LL2 LL3)",
             topStatorMM: 15,
             slideMM: 15,
             bottomStatorMM: 15,

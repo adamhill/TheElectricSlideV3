@@ -1718,6 +1718,12 @@ public enum StandardScales {
         case "H266LL03": return h266LL03Scale(length: length)
         case "LL02B": return ll02BScale(length: length)
         case "LL2B": return ll2BScale_PostScriptAccurate(length: length)
+        
+        // Faber-Castell 62/83 N Log-Log scales (specialized variants)
+        case "FC283N_LL00": return FC283N_LL00(length: length)
+        case "FC283N_LL01": return FC283N_LL01(length: length)
+        case "FC283N_LL02": return FC283N_LL02(length: length)
+        case "FC283N_LL03": return FC283N_LL03(length: length)
             
         // NEW: B, BI, AI scales
         case "B": return bScale(length: length)

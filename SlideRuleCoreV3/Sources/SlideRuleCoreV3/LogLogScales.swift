@@ -1755,42 +1755,119 @@ extension StandardScales {
                     labelLevels: [0],
                     labelFormatter: LL03LabelFormatters.ll03MiddleRangeLower
                 ),
-                
                 // MARK: Decade Region (0.01 to 0.00001) - Faber-Castell 62/83N Pattern
                 // Pattern: 10⁻² ... 5 ... 2 ... 10⁻³ ... 5 ... 2 ... 10⁻⁴ ... 5 ... 2 ... 10⁻⁵
-                // Major ticks only at: decade boundaries (10⁻ⁿ) and mantissa 5 and 2 positions
-                
-                // 10⁻² decade (0.01 to 0.001)
-                // Ticks at: 0.01 (10⁻²), 0.005 (5), 0.002 (2), 0.001 (10⁻³)
-                // Tick interval of 0.003 places ticks at approximately: 0.01, 0.007, 0.004, 0.001
-                // Instead, use multiple subsections for precise control
+                // "5" labels come from subsection primary ticks (level 0) with custom formatter
+                // "2" labels come from ScaleConstants (gauge marks)
+                //
+                // Tick counts from actual Faber-Castell 62/83N measurement:
+                // 10⁻² to 10⁻³ decade:
+                //   - 10⁻² → 5: 24 ticks over 0.005 range
+                //   - 5 → 2:    14 ticks over 0.003 range
+                //   - 2 → 10⁻³: 4 ticks over 0.001 range
+                // 10⁻³ to 10⁻⁴ decade:
+                //   - 10⁻³ → 5: 9 ticks over 0.0005 range
+                //   - 5 → 2:    14 ticks over 0.0003 range
+                //   - 2 → 10⁻⁴: 4 ticks over 0.0001 range
+                // 10⁻² to 5 segment (0.01 to 0.005)
+                // INTERMEDIATE TICKS: Use TWO dummy level 0 and 1 intervals (10.0, 10.0) that never generate ticks
+                // This shifts actual intervals (0.001, 0.0002) to levels 2 and 3, making them shorter (0.65 and 0.4 relative height)
                 ScaleSubsection(
                     startValue: 0.01,
-                    tickIntervals: [0.005, 0.003],  // Primary at 0.005, 0.003 fills gaps
-                    labelLevels: [0],
+                    tickIntervals: [10.0, 10.0, 0.001, 0.0002],  // 10.0 at levels 0,1 never fire; 0.001 at level 2, 0.0002 at level 3
+                    labelLevels: [],  // No labels in this segment - 10⁻² handled by previous subsection
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
-                // 10⁻³ decade (0.001 to 0.0001)
-                // Ticks at: 0.001 (10⁻³), 0.0005 (5), 0.0002 (2), 0.0001 (10⁻⁴)
+                // 5 position - enable label for "5"
+                // This subsection starts exactly at 0.005 so the first tick (level 0) is "5"
+                // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
+                ScaleSubsection(
+                    startValue: 0.005,
+                    tickIntervals: [0.003, 0.001, 0.0002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
+                    labelLevels: [0],  // Label level 0 to show "5"
+                    labelFormatter: { value in
+                        // Only label the starting value (0.005) as "5"
+                        let mantissa = value / pow(10.0, floor(log10(value)))
+                        if abs(mantissa - 5.0) < 0.1 { return "5" }
+                        return ""
+                    }
+                ),
+                // 2 to 10⁻³ segment (0.002 to 0.001)
+                // Use TWO dummy levels (10.0, 10.0) to shift ticks to levels 2-3
+                // Tick interval 0.0001 generates ~10 ticks between 0.002 and 0.001
+                ScaleSubsection(
+                    startValue: 0.002,
+                    tickIntervals: [10.0, 10.0, 0.0001],  // 10.0 at levels 0,1 never fire; 0.0001 at level 2
+                    labelLevels: [],  // No labels - using ScaleConstants
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                ),
+                // 10⁻³ DECADE BOUNDARY AND 10⁻³ to 5 segment (0.001 to 0.0005)
+                // Level 0 at 0.0005 generates tick at start value 0.001 for "10⁻³" label
                 ScaleSubsection(
                     startValue: 0.001,
-                    tickIntervals: [0.0005, 0.0003],  // Primary at 0.0005, 0.0003 fills gaps
-                    labelLevels: [0],
+                    tickIntervals: [0.0005, 0.0001, 0.00005],  // 0.0005 generates level 0 tick at 0.001
+                    labelLevels: [0],  // Enable label at decade boundary
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
-                // 10⁻⁴ decade (0.0001 to 0.00001)
-                // Ticks at: 0.0001 (10⁻⁴), 0.00005 (5), 0.00002 (2), 0.00001 (10⁻⁵)
+                // 5 position at 0.0005 - enable label for "5"
+                // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
+                ScaleSubsection(
+                    startValue: 0.0005,
+                    tickIntervals: [0.0003, 0.0001, 0.00002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
+                    labelLevels: [0],  // Label level 0 to show "5"
+                    labelFormatter: { value in
+                        // Only label the starting value (0.0005) as "5"
+                        let mantissa = value / pow(10.0, floor(log10(value)))
+                        if abs(mantissa - 5.0) < 0.1 { return "5" }
+                        return ""
+                    }
+                ),
+                // 2 to 10⁻⁴ segment (0.0002 to 0.0001)
+                // Use TWO dummy levels (10.0, 10.0) to shift ticks to levels 2-3
+                // Tick interval 0.00001 generates ~10 ticks between 0.0002 and 0.0001
+                ScaleSubsection(
+                    startValue: 0.0002,
+                    tickIntervals: [10.0, 10.0, 0.00001],  // 10.0 at levels 0,1 never fire; 0.00001 at level 2
+                    labelLevels: [],  // No labels - using ScaleConstants for "2"
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                ),
+                
+                // 10⁻⁴ DECADE BOUNDARY AND 10⁻⁴ to 5 segment (0.0001 to 0.00005)
+                // Level 0 at 0.00005 generates tick at start value 0.0001 for "10⁻⁴" label
                 ScaleSubsection(
                     startValue: 0.0001,
-                    tickIntervals: [0.00005, 0.00003],  // Primary at 0.00005, 0.00003 fills gaps
-                    labelLevels: [0],
+                    tickIntervals: [0.00005, 0.00001, 0.000005],  // 0.00005 generates level 0 tick at 0.0001
+                    labelLevels: [0],  // Enable label at decade boundary
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
-                // Endpoint region for 10⁻⁵
+                // 5 position at 0.00005 - enable label for "5"
+                // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
+                ScaleSubsection(
+                    startValue: 0.00005,
+                    tickIntervals: [0.00003, 0.00001, 0.000002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
+                    labelLevels: [0],  // Label level 0 to show "5"
+                    labelFormatter: { value in
+                        // Only label the starting value (0.00005) as "5"
+                        let mantissa = value / pow(10.0, floor(log10(value)))
+                        if abs(mantissa - 5.0) < 0.1 { return "5" }
+                        return ""
+                    }
+                ),
+                // 2 to 10⁻⁵ segment (0.00002 to 0.00001)
+                // Use TWO dummy levels (10.0, 10.0) to shift ticks to levels 2-3
+                // Tick interval 0.000001 generates ~10 ticks between 0.00002 and 0.00001
+                ScaleSubsection(
+                    startValue: 0.00002,
+                    tickIntervals: [10.0, 10.0, 0.000001],  // 10.0 at levels 0,1 never fire; 0.000001 at level 2
+                    labelLevels: [],  // No labels - using ScaleConstants for "2"
+                    labelFormatter: LL03LabelFormatters.ll03DecadeRegion
+                ),
+                // 10⁻⁵ DECADE BOUNDARY (0.00001 = 10⁻⁵) - MUST show "10⁻⁵" label
+                // This is the final decade boundary at the end of the scale
                 ScaleSubsection(
                     startValue: 0.00001,
-                    tickIntervals: [0.000005],  // Minimal ticks at endpoint
-                    labelLevels: [0],
+                    tickIntervals: [0.000005, 0.000001],  // Level 0 for "10⁻⁵" label at boundary
+                    labelLevels: [0],  // Enable label at decade boundary
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 )
             ])
@@ -1802,19 +1879,16 @@ extension StandardScales {
                     value: 0.36788,  // 1/e
                     label: "1/e"
                 ),
-                // MARK: Decade region "5" and "2" mantissa gauge marks
-                // These explicit tick marks ensure the key intermediate positions are visible
-                // in the decade region (0.01 to 0.00001) where regular tick intervals don't
-                // naturally land on these values.
+                // MARK: Decade region "2" mantissa gauge marks
+                // These explicit tick marks ensure the key intermediate "2" positions are visible
+                // in the decade region (0.01 to 0.00001). The "5" positions are handled by
+                // subsection labeling (labelLevels: [0] at 0.005, 0.0005, 0.00005 startValues).
                 //
                 // 10⁻² decade (0.01 to 0.001)
-                ScaleConstant(value: 0.005, label: "5", style: .major),
                 ScaleConstant(value: 0.002, label: "2", style: .major),
                 // 10⁻³ decade (0.001 to 0.0001)
-                ScaleConstant(value: 0.0005, label: "5", style: .major),
                 ScaleConstant(value: 0.0002, label: "2", style: .major),
                 // 10⁻⁴ decade (0.0001 to 0.00001)
-                ScaleConstant(value: 0.00005, label: "5", style: .major),
                 ScaleConstant(value: 0.00002, label: "2", style: .major)
             ])
             .build()

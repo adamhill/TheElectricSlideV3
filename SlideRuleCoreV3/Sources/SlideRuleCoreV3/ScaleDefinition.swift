@@ -367,11 +367,25 @@ public struct ScaleDefinition: Sendable {
     /// Whether to suppress the tick mark at the beginning of the scale range
     public let suppressBeginBoundaryTick: Bool
     
+    /// Optional visible begin value that limits tick generation while beginValue controls scale positioning.
+    /// Use for "ghost start gaps" where the scale extends before the first visible tick.
+    /// - Note: Unlike `suppressBeginBoundaryTick` which only hides a single tick at beginValue,
+    ///   `visibleBeginValue` stops ALL tick generation at this value.
+    /// - Important: Must be within the scale's domain (min(beginValue,endValue)...max(beginValue,endValue))
+    public let visibleBeginValue: ScaleValue?
+    
     /// Whether to suppress the label at the end of the scale range
     public let suppressEndBoundaryLabel: Bool
     
     /// Whether to suppress the tick mark at the end of the scale range
     public let suppressEndBoundaryTick: Bool
+    
+    /// Optional visible end value that limits tick generation while endValue controls scale positioning.
+    /// Use for "ghost end gaps" where the scale extends beyond the last visible tick.
+    /// - Note: Unlike `suppressEndBoundaryTick` which only hides a single tick at endValue,
+    ///   `visibleEndValue` stops ALL tick generation at this value.
+    /// - Important: Must be within the scale's domain (min(beginValue,endValue)...max(beginValue,endValue))
+    public let visibleEndValue: ScaleValue?
     
     /// Optional split segment configuration
     ///
@@ -449,8 +463,10 @@ public struct ScaleDefinition: Sendable {
         splitSegment: SplitSegment? = nil,
         suppressBeginBoundaryLabel: Bool = false,
         suppressBeginBoundaryTick: Bool = false,
+        visibleBeginValue: ScaleValue? = nil,
         suppressEndBoundaryLabel: Bool = false,
         suppressEndBoundaryTick: Bool = false,
+        visibleEndValue: ScaleValue? = nil,
         suppressScaleNameLabel: Bool = false,
         suppressFormulaLabel: Bool = false,
         scaleNameMargin: MarginSide? = nil,
@@ -482,8 +498,28 @@ public struct ScaleDefinition: Sendable {
         self.splitSegment = splitSegment
         self.suppressBeginBoundaryLabel = suppressBeginBoundaryLabel
         self.suppressBeginBoundaryTick = suppressBeginBoundaryTick
+        
+        // Validate visibleBeginValue is within domain (handles both ascending and descending scales)
+        if let visibleBegin = visibleBeginValue {
+            let domainLower = min(beginValue, endValue)
+            let domainUpper = max(beginValue, endValue)
+            assert(visibleBegin >= domainLower && visibleBegin <= domainUpper,
+                   "visibleBeginValue (\(visibleBegin)) must be within domain [\(domainLower)...\(domainUpper)]")
+        }
+        self.visibleBeginValue = visibleBeginValue
+        
         self.suppressEndBoundaryLabel = suppressEndBoundaryLabel
         self.suppressEndBoundaryTick = suppressEndBoundaryTick
+        
+        // Validate visibleEndValue is within domain (handles both ascending and descending scales)
+        if let visibleEnd = visibleEndValue {
+            let domainLower = min(beginValue, endValue)
+            let domainUpper = max(beginValue, endValue)
+            assert(visibleEnd >= domainLower && visibleEnd <= domainUpper,
+                   "visibleEndValue (\(visibleEnd)) must be within domain [\(domainLower)...\(domainUpper)]")
+        }
+        self.visibleEndValue = visibleEndValue
+        
         self.suppressScaleNameLabel = suppressScaleNameLabel
         self.suppressFormulaLabel = suppressFormulaLabel
         self.scaleNameMargin = scaleNameMargin
@@ -545,8 +581,10 @@ public struct ScaleBuilder {
     private var splitSegment: SplitSegment?
     private var suppressBeginBoundaryLabel: Bool = false
     private var suppressBeginBoundaryTick: Bool = false
+    private var visibleBeginValue: ScaleValue?
     private var suppressEndBoundaryLabel: Bool = false
     private var suppressEndBoundaryTick: Bool = false
+    private var visibleEndValue: ScaleValue?
     private var suppressScaleNameLabel: Bool = false
     private var suppressFormulaLabel: Bool = false
     private var scaleNameMargin: MarginSide?
@@ -584,8 +622,10 @@ public struct ScaleBuilder {
         self.splitSegment = definition.splitSegment
         self.suppressBeginBoundaryLabel = definition.suppressBeginBoundaryLabel
         self.suppressBeginBoundaryTick = definition.suppressBeginBoundaryTick
+        self.visibleBeginValue = definition.visibleBeginValue
         self.suppressEndBoundaryLabel = definition.suppressEndBoundaryLabel
         self.suppressEndBoundaryTick = definition.suppressEndBoundaryTick
+        self.visibleEndValue = definition.visibleEndValue
         self.suppressScaleNameLabel = definition.suppressScaleNameLabel
         self.suppressFormulaLabel = definition.suppressFormulaLabel
         self.scaleNameMargin = definition.scaleNameMargin
@@ -743,6 +783,16 @@ public struct ScaleBuilder {
         return copy
     }
 
+    /// Set the visible begin value for tick generation (creates "ghost start gap")
+    /// Ticks start at this value while beginValue still controls scale positioning.
+    /// - Parameter value: The value where tick generation should start, or nil for default behavior
+    /// - Returns: Updated builder
+    public func withVisibleBeginValue(_ value: ScaleValue?) -> ScaleBuilder {
+        var copy = self
+        copy.visibleBeginValue = value
+        return copy
+    }
+
     public func withSuppressEndBoundaryLabel(_ suppress: Bool = true) -> ScaleBuilder {
         var copy = self
         copy.suppressEndBoundaryLabel = suppress
@@ -752,6 +802,16 @@ public struct ScaleBuilder {
     public func withSuppressEndBoundaryTick(_ suppress: Bool = true) -> ScaleBuilder {
         var copy = self
         copy.suppressEndBoundaryTick = suppress
+        return copy
+    }
+    
+    /// Set the visible end value for tick generation (creates "ghost end gap")
+    /// Ticks stop at this value while endValue still controls scale positioning.
+    /// - Parameter value: The value where tick generation should stop, or nil for default behavior
+    /// - Returns: Updated builder
+    public func withVisibleEndValue(_ value: ScaleValue?) -> ScaleBuilder {
+        var copy = self
+        copy.visibleEndValue = value
         return copy
     }
     
@@ -943,8 +1003,10 @@ public struct ScaleBuilder {
             splitSegment: splitSegment,
             suppressBeginBoundaryLabel: suppressBeginBoundaryLabel,
             suppressBeginBoundaryTick: suppressBeginBoundaryTick,
+            visibleBeginValue: visibleBeginValue,
             suppressEndBoundaryLabel: suppressEndBoundaryLabel,
             suppressEndBoundaryTick: suppressEndBoundaryTick,
+            visibleEndValue: visibleEndValue,
             suppressScaleNameLabel: suppressScaleNameLabel,
             suppressFormulaLabel: suppressFormulaLabel,
             scaleNameMargin: scaleNameMargin,

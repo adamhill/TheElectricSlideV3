@@ -275,6 +275,15 @@ public struct ScaleCalculator: Sendable {
     ) -> [TickMark] {
         var allTicks: [TickMark] = []
         
+        // DEBUG: Log visibleEndValue for LL02 scale
+        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+            print("🔍 [ScaleCalculator] Generating ticks for: \(definition.name)")
+            print("   beginValue: \(definition.beginValue)")
+            print("   endValue: \(definition.endValue)")
+            print("   visibleBeginValue: \(String(describing: definition.visibleBeginValue))")
+            print("   visibleEndValue: \(String(describing: definition.visibleEndValue))")
+        }
+        
         // Generate ticks for each subsection
         for (subsectionIndex, subsection) in definition.subsections.enumerated() {
             let ticks = generateSubsectionTicksModulo(
@@ -328,6 +337,24 @@ public struct ScaleCalculator: Sendable {
         
         // Remove any duplicates that slipped through (edge cases, rounding, boundaries)
         allTicks = removeDuplicates(from: allTicks, isCircular: definition.isCircular)
+        
+        // DEBUG: Final tick summary for LL02
+        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+            if let minTick = allTicks.min(by: { $0.value < $1.value }),
+               let maxTick = allTicks.max(by: { $0.value < $1.value }) {
+                print("   ✅ FINAL: \(allTicks.count) ticks, value range: [\(minTick.value), \(maxTick.value)]")
+                // Show any ticks below 0.32
+                let ticksBelowLimit = allTicks.filter { $0.value < 0.32 }
+                if !ticksBelowLimit.isEmpty {
+                    print("   ⚠️ PROBLEM: \(ticksBelowLimit.count) ticks below 0.32!")
+                    for tick in ticksBelowLimit.sorted(by: { $0.value < $1.value }).prefix(5) {
+                        print("      - value: \(tick.value), pos: \(tick.normalizedPosition)")
+                    }
+                } else {
+                    print("   ✓ All ticks >= 0.32 as expected")
+                }
+            }
+        }
         
         return allTicks
     }
@@ -441,6 +468,14 @@ public struct ScaleCalculator: Sendable {
             tickInt += step
         }
         
+        // DEBUG: Log min/max tick values for LL02
+        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+            if let minTick = ticks.min(by: { $0.value < $1.value }),
+               let maxTick = ticks.max(by: { $0.value < $1.value }) {
+                print("   📊 Subsection[\(subsectionIndex)] generated \(ticks.count) ticks: min=\(minTick.value), max=\(maxTick.value)")
+            }
+        }
+        
         return ticks
     }
     
@@ -542,6 +577,11 @@ public struct ScaleCalculator: Sendable {
     /// - Returns: (lower, upper, includeUpper) where bounds are ordered (lower <= upper).
     ///            includeUpper is true for the last subsection (closed upper bound),
     ///            false otherwise (half-open to avoid boundary duplication).
+    /// - Note: For the first subsection, uses `visibleBeginValue` if set to create "ghost start gaps"
+    ///         where the scale extends before the first visible tick.
+    /// - Note: For ALL subsections, uses `visibleEndValue` if set to create "ghost end gaps"
+    ///         where the scale extends beyond the last visible tick. This applies to all subsections
+    ///         because any subsection could extend past the visible range.
     private static func calculateSubsectionBoundaries(
         subsection: ScaleSubsection,
         subsectionIndex: Int,
@@ -549,14 +589,39 @@ public struct ScaleCalculator: Sendable {
     ) -> (lower: Double, upper: Double, includeUpper: Bool) {
         let domainLower = min(definition.beginValue, definition.endValue)
         let domainUpper = max(definition.beginValue, definition.endValue)
+        let isAscending = definition.beginValue < definition.endValue
         
         // Raw subsection endpoints (unclamped)
-        let startCandidate = subsection.startValue
-        let endCandidate: Double = {
-            if subsectionIndex == definition.subsections.count - 1 {
-                return definition.endValue
+        let startCandidate: Double = {
+            if subsectionIndex == 0 {
+                // For first subsection, use visibleBeginValue if set (ghost start gap)
+                // Otherwise use subsection.startValue for normal behavior
+                return definition.visibleBeginValue ?? subsection.startValue
             } else {
-                return definition.subsections[subsectionIndex + 1].startValue
+                return subsection.startValue
+            }
+        }()
+        
+        let endCandidate: Double = {
+            // Determine natural end (next subsection or scale end)
+            let naturalEnd: Double
+            if subsectionIndex == definition.subsections.count - 1 {
+                naturalEnd = definition.endValue
+            } else {
+                naturalEnd = definition.subsections[subsectionIndex + 1].startValue
+            }
+            
+            // Apply visibleEndValue constraint to ALL subsections if set
+            guard let visibleEnd = definition.visibleEndValue else {
+                return naturalEnd
+            }
+            
+            // For ascending scales: don't generate ticks past visibleEnd (take min)
+            // For descending scales: don't generate ticks below visibleEnd (take max)
+            if isAscending {
+                return min(naturalEnd, visibleEnd)
+            } else {
+                return max(naturalEnd, visibleEnd)
             }
         }()
         
@@ -567,6 +632,15 @@ public struct ScaleCalculator: Sendable {
         let lower = min(startClamped, endClamped)
         let upper = max(startClamped, endClamped)
         let includeUpper = (subsectionIndex == definition.subsections.count - 1)
+        
+        // DEBUG: Log boundary calculations for LL02
+        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+            print("   📐 Subsection[\(subsectionIndex)] boundaries:")
+            print("      startCandidate: \(startCandidate), endCandidate: \(endCandidate)")
+            print("      domain: [\(domainLower), \(domainUpper)], isAscending: \(isAscending)")
+            print("      visibleEndValue: \(String(describing: definition.visibleEndValue))")
+            print("      → final bounds: lower=\(lower), upper=\(upper), includeUpper=\(includeUpper)")
+        }
         
         return (lower: lower, upper: upper, includeUpper: includeUpper)
     }

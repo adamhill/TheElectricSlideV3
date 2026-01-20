@@ -334,7 +334,6 @@ extension StandardScales {
             .withRange(begin: 0.368, end: 0.905)  // e^-1 to e^-0.1
             .withLength(length)
             .withTickDirection(.up)
-            
             .withSubsections([
                 // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
                 // Mathematical: LL02 start at 1/e, 0.005 marks for e^-1 to e^-0.7 precision
@@ -418,9 +417,9 @@ extension StandardScales {
             // Level 3: Tiny ticks (0.002 interval) - shortest, unlabeled
             .withDefaultTickStyles([
                 TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 0: Full height, labeled
-                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 0.85),   // Level 1: Full height, labeled (same as Level 0)
-                TickStyle(relativeLength: 0.65, shouldLabel: false, lineWidth: 0.55), // Level 2: Half height, unlabeled
-                TickStyle(relativeLength: 0.4, shouldLabel: false, lineWidth: 0.45)  // Level 3: Quarter height, unlabeled
+                TickStyle(relativeLength: 0.85, shouldLabel: true, lineWidth: 1.0),   // Level 1: Full height, labeled (same as Level 0)
+                TickStyle(relativeLength: 0.65, shouldLabel: false, lineWidth: 0.65), // Level 2: Half height, unlabeled
+                TickStyle(relativeLength: 0.4, shouldLabel: false, lineWidth: 0.65)  // Level 3: Quarter height, unlabeled
             ])
             .withSubsections([
                 // REVERSED ORDER: Largest values (leftmost) to smallest values (rightmost)
@@ -492,47 +491,44 @@ extension StandardScales {
                 ),
                 // 5 position - enable label for "5"
                 // This subsection starts exactly at 0.005 so the first tick (level 0) is "5"
-                // Use dummy level 1 to push intermediate ticks to levels 2-3 (shorter heights)
-                // Level 0 interval 0.005 ensures startValue gets level 0 tick for label
+                // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
                 ScaleSubsection(
                     startValue: 0.005,
-                    tickIntervals: [0.005, 10.0, 0.001, 0.0002],  // Level 0 at 0.005 for label; level 1 dummy; level 2-3 shorter
+                    tickIntervals: [0.003, 0.001, 0.0002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
                     labelLevels: [0],  // Label level 0 to show "5"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
                 // 2 position at 0.002 - enable label for "2"
-                // Range: 0.002 to 0.001 = exactly 4 intermediate ticks at half height
-                // Faber-Castell pattern: 4 ticks between "2" and decade boundary
+                // Level 0 interval (0.002) is larger than subsection range, so only startValue gets level 0
+                // This prevents generating a tick at 0.001 which would steal the decade boundary label
                 ScaleSubsection(
                     startValue: 0.002,
-                    tickIntervals: [0.002, 10.0, 0.0002],  // Level 0 for "2"; level 1 dummy; level 2 for 4 half-height ticks
+                    tickIntervals: [0.002, 0.0001],  // Level 0 only at 0.002; level 1 for intermediates
                     labelLevels: [0],  // Label level 0 to show "2"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
                 // 10⁻³ DECADE BOUNDARY AND 10⁻³ to 5 segment (0.001 to 0.0005)
-                // Use TWO dummy levels to push intermediate ticks to levels 2-3 (shorter heights)
-                // Matches the 10⁻² to 5 segment pattern
+                // Level 0 at 0.0005 generates tick at start value 0.001 for "10⁻³" label
                 ScaleSubsection(
                     startValue: 0.001,
-                    tickIntervals: [0.001, 10.0, 0.0001, 0.00002],  // Level 0 for label; level 1 dummy; levels 2-3 shorter
+                    tickIntervals: [0.0005, 0.0001, 0.00005],  // 0.0005 generates level 0 tick at 0.001
                     labelLevels: [0],  // Enable label at decade boundary
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
                 // 5 position at 0.0005 - enable label for "5"
-                // Use dummy level 1 to push intermediate ticks to levels 2-3 (shorter heights)
-                // Matches the 5 to 2 segment pattern in previous decade
+                // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
                 ScaleSubsection(
                     startValue: 0.0005,
-                    tickIntervals: [0.0005, 10.0, 0.0001, 0.00002],  // Level 0 for label; level 1 dummy; levels 2-3 shorter
+                    tickIntervals: [0.0003, 0.0001, 0.00002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
                     labelLevels: [0],  // Label level 0 to show "5"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
                 // 2 position at 0.0002 - enable label for "2"
-                // Range: 0.0002 to 0.0001 = exactly 4 intermediate ticks at halfish height (0.65)
-                // Matches the 2 to 10⁻³ segment pattern in previous decade
+                // Level 0 interval (0.0002) is larger than subsection range, so only startValue gets level 0
+                // This prevents generating a tick at 0.0001 which would steal the decade boundary label
                 ScaleSubsection(
                     startValue: 0.0002,
-                    tickIntervals: [0.0002, 10.0, 0.00002],  // Level 0 for label; level 1 dummy; level 2 for 4 halfish ticks
+                    tickIntervals: [0.0002, 0.00001],  // Level 0 only at 0.0002; level 1 for intermediates
                     labelLevels: [0],  // Label level 0 to show "2"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
@@ -541,7 +537,7 @@ extension StandardScales {
                 // Level 0 at 0.00005 generates tick at start value 0.0001 for "10⁻⁴" label
                 ScaleSubsection(
                     startValue: 0.0001,
-                    tickIntervals: [0.0001, 10.0, 0.00001, 0.000002],  // Dummy level 1 pushes ticks to levels 2-3 (shorter)
+                    tickIntervals: [0.00005, 0.00001, 0.000005],  // 0.00005 generates level 0 tick at 0.0001
                     labelLevels: [0],  // Enable label at decade boundary
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion
                 ),
@@ -549,7 +545,7 @@ extension StandardScales {
                 // Level 0 is used ONLY for the starting "5" label, intermediates are levels 1-2
                 ScaleSubsection(
                     startValue: 0.00005,
-                    tickIntervals: [0.00005, 10.0, 0.00001, 0.000002],  // Dummy level 1 pushes ticks to levels 2-3 (shorter)
+                    tickIntervals: [0.00003, 0.00001, 0.000002],  // Level 0 for "5" label at start, levels 1-2 for intermediates
                     labelLevels: [0],  // Label level 0 to show "5"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
@@ -558,7 +554,7 @@ extension StandardScales {
                 // This prevents generating a tick at 0.00001 which would steal the decade boundary label
                 ScaleSubsection(
                     startValue: 0.00002,
-                    tickIntervals: [0.00002, 10.0, 0.000002],  // Dummy level 1 pushes 4 ticks to level 2 (halfish height)
+                    tickIntervals: [0.00002, 0.000001],  // Level 0 only at 0.00002; level 1 for intermediates
                     labelLevels: [0],  // Label level 0 to show "2"
                     labelFormatter: LL03LabelFormatters.ll03DecadeRegion  // Handles "5", "2", and decade boundaries
                 ),
@@ -579,7 +575,6 @@ extension StandardScales {
                     value: 0.36788,  // 1/e
                     label: "1/e"
                 )
-
                 // NOTE: "2" labels (0.002, 0.0002, 0.00002) are now generated via subsection
                 // labeling with labelLevels: [0], not ScaleConstants. This ensures they appear
                 // with source: .subsection and allows proper tick level styling.

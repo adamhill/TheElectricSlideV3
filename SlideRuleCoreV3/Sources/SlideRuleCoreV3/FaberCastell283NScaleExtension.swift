@@ -182,7 +182,7 @@ public extension StandardScales {
                 labelFormatter: StandardLabelFormatter.twoDecimals
             ),
             // 0.35 → end: 15 more ticks at 0.002 interval (no label at end)
-            // Ghost end: scale continues 15 × 0.002 = 0.030 past 0.35 to ~0.32
+            // Ghost end: ticks stop at 0.32 (0.35 - 15×0.002), scale positioning extends to ~0.29
             ScaleSubsection(
                 startValue: 0.35,
                 tickIntervals: [0.05, 0.01, 0.002],
@@ -191,10 +191,19 @@ public extension StandardScales {
             )
         ]
         
+        // Virtual end value for ~3% ghost end gap
+        // Calculated so the last tick (0.32) appears at normalized position 0.97
+        // Using inverse LL02 transform: f⁻¹((f(0.32) - 0.03 × f(virtualBegin)) / (1 - 0.03))
+        let virtualEnd = 0.29178597781571775
+        
+        // Visible end value: where ticks actually stop (0.35 - 15×0.002 = 0.32)
+        let visibleEnd = 0.32
+        
         return ScaleBuilder(from: baseScale)
             .withName("LL02")
             .withDisplayName("LL02")  // Explicit: show "LL02" not "FC283NLL02"
-            .withRange(begin: virtualBegin, end: 0.35)  // Ghost start (1.1%) + ghost end (3%)
+            .withRange(begin: virtualBegin, end: virtualEnd)  // Ghost start (1.1%) + ghost end (3%)
+            .withVisibleEndValue(visibleEnd)  // Ticks stop at 0.32
             .withSubsections(subsections)
             .addConstant(value: 1.0 / Double.e, label: "1/e", style: .medium)  // Gauge mark at 1/e ≈ 0.368
             .build()

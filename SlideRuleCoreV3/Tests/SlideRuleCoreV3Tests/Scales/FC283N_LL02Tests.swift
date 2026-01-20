@@ -59,7 +59,7 @@ struct FC283N_LL02Tests {
         
         // The virtual end should be slightly smaller than 0.32 (since scale runs high→low)
         #expect(virtualEnd < 0.32, "Virtual end should be < 0.32 for gap")
-        #expect(virtualEnd > 0.30, "Virtual end should be reasonable (> 0.30)")
+        #expect(virtualEnd > 0.28, "Virtual end should be reasonable (> 0.28)")  // ~0.29 for 3% gap
         #expect(abs(testPos32 - (1.0 - gapFraction)) < 0.001, "0.32 should be at position \(1.0 - gapFraction)")
     }
     
@@ -241,6 +241,31 @@ struct FC283N_LL02Tests {
         
         #expect(abs(scale.endValue - virtualEnd) < 0.0001, "Scale should end at virtual value \(virtualEnd), got \(scale.endValue)")
     }
+    
+    @Test("FC283N_LL02 uses visibleEndValue for ghost end tick cutoff")
+    func usesVisibleEndValue() throws {
+        let scale = StandardScales.FC283N_LL02(length: 250.0)
+        let visibleEnd = 0.32  // Ticks stop at 0.32
+        
+        #expect(scale.visibleEndValue != nil, "FC283N_LL02 should have visibleEndValue set")
+        #expect(abs(scale.visibleEndValue! - visibleEnd) < 0.001, "visibleEndValue should be \(visibleEnd), got \(scale.visibleEndValue!)")
+        
+        // Verify ticks don't go past visibleEndValue
+        let generated = GeneratedScale(definition: scale)
+        
+        // Debug: print all ticks below 0.35
+        let ticksBelowPoint35 = generated.tickMarks.filter { $0.value < 0.35 }.sorted { $0.value > $1.value }
+        print("Ticks below 0.35 (should stop at 0.32):")
+        for tick in ticksBelowPoint35.prefix(20) {
+            print("  tick at \(tick.value)")
+        }
+        
+        let minTickValue = generated.tickMarks.map(\.value).min() ?? 1.0
+        print("Minimum tick value: \(minTickValue)")
+        print("visibleEndValue: \(scale.visibleEndValue ?? -1)")
+        print("endValue: \(scale.endValue)")
+        
+        #expect(minTickValue >= visibleEnd - 0.001, "Min tick value \(minTickValue) should be >= visibleEndValue \(visibleEnd)")
     }
     
     @Test("FC283N_LL02 has 1/e gauge mark")

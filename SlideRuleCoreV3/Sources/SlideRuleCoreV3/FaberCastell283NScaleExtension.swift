@@ -62,18 +62,130 @@ public extension StandardScales {
     
     /// FC283N LL02 scale - Faber-Castell 62/83 N variant
     /// Canonical name for definition string: "FC283NLL02"
-    /// Range: 0.91 → 0.35 (reversed from standard)
-    /// Labels at 0.05 increments, 24 tick marks between labels
+    /// Range: 0.9141... → 0.35 (reversed from standard)
+    /// 
+    /// Tick mark counts from actual Faber-Castell 62/83N measurement:
+    /// - 0.91 → 0.90: 19 ticks (0.01 range / 20 = 0.0005 finest interval)
+    /// - 0.90 → 0.85: 49 ticks (0.05 range / 50 = 0.001 finest interval)
+    /// - 0.85 → 0.80: 49 ticks (0.05 range / 50 = 0.001 finest interval)
+    /// - Continues with similar pattern to 0.35
+    /// 
+    /// **Ghost Start Implementation:**
+    /// The 0.91 label starts at the FIFTH tick mark on the LL03 scale above it,
+    /// creating a ~2% visual gap at the left edge. This is achieved by setting
+    /// the scale's beginValue to a virtual value (0.9141...) that is larger than
+    /// the first visible tick (0.91). The first subsection starts at 0.91,
+    /// so no ticks appear in the gap region between begin and 0.91.
+    /// 
+    /// Virtual begin calculated: f⁻¹((f(0.91) - 0.011 × f(0.35)) / (1 - 0.011)) = 0.912272537119513
+    /// where f(x) = log₁₀(-ln(x) × 10) is the LL02 transform.
+    /// 
     /// Includes gauge mark at 1/e ≈ 0.368
     static func FC283N_LL02(length: Distance = 250.0) -> ScaleDefinition {
         let baseScale = ll02Scale(length: length)
         
-        // 24 ticks between labels at 0.05 intervals
-        // 0.05 / 24 ≈ 0.00208, use [0.05, 0.025, 0.01, 0.002]
+        // Virtual begin value for ~1.1% ghost start gap
+        // Calculated so 0.91 appears at normalized position 0.011
+        let virtualBegin = 0.912272537119513
+        
+        // Subsections based on actual Faber-Castell 62/83N tick patterns
         let subsections = [
+            // 0.91 → 0.90: 19 ticks between labels
+            // 0.01 range / 20 positions = 0.0005 finest interval
+            // Tick hierarchy: 0.01 (label), 0.005 (medium), 0.001 (minor), 0.0005 (finest)
+            // NOTE: First subsection starts at 0.91, NOT virtualBegin, creating the ghost start gap
             ScaleSubsection(
                 startValue: 0.91,
-                tickIntervals: [0.05, 0.025, 0.01, 0.002],
+                tickIntervals: [0.01, 0.005, 0.001, 0.0005],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.90 → 0.85: 49 ticks between labels
+            // 0.05 range / 50 positions = 0.001 finest interval
+            // Tick hierarchy: 0.05 (label), 0.01 (medium), 0.005 (minor), 0.001 (finest)
+            ScaleSubsection(
+                startValue: 0.90,
+                tickIntervals: [0.05, 0.01, 0.005, 0.001],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.85 → 0.80: 49 ticks between labels (same pattern)
+            ScaleSubsection(
+                startValue: 0.85,
+                tickIntervals: [0.05, 0.01, 0.005, 0.001],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.80 → 0.75: 24 ticks between labels
+            // 0.05 range / 25 positions = 0.002 finest interval
+            // Tick hierarchy: 0.05 (label), 0.01 (medium), 0.002 (finest)
+            ScaleSubsection(
+                startValue: 0.80,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.75 → 0.70: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.75,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.70 → 0.65: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.70,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.65 → 0.60: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.65,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.60 → 0.55: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.60,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.55 → 0.50: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.55,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.50 → 0.45: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.50,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.45 → 0.40: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.45,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.40 → 0.35: 24 ticks between labels
+            ScaleSubsection(
+                startValue: 0.40,
+                tickIntervals: [0.05, 0.01, 0.002],
+                labelLevels: [0],
+                labelFormatter: StandardLabelFormatter.twoDecimals
+            ),
+            // 0.35 → end: 15 more ticks at 0.002 interval (no label at end)
+            // Ghost end: scale continues 15 × 0.002 = 0.030 past 0.35 to ~0.32
+            ScaleSubsection(
+                startValue: 0.35,
+                tickIntervals: [0.05, 0.01, 0.002],
                 labelLevels: [0],
                 labelFormatter: StandardLabelFormatter.twoDecimals
             )
@@ -82,7 +194,7 @@ public extension StandardScales {
         return ScaleBuilder(from: baseScale)
             .withName("LL02")
             .withDisplayName("LL02")  // Explicit: show "LL02" not "FC283NLL02"
-            .withRange(begin: 0.91, end: 0.35)  // Reversed: large on left, small on right
+            .withRange(begin: virtualBegin, end: 0.35)  // Ghost start (1.1%) + ghost end (3%)
             .withSubsections(subsections)
             .addConstant(value: 1.0 / Double.e, label: "1/e", style: .medium)  // Gauge mark at 1/e ≈ 0.368
             .build()

@@ -334,6 +334,7 @@ extension StandardScales {
             .withRange(begin: 0.368, end: 0.905)  // e^-1 to e^-0.1
             .withLength(length)
             .withTickDirection(.up)
+            
             .withSubsections([
                 // Cursor Precision: 4 decimals (from 0.005 quaternary interval)
                 // Mathematical: LL02 start at 1/e, 0.005 marks for e^-1 to e^-0.7 precision
@@ -578,6 +579,7 @@ extension StandardScales {
                     value: 0.36788,  // 1/e
                     label: "1/e"
                 )
+
                 // NOTE: "2" labels (0.002, 0.0002, 0.00002) are now generated via subsection
                 // labeling with labelLevels: [0], not ScaleConstants. This ensures they appear
                 // with source: .subsection and allows proper tick level styling.

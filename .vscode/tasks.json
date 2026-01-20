@@ -30,6 +30,102 @@
 			"type": "shell",
 			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide && xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide -destination 'platform=macOS' build 2>&1 | grep -E '(error:|warning:)' | head -20",
 			"group": "build"
+		},
+		{
+			"label": "Test Ghost Start Calculation",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | tail -50",
+			"group": "test"
+		},
+		{
+			"label": "Test Ghost Start Calculation 2",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | tail -60",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start Test 3",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift package clean && swift test --filter calculateVirtualBegin 2>&1",
+			"group": "test"
+		},
+		{
+			"label": "FC283N_LL02 All Tests",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter FC283N_LL02 2>&1",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start Position Test",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter firstTickAtGhostStartPosition 2>&1 | tail -30",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start 3.6%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | tail -20",
+			"group": "test"
+		},
+		{
+			"label": "FC283N_LL02 All Tests 2",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter FC283N_LL02 2>&1 | tail -20",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start 1%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | grep -E '(Virtual|Verification|passed)'",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start 1.05%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | grep -E '(Virtual begin value|position)'",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start 1.08%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | grep 'Virtual begin value'",
+			"group": "test"
+		},
+		{
+			"label": "Ghost Start 1.1%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualBegin 2>&1 | grep 'Virtual begin value'",
+			"group": "test"
+		},
+		{
+			"label": "FC283N_LL02 New Ticks",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter FC283N_LL02 2>&1 | tail -40",
+			"group": "test"
+		},
+		{
+			"label": "Verify Tick Counts",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter 'tickCount' 2>&1 | grep -E '(Ticks|passed|failed)'",
+			"group": "test"
+		},
+		{
+			"label": "All Tick Counts",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter FC283N_LL02 2>&1 | grep 'Ticks'",
+			"group": "test"
+		},
+		{
+			"label": "Ghost End Calc",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualEnd 2>&1 | grep -E '(Virtual end value|Verification|passed|failed)'",
+			"group": "test"
+		},
+		{
+			"label": "Ghost End 3%",
+			"type": "shell",
+			"command": "cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide/SlideRuleCoreV3 && swift test --filter calculateVirtualEnd 2>&1 | grep 'Virtual end value'",
+			"group": "test"
 		}
 	]
 }

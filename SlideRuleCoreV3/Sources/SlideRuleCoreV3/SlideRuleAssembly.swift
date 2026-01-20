@@ -551,10 +551,21 @@ public struct RuleDefinitionParser {
                         formulaTracking: finalDefinition.formulaTracking,
                         // Preserve explicit displayName from scale definition; only override with token-derived name
                         displayName: originalName ?? finalDefinition.displayName,
+                        splitSegment: finalDefinition.splitSegment,
                         suppressBeginBoundaryLabel: finalDefinition.suppressBeginBoundaryLabel,
                         suppressBeginBoundaryTick: finalDefinition.suppressBeginBoundaryTick,
+                        visibleBeginValue: finalDefinition.visibleBeginValue,
                         suppressEndBoundaryLabel: finalDefinition.suppressEndBoundaryLabel,
-                        suppressEndBoundaryTick: finalDefinition.suppressEndBoundaryTick
+                        suppressEndBoundaryTick: finalDefinition.suppressEndBoundaryTick,
+                        visibleEndValue: finalDefinition.visibleEndValue,
+                        suppressScaleNameLabel: finalDefinition.suppressScaleNameLabel,
+                        suppressFormulaLabel: finalDefinition.suppressFormulaLabel,
+                        scaleNameMargin: finalDefinition.scaleNameMargin,
+                        formulaMargin: finalDefinition.formulaMargin,
+                        leftAnnotations: finalDefinition.leftAnnotations,
+                        rightAnnotations: finalDefinition.rightAnnotations,
+                        nameNudge: finalDefinition.nameNudge,
+                        formulaNudge: finalDefinition.formulaNudge
                     )
                 }
                 

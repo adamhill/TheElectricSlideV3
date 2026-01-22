@@ -505,6 +505,7 @@ extension StandardScales {
         
         return ScaleDefinition(
             name: "H266LL01",
+            formula: ll00BScale.formula,  // Inherit formula from LL00B
             function: ll00BScale.function,
             beginValue: 0.90,  // Truncated range
             endValue: 0.99,
@@ -519,7 +520,8 @@ extension StandardScales {
             defaultTickStyles: ll00BScale.defaultTickStyles,
             labelFormatter: ll00BScale.labelFormatter,
             labelColor: .red,  // Red labels
-            constants: []
+            constants: [],
+            displayName: "L̅L̅1"  // Hemmi 266 uses overbar notation
         )
     }
     
@@ -583,6 +585,7 @@ extension StandardScales {
         
         return ScaleBuilder()
             .withName("H266LL03")
+            .withDisplayName("L̅L̅3")  // Hemmi 266 uses overbar notation
             .withFormula("e⁻⁰·¹ˣ×¹⁰⁻⁹")
             .withFunction(h266LL03Function)
             .withRange(begin: 1.0, end: 50000.0)  // Scale units, not physical values

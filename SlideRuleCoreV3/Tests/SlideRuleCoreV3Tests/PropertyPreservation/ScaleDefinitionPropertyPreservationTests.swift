@@ -124,7 +124,7 @@ struct ScaleDefinitionPropertyPreservationTests {
         // UPDATE THIS NUMBER when adding new properties to ScaleDefinition!
         // This forces developers to consider whether the new property needs
         // to be preserved in SlideRuleAssembly and other copy locations.
-        let expectedPropertyCount = 33
+        let expectedPropertyCount = 34  // Updated for visibleBeginValue/visibleEndValue
         
         #expect(propertyCount == expectedPropertyCount,
                 """

@@ -275,14 +275,16 @@ public struct ScaleCalculator: Sendable {
     ) -> [TickMark] {
         var allTicks: [TickMark] = []
         
-        // DEBUG: Log visibleEndValue for LL02 scale
-        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+        // Diagnostic: Log scale generation start
+        #if DEBUG
+        if ScaleDiagnostics.shared.shouldLog(scale: definition.name, category: .tickGeneration) {
             print("🔍 [ScaleCalculator] Generating ticks for: \(definition.name)")
             print("   beginValue: \(definition.beginValue)")
             print("   endValue: \(definition.endValue)")
             print("   visibleBeginValue: \(String(describing: definition.visibleBeginValue))")
             print("   visibleEndValue: \(String(describing: definition.visibleEndValue))")
         }
+        #endif
         
         // Generate ticks for each subsection
         for (subsectionIndex, subsection) in definition.subsections.enumerated() {
@@ -338,23 +340,28 @@ public struct ScaleCalculator: Sendable {
         // Remove any duplicates that slipped through (edge cases, rounding, boundaries)
         allTicks = removeDuplicates(from: allTicks, isCircular: definition.isCircular)
         
-        // DEBUG: Final tick summary for LL02
-        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+        // Diagnostic: Final tick summary
+        #if DEBUG
+        if ScaleDiagnostics.shared.shouldLog(scale: definition.name, category: .tickGeneration) {
             if let minTick = allTicks.min(by: { $0.value < $1.value }),
                let maxTick = allTicks.max(by: { $0.value < $1.value }) {
                 print("   ✅ FINAL: \(allTicks.count) ticks, value range: [\(minTick.value), \(maxTick.value)]")
-                // Show any ticks below 0.32
-                let ticksBelowLimit = allTicks.filter { $0.value < 0.32 }
-                if !ticksBelowLimit.isEmpty {
-                    print("   ⚠️ PROBLEM: \(ticksBelowLimit.count) ticks below 0.32!")
-                    for tick in ticksBelowLimit.sorted(by: { $0.value < $1.value }).prefix(5) {
-                        print("      - value: \(tick.value), pos: \(tick.normalizedPosition)")
+                // Show any ticks outside expected range for LL0x scales
+                if definition.name.contains("LL0") {
+                    let expectedMin = definition.visibleBeginValue ?? definition.beginValue
+                    let ticksBelowLimit = allTicks.filter { $0.value < expectedMin }
+                    if !ticksBelowLimit.isEmpty {
+                        print("   ⚠️ PROBLEM: \(ticksBelowLimit.count) ticks below \(expectedMin)!")
+                        for tick in ticksBelowLimit.sorted(by: { $0.value < $1.value }).prefix(5) {
+                            print("      - value: \(tick.value), pos: \(tick.normalizedPosition)")
+                        }
+                    } else {
+                        print("   ✓ All ticks >= \(expectedMin) as expected")
                     }
-                } else {
-                    print("   ✓ All ticks >= 0.32 as expected")
                 }
             }
         }
+        #endif
         
         return allTicks
     }
@@ -468,13 +475,15 @@ public struct ScaleCalculator: Sendable {
             tickInt += step
         }
         
-        // DEBUG: Log min/max tick values for LL02
-        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+        // Diagnostic: Log min/max tick values per subsection
+        #if DEBUG
+        if ScaleDiagnostics.shared.shouldLog(scale: definition.name, category: .tickGeneration) {
             if let minTick = ticks.min(by: { $0.value < $1.value }),
                let maxTick = ticks.max(by: { $0.value < $1.value }) {
                 print("   📊 Subsection[\(subsectionIndex)] generated \(ticks.count) ticks: min=\(minTick.value), max=\(maxTick.value)")
             }
         }
+        #endif
         
         return ticks
     }
@@ -633,14 +642,16 @@ public struct ScaleCalculator: Sendable {
         let upper = max(startClamped, endClamped)
         let includeUpper = (subsectionIndex == definition.subsections.count - 1)
         
-        // DEBUG: Log boundary calculations for LL02
-        if definition.name.contains("LL02") || definition.name.contains("LL₀₂") {
+        // Diagnostic: Log boundary calculations
+        #if DEBUG
+        if ScaleDiagnostics.shared.shouldLog(scale: definition.name, category: .boundaries) {
             print("   📐 Subsection[\(subsectionIndex)] boundaries:")
             print("      startCandidate: \(startCandidate), endCandidate: \(endCandidate)")
             print("      domain: [\(domainLower), \(domainUpper)], isAscending: \(isAscending)")
             print("      visibleEndValue: \(String(describing: definition.visibleEndValue))")
             print("      → final bounds: lower=\(lower), upper=\(upper), includeUpper=\(includeUpper)")
         }
+        #endif
         
         return (lower: lower, upper: upper, includeUpper: includeUpper)
     }

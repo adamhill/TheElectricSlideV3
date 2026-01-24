@@ -70,20 +70,21 @@ struct SlideView: View, Equatable {
             )
             .equatable()
             
-            // Precision overlay for slide
-            // - Faber-Castell ALWAYS uses green gradient (regardless of manufacturer colors toggle)
-            // - Other manufacturers use red-orange overlay when scale highlights are not enabled
-            if isPrecisionActive && !hasScaleHighlightsEnabled {
+            // Precision overlay for slide - ALWAYS shown when precision is active
+            // - Faber-Castell uses green gradient
+            // - Other manufacturers use red-orange overlay
+            // The overlay provides visual feedback in addition to any scale highlighting
+            if isPrecisionActive {
                 // Get precision color from color scheme (centralized in SlideRuleColorScheme)
                 let precisionColor: Color = colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)
                 
                 VStack(spacing: 0) {
-                    // Top edge gradient
+                    // Top edge gradient - increased opacity for better visibility
                     LinearGradient(
                         colors: [
-                            precisionColor.opacity(0.5),
-                            precisionColor.opacity(0.3),
-                            precisionColor.opacity(0.12),
+                            precisionColor.opacity(0.65),
+                            precisionColor.opacity(0.45),
+                            precisionColor.opacity(0.2),
                             precisionColor.opacity(0.0)
                         ],
                         startPoint: .top,
@@ -95,13 +96,13 @@ struct SlideView: View, Equatable {
                     
                     Spacer()
                     
-                    // Bottom edge gradient
+                    // Bottom edge gradient - increased opacity for better visibility
                     LinearGradient(
                         colors: [
                             precisionColor.opacity(0.0),
-                            precisionColor.opacity(0.12),
-                            precisionColor.opacity(0.3),
-                            precisionColor.opacity(0.5)
+                            precisionColor.opacity(0.2),
+                            precisionColor.opacity(0.45),
+                            precisionColor.opacity(0.65)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -116,12 +117,6 @@ struct SlideView: View, Equatable {
             }
         }
         .accessibilityIdentifier("slide-view-root")
-    }
-    
-    /// Whether scale highlights are enabled and available
-    /// True only if manufacturer colors are ON and the color scheme has highlight colors
-    private var hasScaleHighlightsEnabled: Bool {
-        useManufacturerColors && (colorScheme?.hasScaleHighlights ?? false)
     }
     
     /// Calculate total height of all scales in slide

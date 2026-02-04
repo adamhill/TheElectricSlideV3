@@ -44,7 +44,7 @@ struct SlideRuleSidebarView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Cursor Display Mode Toggle at top
+            // Cursor Display Mode Toggle at top with Liquid Glass styling
             VStack(spacing: 8) {
                 Text("Cursor Display")
                     .font(.caption)
@@ -73,24 +73,29 @@ struct SlideRuleSidebarView: View {
                 }
             }
             .padding()
+            .background(.thinMaterial)
 
             Divider()
             
-            // View Mode Picker (Front | Back | Both)
-            Picker("View Mode", selection: $viewMode) {
-                ForEach(availableModes) { mode in
-                    Text(mode.rawValue).tag(mode)
-                        .accessibilityLabel("\(mode.rawValue) side")
-                        .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
+            // View Mode Picker (Front | Back | Both) with Liquid Glass container
+            VStack(spacing: 8) {
+                Picker("View Mode", selection: $viewMode) {
+                    ForEach(availableModes) { mode in
+                        Text(mode.rawValue).tag(mode)
+                            .accessibilityLabel("\(mode.rawValue) side")
+                            .accessibilityIdentifier("viewModeOption_\(mode.rawValue.lowercased())")
+                    }
                 }
+                .pickerStyle(.segmented)
+                .allowsHitTesting(true)
+                .accessibilityLabel("View mode selector")
+                .accessibilityIdentifier("viewModePicker")
+                .accessibilityValue(viewMode.rawValue)
+                .accessibilityHint("Select which side of the slide rule to display")
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 300)
-            .allowsHitTesting(true)
-            .accessibilityLabel("View mode selector")
-            .accessibilityIdentifier("viewModePicker")
-            .accessibilityValue(viewMode.rawValue)
-            .accessibilityHint("Select which side of the slide rule to display")
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
             
             Divider()
             

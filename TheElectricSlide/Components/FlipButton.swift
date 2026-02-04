@@ -62,15 +62,10 @@ struct FlipButton: View {
         Button(action: toggleSide) {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
                 .frame(width: 44, height: 44)
-                .background(
-                    Circle()
-                        .fill(Color.accentColor)
-                )
         }
-        .buttonStyle(.plain)
-        .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 3)
+        .buttonStyle(.glassProminent)
+        .clipShape(Circle())
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(accessibilityHint)
         .accessibilityIdentifier("flipButton")

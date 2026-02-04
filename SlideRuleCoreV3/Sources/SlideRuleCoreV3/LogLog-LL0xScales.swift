@@ -349,8 +349,8 @@ extension StandardScales {
                 ScaleSubsection(startValue: 0.80, tickIntervals: [0.02, 0.01, 0.005, 0.001], labelLevels: [0])
             ])
             .withLabelFormatter(StandardLabelFormatter.threeDecimals)
-            .withLabelColor(.red)  // Red labels
-            .withColorApplication(ScaleColorPresets.labelsOnly)  // Apply red color only to labels, not scale
+            .withLabelColor(.red)  // Red color for inverted/reciprocal scale
+            .withColorApplication(ScaleColorPresets.all)  // Apply red to all elements (name, labels, ticks)
             .withConstants([
                 ScaleConstant(
                     value: 0.36788,  // 1/e at left edge

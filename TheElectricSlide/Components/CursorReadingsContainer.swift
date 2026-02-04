@@ -119,6 +119,10 @@ struct CursorReadingsContainer: View, Equatable {
             }
         }
         .frame(minHeight: 50)  // CRITICAL: Maintain consistent minimum height across all cycle modes
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .contentShape(Rectangle())
         .onTapGesture {
             // Tap to cycle through all display states, regardless of view mode
@@ -129,8 +133,6 @@ struct CursorReadingsContainer: View, Equatable {
         .accessibilityLabel("Cycle cursor reading mode")
         .accessibilityHint("Tap to cycle reading display modes")
         .accessibilityIdentifier("cursorReadingCycleToggle")
-        // Subtle opacity feedback
-        .opacity(0.95)
     }
 }
 

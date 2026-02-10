@@ -345,13 +345,13 @@ struct CursorView: View {
         }
     }
     
-    // MARK: - Constants
+    // MARK: - Constants (delegated to CursorCoordinateSystem)
     
-    /// Width of the cursor frame
-    static let cursorWidth: CGFloat = 144
+    /// Width of the cursor frame — delegates to ``CursorCoordinateSystem.cursorFrameWidth``
+    static let cursorWidth: CGFloat = CursorCoordinateSystem.cursorFrameWidth
     
-    /// Height of the drag handle (positioned ABOVE the slide rule)
-    static let handleHeight: CGFloat = 16
+    /// Height of the drag handle (positioned ABOVE the slide rule) — delegates to ``CursorCoordinateSystem.handleHeight``
+    static let handleHeight: CGFloat = CursorCoordinateSystem.handleHeight
     
     /// True 1-pixel hairline width (accounts for screen scale factor)
     static var hairlineWidth: CGFloat {

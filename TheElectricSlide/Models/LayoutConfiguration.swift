@@ -99,8 +99,8 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
         let leftMarginWidth = tier.marginWidth
         let rightMarginWidth = tier.marginWidth
         
-        // HStack spacing: 4pt between left margin and scale, 4pt between scale and right margin
-        let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + 8
+        // HStack spacing: matches ScaleView's HStack spacing on each side
+        let totalMarginAndSpacing = leftMarginWidth + rightMarginWidth + CursorCoordinateSystem.totalMarginSpacing
         
         // Calculate side gap count (1 gap between sides when showing both)
         let sideGapCount: Int

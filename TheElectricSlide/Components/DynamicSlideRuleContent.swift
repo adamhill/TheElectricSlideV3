@@ -87,7 +87,7 @@ struct DynamicSlideRuleContent: View {
                          backSlide.scales.count +
                          backBottom.scales.count
         }
-        return CGFloat(scaleCount) * renderDimensions.scaleHeight
+        return CursorCoordinateSystem.totalScaleHeight(scaleCount: scaleCount, scaleHeight: renderDimensions.scaleHeight)
     }
     
     var body: some View {

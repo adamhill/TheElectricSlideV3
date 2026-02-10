@@ -112,7 +112,7 @@ struct ContentView: View {
         let scaleCount = stator.scales.count +
                          slide.scales.count +
                          bottomStator.scales.count
-        return CGFloat(scaleCount) * calculatedDimensions.scaleHeight
+        return CursorCoordinateSystem.totalScaleHeight(scaleCount: scaleCount, scaleHeight: calculatedDimensions.scaleHeight)
     }
     
     var body: some View {

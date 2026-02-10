@@ -1,37 +1,46 @@
 {
-    "servers": {
-        "dash-api": {
-            "command": "uvx",
-            "args": [
-                "--from",
-                "git+https://github.com/Kapeli/dash-mcp-server.git",
-                "dash-mcp-server"
-            ]
-        },
-        "sosumi": {
-            "type": "http",
-            "url": "https://sosumi.ai/mcp"
-        },
-        "XcodeBuildMCP": {
-            "command": "mise",
-            "args": [
-                "x",
-                "npm:xcodebuildmcp@1.15.1",
-                "--",
-                "xcodebuildmcp"
-            ],
-            "type": "stdio",
-            "env": {
-                 "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
-  }
-        },
-        "apple-docs": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "@kimsungwhee/apple-docs-mcp"
-            ]
-        }
+  "servers": {
+    "dash-api": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/Kapeli/dash-mcp-server.git",
+        "dash-mcp-server"
+      ]
+    },
+    "sosumi": {
+      "type": "http",
+      "url": "https://sosumi.ai/mcp"
+    },
+    "XcodeBuildMCP": {
+      "command": "mise",
+      "args": [
+        "x",
+        "npm:xcodebuildmcp@1.15.1",
+        "--",
+        "xcodebuildmcp"
+      ],
+      "type": "stdio",
+      "env": {
+        "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
+      }
+    },
+    "apple-docs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@kimsungwhee/apple-docs-mcp"
+      ]
     }
+  },
+  "mcpServers": {
+    "auto-mobile": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@kaeawc/auto-mobile@latest"
+      ]
+    }
+  }
 }

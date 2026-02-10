@@ -161,7 +161,7 @@ struct ScaleView: View, Equatable {
         let nameMargin = effectiveScaleNameMargin
         let formulaMargin = effectiveFormulaMargin
         
-        HStack(alignment: .center, spacing: 4) {
+        HStack(alignment: .center, spacing: CursorCoordinateSystem.scaleHStackSpacing) {
             // Left margin content
             leftMarginContent(scaleLabel: scaleLabel, nameMargin: nameMargin, formulaMargin: formulaMargin)
             

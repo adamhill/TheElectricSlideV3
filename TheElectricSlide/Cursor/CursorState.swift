@@ -174,7 +174,7 @@ final class CursorState {
         
         // Adjust position to hairline center (position is left edge of cursor)
         let scaleWidth = provider.getScaleWidth()
-        let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+        let halfCursorWidthNormalized = CursorCoordinateSystem.halfCursorWidth / scaleWidth
         let hairlinePosition = position + halfCursorWidthNormalized
         
         var frontReadings: [ScaleReading] = []

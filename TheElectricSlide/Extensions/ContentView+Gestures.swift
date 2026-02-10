@@ -43,7 +43,7 @@ extension ContentView {
         if let scale = hapticScale {
             // Calculate hairline position (cursor position + half cursor width)
             let scaleWidth = calculatedDimensions.width
-            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let halfCursorWidthNormalized = CursorCoordinateSystem.halfCursorWidth / scaleWidth
             let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
             
             tickHapticCoordinator.checkTickCrossing(
@@ -165,7 +165,7 @@ extension ContentView {
         if let scale = hapticScale {
             // Calculate hairline position (cursor position + half cursor width)
             let scaleWidth = calculatedDimensions.width
-            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let halfCursorWidthNormalized = CursorCoordinateSystem.halfCursorWidth / scaleWidth
             let hairlinePosition = cursorNormalizedPosition + halfCursorWidthNormalized
             
             tickHapticCoordinator.checkTickCrossing(

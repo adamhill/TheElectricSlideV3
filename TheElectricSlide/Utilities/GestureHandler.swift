@@ -223,7 +223,7 @@ final class GestureHandler: GestureHandlerProtocol {
         )
         
         if let scale = hapticScale {
-            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let halfCursorWidthNormalized = CursorCoordinateSystem.halfCursorWidth / scaleWidth
             let hairlinePosition = cursorState.normalizedPosition + halfCursorWidthNormalized
             
             tickHapticCoordinator.checkTickCrossing(
@@ -476,7 +476,7 @@ final class GestureHandler: GestureHandlerProtocol {
         if let scale = hapticScale {
             let dimensions = getDimensions()
             let scaleWidth = dimensions.width
-            let halfCursorWidthNormalized = (CursorView.cursorWidth / 2.0) / scaleWidth
+            let halfCursorWidthNormalized = CursorCoordinateSystem.halfCursorWidth / scaleWidth
             let hairlinePosition = cursorNormalizedPosition + halfCursorWidthNormalized
             
             tickHapticCoordinator.checkTickCrossing(

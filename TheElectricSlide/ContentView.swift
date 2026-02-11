@@ -18,9 +18,7 @@ import SlideRuleCoreV3
 
 // Components extracted to Components/:
 // - ScaleView (Components/ScaleView.swift)
-// - StatorView (Components/StatorView.swift)
-// - SlideView (Components/SlideView.swift)
-// - SideView (Components/SideView.swift)
+// - SideView (Components/SideView.swift) — includes stator + slide rendering (Phase 8)
 // - SlideRuleSidebarView (Components/SlideRuleSidebarView.swift)
 // - SlideRuleDetailView (Components/SlideRuleDetailView.swift)
 // - DynamicSlideRuleContent (Components/DynamicSlideRuleContent.swift)

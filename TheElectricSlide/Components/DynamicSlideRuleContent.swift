@@ -5,7 +5,12 @@
 //  Extracted from ContentView.swift
 //
 //  Phase 7 Cleanup: Removed gesture callbacks - all gestures now handled via
-//  @Environment(\.gestureHandler) in child views (SideView, CursorOverlay, StatorView).
+//  @Environment(\.gestureHandler) in child views (SideView, CursorOverlay).
+//
+//  Phase 8 Refactor: Extracted ruleSideContent() to eliminate front/back duplication.
+//  The SideView + CursorOverlay + transition composition was copy-pasted for front and
+//  back sides with only the data source changing. Now a single @ViewBuilder method handles
+//  both, reducing ~80 lines of duplicated code.
 //
 
 import SwiftUI
@@ -104,58 +109,12 @@ struct DynamicSlideRuleContent: View {
             
             // Front side - show if mode is .front or .both
             if viewMode == .front || viewMode == .both {
-                VStack(spacing: 2) {
-                    SideView(
-                        side: .front,
-                        topStator: slideRule.frontTopStator,
-                        slide: slideRule.frontSlide,
-                        bottomStator: slideRule.frontBottomStator,
-                        width: renderDimensions.width,
-                        scaleHeight: renderDimensions.scaleHeight,
-                        leftMarginWidth: renderDimensions.leftMarginWidth,
-                        rightMarginWidth: renderDimensions.rightMarginWidth,
-                        nameFont: nameFont,
-                        formulaFont: formulaFont,
-                        ruleId: ruleId,
-                        currentZoomScale: currentZoomScale,
-                        isActiveForSliderOffset: viewMode == .front || viewMode == .both,  // Only observe sliderOffset when visible
-                        useManufacturerColors: useManufacturerColors,
-                        colorScheme: colorScheme,
-                        manufacturer: selectedRuleDefinition?.manufacturerEnum
-                    )
-                    .equatable()
-                    .id("front-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
-                    // Disable animation on geometry/dimension changes to prevent intermediate width values
-                    .animation(nil, value: renderDimensions.width)
-                    .overlay {
-                        CursorOverlay(
-                            width: renderDimensions.width,
-                            height: consistentTotalScaleHeight(for: .front),
-                            side: .front,
-                            scaleHeight: renderDimensions.scaleHeight,
-                            leftMarginWidth: renderDimensions.leftMarginWidth,
-                            rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorDisplayMode.showReadings,
-                            showGradients: cursorDisplayMode.showGradients,
-                            currentZoomScale: currentZoomScale,
-                            manufacturer: selectedRuleDefinition?.manufacturerEnum,
-                            colorScheme: colorScheme,
-                            cursorDisplayMode: $cursorDisplayMode
-                        )
-                    }
-                }
-                #if os(iOS)
-                // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
-                // Creates a natural vertical flip effect when switching sides
-                // - New view slides up from the bottom with fade-in
-                // - Old view slides up to the top with fade-out
-                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
-                // NOTE: Disabled on macOS where these transitions feel unnatural
-                .transition(.asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .move(edge: .top).combined(with: .opacity)
-                ))
-                #endif
+                ruleSideContent(
+                    side: .front,
+                    topStator: slideRule.frontTopStator,
+                    slide: slideRule.frontSlide,
+                    bottomStator: slideRule.frontBottomStator
+                )
             }
             
             // Spacing between front and back sides when showing both
@@ -169,58 +128,12 @@ struct DynamicSlideRuleContent: View {
                let backTop = slideRule.backTopStator,
                let backSlide = slideRule.backSlide,
                let backBottom = slideRule.backBottomStator {
-                VStack(spacing: 2) {
-                    SideView(
-                        side: .back,
-                        topStator: backTop,
-                        slide: backSlide,
-                        bottomStator: backBottom,
-                        width: renderDimensions.width,
-                        scaleHeight: renderDimensions.scaleHeight,
-                        leftMarginWidth: renderDimensions.leftMarginWidth,
-                        rightMarginWidth: renderDimensions.rightMarginWidth,
-                        nameFont: nameFont,
-                        formulaFont: formulaFont,
-                        ruleId: ruleId,
-                        currentZoomScale: currentZoomScale,
-                        isActiveForSliderOffset: viewMode == .back || viewMode == .both,  // Only observe sliderOffset when visible
-                        useManufacturerColors: useManufacturerColors,
-                        colorScheme: colorScheme,
-                        manufacturer: selectedRuleDefinition?.manufacturerEnum
-                    )
-                    .equatable()
-                    .id("back-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
-                    // Disable animation on geometry/dimension changes to prevent intermediate width values
-                    .animation(nil, value: renderDimensions.width)
-                    .overlay {
-                        CursorOverlay(
-                            width: renderDimensions.width,
-                            height: consistentTotalScaleHeight(for: .back),
-                            side: .back,
-                            scaleHeight: renderDimensions.scaleHeight,
-                            leftMarginWidth: renderDimensions.leftMarginWidth,
-                            rightMarginWidth: renderDimensions.rightMarginWidth,
-                            showReadings: cursorDisplayMode.showReadings,
-                            showGradients: cursorDisplayMode.showGradients,
-                            currentZoomScale: currentZoomScale,
-                            manufacturer: selectedRuleDefinition?.manufacturerEnum,
-                            colorScheme: colorScheme,
-                            cursorDisplayMode: $cursorDisplayMode
-                        )
-                    }
-                }
-                #if os(iOS)
-                // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
-                // Creates a natural vertical flip effect when switching sides
-                // - New view slides up from the bottom with fade-in
-                // - Old view slides up to the top with fade-out
-                // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
-                // NOTE: Disabled on macOS where these transitions feel unnatural
-                .transition(.asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .move(edge: .top).combined(with: .opacity)
-                ))
-                #endif
+                ruleSideContent(
+                    side: .back,
+                    topStator: backTop,
+                    slide: backSlide,
+                    bottomStator: backBottom
+                )
             }
         }
         .padding(.top, 20)  // Space for cursor handle that extends above slide rule (handleHeight = 16pt + buffer)
@@ -297,5 +210,77 @@ struct DynamicSlideRuleContent: View {
         // NOTE: Cursor readings update moved to GestureHandler.handleSlideDragChanged()
         // This eliminates sliderOffset observation in DynamicSlideRuleContent,
         // reducing AttributeGraph cascade during drag gestures.
+    }
+    
+    // MARK: - Rule Side Content (de-duplicated front/back composition)
+    
+    /// Renders one side of the slide rule: SideView + CursorOverlay + flip transition.
+    /// This method eliminates the front/back code duplication — both sides use identical
+    /// view composition with only the data source and side enum differing.
+    ///
+    /// - Parameters:
+    ///   - side: Which side (.front or .back)
+    ///   - topStator: The top stator for this side
+    ///   - slide: The slide for this side
+    ///   - bottomStator: The bottom stator for this side
+    @ViewBuilder
+    private func ruleSideContent(
+        side: RuleSide,
+        topStator: Stator,
+        slide: Slide,
+        bottomStator: Stator
+    ) -> some View {
+        VStack(spacing: 2) {
+            SideView(
+                side: side,
+                topStator: topStator,
+                slide: slide,
+                bottomStator: bottomStator,
+                width: renderDimensions.width,
+                scaleHeight: renderDimensions.scaleHeight,
+                leftMarginWidth: renderDimensions.leftMarginWidth,
+                rightMarginWidth: renderDimensions.rightMarginWidth,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
+                ruleId: ruleId,
+                currentZoomScale: currentZoomScale,
+                isActiveForSliderOffset: true,  // Always true — only called for visible sides
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme,
+                manufacturer: selectedRuleDefinition?.manufacturerEnum
+            )
+            .equatable()
+            .id("\(side.rawValue)-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
+            // Disable animation on geometry/dimension changes to prevent intermediate width values
+            .animation(nil, value: renderDimensions.width)
+            .overlay {
+                CursorOverlay(
+                    width: renderDimensions.width,
+                    height: consistentTotalScaleHeight(for: side),
+                    side: side,
+                    scaleHeight: renderDimensions.scaleHeight,
+                    leftMarginWidth: renderDimensions.leftMarginWidth,
+                    rightMarginWidth: renderDimensions.rightMarginWidth,
+                    showReadings: cursorDisplayMode.showReadings,
+                    showGradients: cursorDisplayMode.showGradients,
+                    currentZoomScale: currentZoomScale,
+                    manufacturer: selectedRuleDefinition?.manufacturerEnum,
+                    colorScheme: colorScheme,
+                    cursorDisplayMode: $cursorDisplayMode
+                )
+            }
+        }
+        #if os(iOS)
+        // Phase 5: Flip transition animation for compact devices (iPhone/Watch/iPad)
+        // Creates a natural vertical flip effect when switching sides
+        // - New view slides up from the bottom with fade-in
+        // - Old view slides up to the top with fade-out
+        // Animation is triggered by FlipButton's spring animation (response: 0.3s, damping: 0.8)
+        // NOTE: Disabled on macOS where these transitions feel unnatural
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .move(edge: .top).combined(with: .opacity)
+        ))
+        #endif
     }
 }

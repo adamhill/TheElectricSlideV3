@@ -3,10 +3,15 @@
 //  TheElectricSlide
 //
 //  Renders a complete side of the slide rule: top stator, slide, bottom stator
-//  Extracted from ContentView.swift for better organization
+//  Originally extracted from ContentView.swift for better organization.
 //
-//  Phase 7 Cleanup: Removed callback prop drilling - all gestures now use
-//  @Environment(\.gestureHandler). No more legacy callback initializers.
+//  Phase 8 Refactor: Collapsed StatorView and SlideView into SideView.
+//  StatorView and SlideView were thin wrappers around ScaleContainerView that
+//  existed only to attach gestures and the precision overlay. Their functionality
+//  is now inlined here as private @ViewBuilder methods, eliminating 2 intermediate
+//  view types and ~30 repeated parameters across their init signatures.
+//
+//  Gesture coordination remains here — all gestures use @Environment(\.gestureHandler).
 //
 
 import SwiftUI
@@ -19,6 +24,7 @@ struct SideView: View, Equatable {
     @Environment(\.precisionCoordinator) private var precisionCoordinator
     @Environment(\.gestureHandler) private var gestureHandler
     @Environment(\.slideRuleViewModel) private var viewModel
+    @Environment(\.cursorState) private var cursorState
     
     let side: RuleSide
     let topStator: Stator
@@ -123,6 +129,8 @@ struct SideView: View, Equatable {
         return .white
     }
     
+    // MARK: - Body
+    
     var body: some View {
         // 🔍 DIAGNOSTIC: See which properties trigger body re-evaluation
         #if DEBUG
@@ -131,165 +139,119 @@ struct SideView: View, Equatable {
 
         VStack(spacing: 0) {
             // Top Stator (Fixed)
-            StatorView(
-                stator: topStator,
-                width: width,
-                backgroundColor: statorBackgroundColor,
-                borderColor: side.borderColor,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                useManufacturerColors: useManufacturerColors,
-                colorScheme: colorScheme
-            )
-            .equatable()
-            .id("\(idPrefix)-topStator")  // Use rule-aware ID to force re-render on rule change
+            statorContent(stator: topStator)
+                .id("\(idPrefix)-topStator")
             
-            // Slide (Movable) - triple-tap to reset zoom
-            SlideView(
-                slide: slide,
-                width: width,
-                backgroundColor: slideBackgroundColor,
-                borderColor: .orange,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                ruleId: ruleId,  // Pass rule ID for identity tracking
-                isPrecisionActive: precisionCoordinator.isActive(for: .slide(side)),
-                useManufacturerColors: useManufacturerColors,
-                colorScheme: colorScheme,
-                manufacturer: manufacturer
-            )
-            .equatable()
-            // OPTIMIZATION: Only observe sliderOffset when this side is active (visible).
-            // Back side uses 0 offset to prevent observation cascade when not displayed.
-            // This reduces AttributeGraph updates by ~50% during drag gestures.
-            .offset(x: isActiveForSliderOffset ? (viewModel?.sliderOffset ?? 0) : 0)
-            .onTapGesture(count: 3) {
-                // Triple-tap to reset zoom to 1.0×
-                gestureHandler?.handleResetZoom()
-            }
-            // MARK: Normal Slide Drag Gesture
-            // Standard horizontal drag for slide movement.
-            // Disabled during:
-            // 1. Active magnification (pinch-zoom) - prevents unintentional slide when fingers spread
-            // 2. Active precision sequence - defers to the long-press + drag gesture
-            //
-            // ## Apple Best Practice: gesture(_:isEnabled:)
-            // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
-            // to conditionally disable based on isSlideDragEnabled computed property.
-            .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
-                    .onChanged { gesture in
-                        // Mark slide drag as active (blocks flip gesture)
-                        isSlideDragActive = true
-                        
-                        // Block if precision sequence is active for ANY slide (prevents conflicting moves)
-                        if case .slide = precisionCoordinator.activeTarget {
-                            #if DEBUG
-                            print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active for slide")
-                            #endif
-                            return
-                        }
-                        gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
-                    }
-                    .onEnded { gesture in
-                        // Mark slide drag as inactive (allows flip gesture)
-                        isSlideDragActive = false
-                        
-                        // Block if precision sequence is active for ANY slide (prevents conflicting moves)
-                        if case .slide = precisionCoordinator.activeTarget {
-                            #if DEBUG
-                            print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active for slide")
-                            #endif
-                            return
-                        }
-                        gestureHandler?.handleSlideDragEnded(gesture, isPrecision: false)
-                    },
-                isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
-            )
-            // MARK: Precision Slide Drag Gesture (Long-press + Drag)
-            // Allows fine-grained slide positioning with reduced sensitivity.
-            // Also disabled during magnification to prevent conflicts.
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
-                    .onEnded { _ in
-                        // Enter precision sequence with haptic feedback
-                        precisionCoordinator.activate(for: .slide(side))
-                        haptics.fire(.longBuzz)
-                        #if DEBUG
-                        print("🎯 [Slide.Precision] MODE ACTIVATED for \(side) via PrecisionDragCoordinator")
-                        #endif
-                    }
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .updating($isSlidePrecisionDragging) { value, state, _ in
-                        if case .second(true, _) = value {
-                            state = true
-                        }
-                    }
-                    .onChanged { value in
-                        switch value {
-                        case .first(true):
-                            // Long press in progress
-                            break
-                        case .second(true, let drag):
-                            if let drag = drag {
-                                // Track translation for use in onEnded
-                                precisionCoordinator.recordTranslation(drag.translation)
+            // Slide (Movable) - with drag gestures and precision overlay
+            slideContent
+                // OPTIMIZATION: Only observe sliderOffset when this side is active (visible).
+                // Back side uses 0 offset to prevent observation cascade when not displayed.
+                // This reduces AttributeGraph updates by ~50% during drag gestures.
+                .offset(x: isActiveForSliderOffset ? (viewModel?.sliderOffset ?? 0) : 0)
+                .onTapGesture(count: 3) {
+                    // Triple-tap to reset zoom to 1.0×
+                    gestureHandler?.handleResetZoom()
+                }
+                // MARK: Normal Slide Drag Gesture
+                // Standard horizontal drag for slide movement.
+                // Disabled during:
+                // 1. Active magnification (pinch-zoom) - prevents unintentional slide when fingers spread
+                // 2. Active precision sequence - defers to the long-press + drag gesture
+                //
+                // ## Apple Best Practice: gesture(_:isEnabled:)
+                // Uses the isEnabled parameter per Apple's "gesture(_:isEnabled:)" documentation
+                // to conditionally disable based on isSlideDragEnabled computed property.
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .global)  // minimumDistance: 0 prevents initial jump; .global prevents pan jitter under scaleEffect
+                        .onChanged { gesture in
+                            // Mark slide drag as active (blocks flip gesture)
+                            isSlideDragActive = true
+                            
+                            // Block if precision sequence is active for ANY slide (prevents conflicting moves)
+                            if case .slide = precisionCoordinator.activeTarget {
                                 #if DEBUG
-                                print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
+                                print("⚠️ [Slide.NormalDrag.onChanged] BLOCKED - precision active for slide")
                                 #endif
-                                gestureHandler?.handleSlideDragChanged(drag, isPrecision: true)
+                                return
                             }
-                        default:
-                            break
+                            gestureHandler?.handleSlideDragChanged(gesture, isPrecision: false)
                         }
-                    }
-                    .onEnded { value in
-                        #if DEBUG
-                        print("🎯 [Slide.Precision.onEnded] Using coordinator's lastAppliedTranslation")
-                        #endif
-                        
-                        // Create a synthetic gesture value using last applied translation
-                        // to prevent finger-lift jitter
-                        if case .second(true, let drag) = value, let drag = drag {
-                            gestureHandler?.handleSlideDragEnded(drag, isPrecision: true)
+                        .onEnded { gesture in
+                            // Mark slide drag as inactive (allows flip gesture)
+                            isSlideDragActive = false
+                            
+                            // Block if precision sequence is active for ANY slide (prevents conflicting moves)
+                            if case .slide = precisionCoordinator.activeTarget {
+                                #if DEBUG
+                                print("⚠️ [Slide.NormalDrag.onEnded] BLOCKED - precision active for slide")
+                                #endif
+                                return
+                            }
+                            gestureHandler?.handleSlideDragEnded(gesture, isPrecision: false)
+                        },
+                    isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
+                )
+                // MARK: Precision Slide Drag Gesture (Long-press + Drag)
+                // Allows fine-grained slide positioning with reduced sensitivity.
+                // Also disabled during magnification to prevent conflicts.
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: PrecisionDragConstants.longPressMinimumDuration)
+                        .onEnded { _ in
+                            // Enter precision sequence with haptic feedback
+                            precisionCoordinator.activate(for: .slide(side))
+                            haptics.fire(.longBuzz)
+                            #if DEBUG
+                            print("🎯 [Slide.Precision] MODE ACTIVATED for \(side) via PrecisionDragCoordinator")
+                            #endif
                         }
-                        
-                        // End precision session with cooldown
-                        precisionCoordinator.deactivate()
-                    },
-                isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
-            )
-            // NOTE: Removed `.animation(.interactiveSpring(), value: sliderOffset)` - was causing
-            // slide sticking/stuttering on iPhone. Momentum animation is handled in
-            // GestureHandler.handleSlideDragEnded() with its own spring animation.
-            .id("\(idPrefix)-slide")  // Use rule-aware ID to force re-render on rule change
+                        .sequenced(before: DragGesture(minimumDistance: 0))
+                        .updating($isSlidePrecisionDragging) { value, state, _ in
+                            if case .second(true, _) = value {
+                                state = true
+                            }
+                        }
+                        .onChanged { value in
+                            switch value {
+                            case .first(true):
+                                // Long press in progress
+                                break
+                            case .second(true, let drag):
+                                if let drag = drag {
+                                    // Track translation for use in onEnded
+                                    precisionCoordinator.recordTranslation(drag.translation)
+                                    #if DEBUG
+                                    print("🎯 [Slide.Precision.onChanged] translation=\(String(format: "%.2f", drag.translation.width))")
+                                    #endif
+                                    gestureHandler?.handleSlideDragChanged(drag, isPrecision: true)
+                                }
+                            default:
+                                break
+                            }
+                        }
+                        .onEnded { value in
+                            #if DEBUG
+                            print("🎯 [Slide.Precision.onEnded] Using coordinator's lastAppliedTranslation")
+                            #endif
+                            
+                            // Create a synthetic gesture value using last applied translation
+                            // to prevent finger-lift jitter
+                            if case .second(true, let drag) = value, let drag = drag {
+                                gestureHandler?.handleSlideDragEnded(drag, isPrecision: true)
+                            }
+                            
+                            // End precision session with cooldown
+                            precisionCoordinator.deactivate()
+                        },
+                    isEnabled: isSlideDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
+                )
+                // NOTE: Removed `.animation(.interactiveSpring(), value: sliderOffset)` - was causing
+                // slide sticking/stuttering on iPhone. Momentum animation is handled in
+                // GestureHandler.handleSlideDragEnded() with its own spring animation.
+                .id("\(idPrefix)-slide")
             
             // Bottom Stator (Fixed)
-            StatorView(
-                stator: bottomStator,
-                width: width,
-                backgroundColor: statorBackgroundColor,
-                borderColor: side.borderColor,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
-                ruleId: ruleId,  // Pass rule ID for identity tracking
-                currentZoomScale: currentZoomScale,  // For pan gesture control
-                useManufacturerColors: useManufacturerColors,
-                colorScheme: colorScheme
-            )
-            .equatable()
-            .id("\(idPrefix)-bottomStator")  // Use rule-aware ID to force re-render on rule change
+            statorContent(stator: bottomStator)
+                .id("\(idPrefix)-bottomStator")
         }
         #if os(iOS)
         // MARK: - Vertical Flick Gesture for Side Flip (iOS/iPadOS only)
@@ -373,5 +335,151 @@ struct SideView: View, Equatable {
         )
         #endif
         .accessibilityIdentifier("side-view-\(side.rawValue)")
+    }
+    
+    // MARK: - Stator Content (formerly StatorView)
+    
+    /// Renders a stator (fixed portion) with ScaleContainerView, pan gestures, and tap gestures.
+    /// This replaces the standalone StatorView type — all parameters come from SideView's properties.
+    @ViewBuilder
+    private func statorContent(stator: Stator) -> some View {
+        ScaleContainerView(
+            container: stator,
+            width: width,
+            backgroundColor: statorBackgroundColor,
+            borderColor: side.borderColor,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            nameFont: nameFont,
+            formulaFont: formulaFont,
+            ruleId: ruleId,
+            scaleCount: stator.scales.count,
+            useManufacturerColors: useManufacturerColors,
+            colorScheme: colorScheme
+        )
+        .equatable()
+        .contentShape(Rectangle())  // Make entire area tappable for cursor and pan gestures
+        // Triple-tap must be simultaneousGesture to not be blocked by high-priority pan
+        .simultaneousGesture(
+            TapGesture(count: 3)
+                .onEnded { _ in
+                    gestureHandler?.handleResetZoom()
+                }
+        )
+        // Pan gesture for zoomed content - responds immediately (minimumDistance: 0)
+        // .global coordinate space prevents jitter
+        // Enabled for ANY non-default zoom level (including zoomed out)
+        .highPriorityGesture(
+            (abs(currentZoomScale - ZoomConstants.defaultZoomScale) > 0.001 && gestureHandler != nil) ?
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)  // Immediate response; .global prevents jitter
+                    .onChanged { gesture in
+                         #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onChanged: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
+                        gestureHandler?.handlePanChanged(gesture)
+                    }
+                    .onEnded { gesture in
+                        #if DEBUG
+                        print("🟠 [PanJitter] StatorView-onEnded: stator translation=(\(String(format: "%.2f", gesture.translation.width)), \(String(format: "%.2f", gesture.translation.height)))")
+                        #endif
+                        gestureHandler?.handlePanEnded(gesture)
+                    }
+                : nil
+        )
+        // Single-tap as simultaneousGesture - works alongside pan gesture
+        .simultaneousGesture(
+            TapGesture(count: 1)
+                .onEnded { _ in
+                    // Mark stator as touched (sticky readings)
+                    cursorState.setStatorTouched()
+                }
+        )
+    }
+    
+    // MARK: - Slide Content (formerly SlideView)
+    
+    /// Renders the slide (movable portion) with ScaleContainerView and precision overlay.
+    /// Drag gestures are attached in body rather than here, because they need @GestureState
+    /// and other state that's more naturally managed at the body level.
+    @ViewBuilder
+    private var slideContent: some View {
+        let isPrecisionActive = precisionCoordinator.isActive(for: .slide(side))
+        
+        ZStack {
+            // Slide rendering - precision mode intensifies scale colors via ScaleContainerView
+            ScaleContainerView(
+                container: slide,
+                width: width,
+                backgroundColor: slideBackgroundColor,
+                borderColor: .orange,
+                scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                nameFont: nameFont,
+                formulaFont: formulaFont,
+                ruleId: ruleId,
+                scaleCount: slide.scales.count,
+                useManufacturerColors: useManufacturerColors,
+                colorScheme: colorScheme,
+                isPrecisionActive: isPrecisionActive
+            )
+            .equatable()
+            
+            // Precision overlay for slide - ALWAYS shown when precision is active
+            // - Faber-Castell uses green gradient
+            // - Other manufacturers use red-orange overlay
+            // The overlay provides visual feedback in addition to any scale highlighting
+            if isPrecisionActive {
+                slidePrecisionOverlay
+            }
+        }
+        .accessibilityIdentifier("slide-view-root")
+    }
+    
+    /// Precision mode visual overlay for the slide component.
+    /// Renders gradient edges (top/bottom) to indicate precision drag mode is active.
+    @ViewBuilder
+    private var slidePrecisionOverlay: some View {
+        // Get precision color from color scheme (centralized in SlideRuleColorScheme)
+        let precisionColor: Color = colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)
+        let slideHeight = scaleHeight * CGFloat(slide.scales.count)
+        
+        VStack(spacing: 0) {
+            // Top edge gradient - increased opacity for better visibility
+            LinearGradient(
+                colors: [
+                    precisionColor.opacity(0.65),
+                    precisionColor.opacity(0.45),
+                    precisionColor.opacity(0.2),
+                    precisionColor.opacity(0.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(width: width, height: slideHeight * 0.25)
+            .allowsHitTesting(false)
+            .accessibilityIdentifier("slide-precision-gradient-top")
+            
+            Spacer()
+            
+            // Bottom edge gradient - increased opacity for better visibility
+            LinearGradient(
+                colors: [
+                    precisionColor.opacity(0.0),
+                    precisionColor.opacity(0.2),
+                    precisionColor.opacity(0.45),
+                    precisionColor.opacity(0.65)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(width: width, height: slideHeight * 0.25)
+            .allowsHitTesting(false)
+            .accessibilityIdentifier("slide-precision-gradient-bottom")
+        }
+        .frame(width: width, height: slideHeight)
+        .allowsHitTesting(false)
+        .accessibilityIdentifier("slide-precision-overlay-container")
     }
 }

@@ -167,7 +167,13 @@ struct CursorOverlay: View {
                             #if DEBUG
                             print("📍 [NormalDrag.onChanged] ALLOWED - translation=\(String(format: "%.2f", gesture.translation.width))")
                             #endif
-                            handleDrag(gesture, effectiveWidth: effectiveWidth, isPrecision: false)
+                            gestureHandler?.handleCursorPositionDragChanged(
+                                gesture,
+                                effectiveWidth: effectiveWidth,
+                                currentZoomScale: currentZoomScale,
+                                side: side,
+                                isPrecision: false
+                            )
                         }
                         .onEnded { gesture in
                             // Block if precision sequence is active for cursor
@@ -190,11 +196,13 @@ struct CursorOverlay: View {
                             #if DEBUG
                             print("📍 [NormalDrag.onEnded] ALLOWED - translation=\(String(format: "%.2f", gesture.translation.width))")
                             #endif
-                            handleDragEnd(gesture, width: effectiveWidth, isPrecision: false)
-                            cursorState.setCursorDragging(false)
-                            withTransaction(Transaction(animation: nil)) {
-                                cursorState.activeDragOffset = 0
-                            }
+                            gestureHandler?.handleCursorPositionDragEnded(
+                                gesture,
+                                effectiveWidth: effectiveWidth,
+                                currentZoomScale: currentZoomScale,
+                                side: side,
+                                isPrecision: false
+                            )
                         },
                     isEnabled: isCursorDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
                 )
@@ -250,7 +258,13 @@ struct CursorOverlay: View {
                                     #if DEBUG
                                     print("🎯 [Cursor.Precision.onChanged] .second - dragging, translation=\(String(format: "%.2f", drag.translation.width))")
                                     #endif
-                                    handleDrag(drag, effectiveWidth: effectiveWidth, isPrecision: true)
+                                    gestureHandler?.handleCursorPositionDragChanged(
+                                        drag,
+                                        effectiveWidth: effectiveWidth,
+                                        currentZoomScale: currentZoomScale,
+                                        side: side,
+                                        isPrecision: true
+                                    )
                                 }
                             default:
                                 #if DEBUG
@@ -271,22 +285,25 @@ struct CursorOverlay: View {
                                 #if DEBUG
                                 print("🎯 [Cursor.Precision.onEnded] Using coordinator's last applied translation=\(String(format: "%.2f", lastApplied))")
                                 #endif
-                                // Create a synthetic position based on last applied translation
-                                handlePrecisionDragEnd(lastAppliedTranslation: lastApplied, width: effectiveWidth)
+                                // Delegate to GestureHandler for precision drag end
+                                // (handles position commit, state cleanup, and haptic reset)
+                                gestureHandler?.handleCursorPrecisionDragEnded(
+                                    lastAppliedTranslation: lastApplied,
+                                    effectiveWidth: effectiveWidth,
+                                    side: side
+                                )
                             } else {
                                 #if DEBUG
                                 print("🎯 [Cursor.Precision.onEnded] No drag to commit (long press only, no movement)")
                                 #endif
+                                cursorState.setCursorDragging(false)
+                                withTransaction(Transaction(animation: nil)) {
+                                    cursorState.activeDragOffset = 0
+                                }
                             }
                             
-                            cursorState.setCursorDragging(false)
-                            withTransaction(Transaction(animation: nil)) {
-                                cursorState.activeDragOffset = 0
-                            }
-                            
-                            // Snapshot position before clearing state
-                            let finalPosition = cursorState.position(for: side)
                             #if DEBUG
+                            let finalPosition = cursorState.position(for: side)
                             print("🎯 [Cursor.Precision.onEnded] Final position=\(String(format: "%.6f", finalPosition))")
                             #endif
                             
@@ -311,128 +328,9 @@ struct CursorOverlay: View {
         .frame(height: height)
         .allowsHitTesting(cursorState.isEnabled)
     }
-    
-    // MARK: - Gesture Handlers
-    
-    /// Handle cursor drag - supports both normal and precision modes
-    /// - Parameters:
-    ///   - gesture: The drag gesture value
-    ///   - effectiveWidth: Available width for cursor movement
-    ///   - isPrecision: Whether precision mode is active (4x slower movement)
-    private func handleDrag(_ gesture: DragGesture.Value, effectiveWidth: CGFloat, isPrecision: Bool) {
-        // Mark cursor as dragging
-        cursorState.setCursorDragging(true)
-        
-        #if DEBUG && os(macOS)
-        print("🐛 [macOS.Cursor.handleDrag] currentZoomScale=\(String(format: "%.4f", currentZoomScale)), isPrecision=\(isPrecision), rawTranslation=\(String(format: "%.2f", gesture.translation.width))")
-        #endif
-        
-        // Use GestureCalculator for zoom/precision correction
-        // Handles both zoom scale and precision factor in one call
-        let correctedTranslation = GestureCalculator.correctTranslationWidth(
-            gesture.translation.width,
-            zoomScale: currentZoomScale,
-            isPrecision: isPrecision
-        )
-        
-        #if DEBUG && os(macOS)
-        print("🐛 [macOS.Cursor.handleDrag] correctedTranslation=\(String(format: "%.2f", correctedTranslation))")
-        #endif
-        
-        // Calculate what the new position would be with this translation
-        let currentPosition = cursorState.position(for: side)
-        let currentPixelPosition = currentPosition * effectiveWidth
-        let proposedNewPosition = currentPixelPosition + correctedTranslation
-        
-        // Clamp cursor position so the HAIRLINE (center) can reach the full scale width.
-        // Delegates to CursorCoordinateSystem.clampCursorPosition for the shared formula.
-        let clampedNewPosition = CursorCoordinateSystem.clampCursorPosition(
-            proposedPixelPosition: proposedNewPosition, scaleWidth: effectiveWidth
-        )
-        
-        // Calculate the actual translation we can apply (clamped)
-        let clampedTranslation = clampedNewPosition - currentPixelPosition
-        
-        // Update shared drag offset with CLAMPED translation
-        withTransaction(Transaction(animation: nil)) {
-            cursorState.activeDragOffset = clampedTranslation
-        }
-        
-        // Realtime reading updates
-        let normalizedPosition = clampedNewPosition / effectiveWidth
-        let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
-        cursorState.updateReadings(at: clampedPosition)
-        
-        // Trigger tick haptics via gestureHandler
-        gestureHandler?.handleCursorDragChanged(clampedPosition)
-    }
-    
-    /// Handle cursor drag end - commit the final position
-    /// - Parameters:
-    ///   - gesture: The drag gesture value
-    ///   - width: Effective width for movement
-    ///   - isPrecision: Whether precision mode is active (must match the mode used during drag)
-    private func handleDragEnd(_ gesture: DragGesture.Value, width: CGFloat, isPrecision: Bool) {
-        // Use GestureCalculator for zoom/precision correction (matches handleDrag)
-        let correctedTranslation = GestureCalculator.correctTranslationWidth(
-            gesture.translation.width,
-            zoomScale: currentZoomScale,
-            isPrecision: isPrecision
-        )
-        
-        // Calculate new position based on translation from current position
-        // Cursor position is the LEFT EDGE, but we clamp based on HAIRLINE (center) position
-        // to allow the hairline to reach the full scale range [0, width]
-        let currentPosition = cursorState.position(for: side)
-        let currentPixelPosition = currentPosition * width
-        let newPixelPosition = currentPixelPosition + correctedTranslation
-        
-        // Clamp pixel position so hairline can reach full scale width
-        let clampedPixelPosition = CursorCoordinateSystem.clampCursorPosition(
-            proposedPixelPosition: newPixelPosition, scaleWidth: width
-        )
-        
-        // Normalized position can now be slightly negative or > 1.0 to allow hairline at edges
-        let clampedPosition = clampedPixelPosition / width
-        
-        // Update immediately without animation to prevent vibration
-        // Note: Position stored is for the LEFT EDGE of cursor
-        // Reading calculations must add half cursor width to get hairline position
-        cursorState.setPosition(clampedPosition, for: side)
-        
-        // Reset tick haptic coordinator via gestureHandler
-        gestureHandler?.handleCursorDragEnded()
-    }
-    
-    /// Handle precision drag end using the LAST APPLIED translation instead of gesture's final value
-    /// This prevents "finger lift jitter" where the onEnded translation differs from the last onChanged
-    /// - Parameters:
-    ///   - lastAppliedTranslation: The raw translation from the last onChanged event (before precision factor)
-    ///   - width: Effective width for movement
-    private func handlePrecisionDragEnd(lastAppliedTranslation: CGFloat, width: CGFloat) {
-        // Apply precision factor (same as during onChanged)
-        let translationWidth = lastAppliedTranslation / PrecisionDragConstants.precisionFactor
-        
-        // Calculate new position based on translation from current position
-        // Clamp so hairline (center) can reach full scale width, not cursor left edge
-        let currentPosition = cursorState.position(for: side)
-        let currentPixelPosition = currentPosition * width
-        let newPixelPosition = currentPixelPosition + translationWidth
-        
-        // Clamp pixel position so hairline can reach full scale width
-        let clampedPixelPosition = CursorCoordinateSystem.clampCursorPosition(
-            proposedPixelPosition: newPixelPosition, scaleWidth: width
-        )
-        
-        // Normalized position can now be slightly negative or > 1.0 to allow hairline at edges
-        let clampedPosition = clampedPixelPosition / width
-        
-        // Update immediately without animation to prevent vibration
-        cursorState.setPosition(clampedPosition, for: side)
-        
-        // Reset tick haptic coordinator via gestureHandler
-        gestureHandler?.handleCursorDragEnded()
-    }
+    // NOTE: Cursor gesture math (handleDrag, handleDragEnd, handlePrecisionDragEnd)
+    // moved to GestureHandler in Phase 8. CursorOverlay now delegates all cursor
+    // position calculations to gestureHandler?.handleCursorPositionDrag* methods.
 }
 
 // MARK: - Preview

@@ -464,6 +464,158 @@ final class GestureHandler: GestureHandlerProtocol {
         onFlipRequested?()
     }
     
+    // MARK: - Cursor Position Drag Handlers
+    
+    /// Handles cursor drag gesture change — calculates clamped position and updates state.
+    /// Moved from CursorOverlay.handleDrag() to centralize cursor coordinate math in GestureHandler.
+    ///
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - effectiveWidth: Available width for cursor movement (must equal scale Canvas width)
+    ///   - currentZoomScale: Current zoom level for translation correction
+    ///   - side: Which side this cursor is on
+    ///   - isPrecision: Whether precision mode is active (reduced sensitivity)
+    func handleCursorPositionDragChanged(
+        _ gesture: DragGesture.Value,
+        effectiveWidth: CGFloat,
+        currentZoomScale: CGFloat,
+        side: RuleSide?,
+        isPrecision: Bool
+    ) {
+        // Mark cursor as dragging
+        cursorState.setCursorDragging(true)
+        
+        #if DEBUG && os(macOS)
+        print("🐛 [macOS.Cursor.handleDrag] currentZoomScale=\(String(format: "%.4f", currentZoomScale)), isPrecision=\(isPrecision), rawTranslation=\(String(format: "%.2f", gesture.translation.width))")
+        #endif
+        
+        // Use GestureCalculator for zoom/precision correction
+        let correctedTranslation = GestureCalculator.correctTranslationWidth(
+            gesture.translation.width,
+            zoomScale: currentZoomScale,
+            isPrecision: isPrecision
+        )
+        
+        #if DEBUG && os(macOS)
+        print("🐛 [macOS.Cursor.handleDrag] correctedTranslation=\(String(format: "%.2f", correctedTranslation))")
+        #endif
+        
+        // Calculate what the new position would be with this translation
+        let currentPosition = cursorState.position(for: side)
+        let currentPixelPosition = currentPosition * effectiveWidth
+        let proposedNewPosition = currentPixelPosition + correctedTranslation
+        
+        // Clamp cursor position so the HAIRLINE (center) can reach the full scale width.
+        let clampedNewPosition = CursorCoordinateSystem.clampCursorPosition(
+            proposedPixelPosition: proposedNewPosition, scaleWidth: effectiveWidth
+        )
+        
+        // Calculate the actual translation we can apply (clamped)
+        let clampedTranslation = clampedNewPosition - currentPixelPosition
+        
+        // Update shared drag offset with CLAMPED translation
+        withTransaction(Transaction(animation: nil)) {
+            cursorState.activeDragOffset = clampedTranslation
+        }
+        
+        // Realtime reading updates
+        let normalizedPosition = clampedNewPosition / effectiveWidth
+        let clampedPosition = min(max(normalizedPosition, 0.0), 1.0)
+        cursorState.updateReadings(at: clampedPosition)
+        
+        // Trigger tick haptics
+        handleCursorDragChanged(clampedPosition)
+    }
+    
+    /// Handles cursor drag gesture end — commits the final position.
+    /// Moved from CursorOverlay.handleDragEnd() to centralize cursor coordinate math.
+    ///
+    /// - Parameters:
+    ///   - gesture: The drag gesture value
+    ///   - effectiveWidth: Available width for cursor movement
+    ///   - currentZoomScale: Current zoom level for translation correction
+    ///   - side: Which side this cursor is on
+    ///   - isPrecision: Whether precision mode is active
+    func handleCursorPositionDragEnded(
+        _ gesture: DragGesture.Value,
+        effectiveWidth: CGFloat,
+        currentZoomScale: CGFloat,
+        side: RuleSide?,
+        isPrecision: Bool
+    ) {
+        // Use GestureCalculator for zoom/precision correction
+        let correctedTranslation = GestureCalculator.correctTranslationWidth(
+            gesture.translation.width,
+            zoomScale: currentZoomScale,
+            isPrecision: isPrecision
+        )
+        
+        // Calculate new position based on translation from current position
+        let currentPosition = cursorState.position(for: side)
+        let currentPixelPosition = currentPosition * effectiveWidth
+        let newPixelPosition = currentPixelPosition + correctedTranslation
+        
+        // Clamp pixel position so hairline can reach full scale width
+        let clampedPixelPosition = CursorCoordinateSystem.clampCursorPosition(
+            proposedPixelPosition: newPixelPosition, scaleWidth: effectiveWidth
+        )
+        
+        let clampedPosition = clampedPixelPosition / effectiveWidth
+        
+        // Update immediately without animation to prevent vibration
+        cursorState.setPosition(clampedPosition, for: side)
+        
+        // Finalize
+        cursorState.setCursorDragging(false)
+        withTransaction(Transaction(animation: nil)) {
+            cursorState.activeDragOffset = 0
+        }
+        
+        // Reset tick haptic coordinator
+        handleCursorDragEnded()
+    }
+    
+    /// Handles precision cursor drag end using the LAST APPLIED translation.
+    /// This prevents "finger lift jitter" where onEnded has different translation than last onChanged.
+    /// Moved from CursorOverlay.handlePrecisionDragEnd().
+    ///
+    /// - Parameters:
+    ///   - lastAppliedTranslation: Raw translation from last onChanged (before precision factor)
+    ///   - effectiveWidth: Available width for cursor movement
+    ///   - side: Which side this cursor is on
+    func handleCursorPrecisionDragEnded(
+        lastAppliedTranslation: CGFloat,
+        effectiveWidth: CGFloat,
+        side: RuleSide?
+    ) {
+        // Apply precision factor (same as during onChanged)
+        let translationWidth = lastAppliedTranslation / PrecisionDragConstants.precisionFactor
+        
+        // Calculate new position based on translation from current position
+        let currentPosition = cursorState.position(for: side)
+        let currentPixelPosition = currentPosition * effectiveWidth
+        let newPixelPosition = currentPixelPosition + translationWidth
+        
+        // Clamp pixel position so hairline can reach full scale width
+        let clampedPixelPosition = CursorCoordinateSystem.clampCursorPosition(
+            proposedPixelPosition: newPixelPosition, scaleWidth: effectiveWidth
+        )
+        
+        let clampedPosition = clampedPixelPosition / effectiveWidth
+        
+        // Update immediately without animation to prevent vibration
+        cursorState.setPosition(clampedPosition, for: side)
+        
+        // Finalize
+        cursorState.setCursorDragging(false)
+        withTransaction(Transaction(animation: nil)) {
+            cursorState.activeDragOffset = 0
+        }
+        
+        // Reset tick haptic coordinator
+        handleCursorDragEnded()
+    }
+    
     // MARK: - Cursor Drag Handlers (Tick Haptics)
     
     /// Handles cursor drag changes for tick haptics

@@ -289,6 +289,8 @@ struct FontConfig {
 }
 
 struct CursorView: View {
+    @Environment(\.dimensions) private var dimensions
+    
     // MARK: - Properties
     
     /// Height of the cursor (spans full vertical space of slide rule)
@@ -300,9 +302,6 @@ struct CursorView: View {
     
     /// Which side this cursor is for (determines which readings to display)
     let side: RuleSide?
-    
-    /// Height of each scale row (for vertical positioning)
-    let scaleHeight: CGFloat
     
     /// Display configuration for scale readings
     var displayConfig: CursorReadingDisplayConfig = .default
@@ -477,7 +476,7 @@ struct CursorView: View {
                                     .frame(width: Self.cursorWidth / 2)
                                 }
                             }
-                            .frame(width: Self.cursorWidth, height: scaleHeight)
+                            .frame(width: Self.cursorWidth, height: dimensions.scaleHeight)
                         }
                     }
                     .animation(.easeInOut(duration: 0.2), value: isPrecisionActive)
@@ -547,7 +546,7 @@ struct CursorView: View {
         
         // Use array index for vertical positioning (readings are in scale order)
         for (index, reading) in readings.enumerated() {
-            let yPosition = CGFloat(index) * scaleHeight + (scaleHeight / 2)
+            let yPosition = CGFloat(index) * dimensions.scaleHeight + (dimensions.scaleHeight / 2)
             
             // Skip if outside visible area
             guard yPosition >= 0 && yPosition <= size.height else { continue }
@@ -573,7 +572,7 @@ struct CursorView: View {
                 .foregroundColor(valueConfig.color)
             
             let resolvedValue = context.resolve(valueText)
-            let valueSize = resolvedValue.measure(in: CGSize(width: halfWidth, height: scaleHeight))
+            let valueSize = resolvedValue.measure(in: CGSize(width: halfWidth, height: dimensions.scaleHeight))
             
             let valueX = size.width - valueSize.width - displayConfig.labelPadding
             
@@ -607,7 +606,7 @@ struct CursorView: View {
             .foregroundColor(fontConfig.color)
         
         let resolved = ctx.resolve(textView)
-        let textSize = resolved.measure(in: CGSize(width: maxWidth, height: scaleHeight))
+        let textSize = resolved.measure(in: CGSize(width: maxWidth, height: dimensions.scaleHeight))
         
         let rect = CGRect(
             x: xPosition,
@@ -669,9 +668,9 @@ extension FontConfig.GradientConfig: Equatable {
         height: 200,
         cursorState: state,
         side: .front,
-        scaleHeight: 25,
         cursorDisplayMode: .constant(.values)
     )
+    .environment(\.dimensions, .default)
     .frame(width: 100, height: 200)
     .background(Color.gray.opacity(0.2))
 }

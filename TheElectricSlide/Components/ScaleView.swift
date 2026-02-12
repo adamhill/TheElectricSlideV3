@@ -47,14 +47,9 @@ extension EnvironmentValues {
 
 struct ScaleView: View, Equatable {
     @Environment(\.ruleDisplaySettings) private var ruleDisplaySettings
+    @Environment(\.dimensions) private var dimensions
     
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
-    let width: CGFloat
-    let height: CGFloat
-    let leftMarginWidth: CGFloat
-    let rightMarginWidth: CGFloat
-    let nameFont: Font
-    let formulaFont: Font
     
     /// Optional background gradient to draw in Canvas instead of using .background() modifier
     /// Drawing in Canvas eliminates VStack preference propagation during parent view updates
@@ -68,21 +63,9 @@ struct ScaleView: View, Equatable {
     
     init(
         generatedScale: GeneratedScale,
-        width: CGFloat,
-        height: CGFloat,
-        leftMarginWidth: CGFloat,
-        rightMarginWidth: CGFloat,
-        nameFont: Font,
-        formulaFont: Font,
         backgroundGradient: ScaleBackgroundGradient? = nil
     ) {
         self.generatedScale = generatedScale
-        self.width = width
-        self.height = height
-        self.leftMarginWidth = leftMarginWidth
-        self.rightMarginWidth = rightMarginWidth
-        self.nameFont = nameFont
-        self.formulaFont = formulaFont
         self.backgroundGradient = backgroundGradient
         
         // Initialize renderers once during init instead of on each access
@@ -100,13 +83,8 @@ struct ScaleView: View, Equatable {
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     // This prevents unnecessary Canvas redraws when parent views re-evaluate
+    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
     static func == (lhs: ScaleView, rhs: ScaleView) -> Bool {
-        lhs.width == rhs.width &&
-        lhs.height == rhs.height &&
-        lhs.leftMarginWidth == rhs.leftMarginWidth &&
-        lhs.rightMarginWidth == rhs.rightMarginWidth &&
-        lhs.nameFont == rhs.nameFont &&
-        lhs.formulaFont == rhs.formulaFont &&
         lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
         lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count &&
         lhs.backgroundGradient == rhs.backgroundGradient
@@ -171,7 +149,7 @@ struct ScaleView: View, Equatable {
             // Right margin content
             rightMarginContent(scaleLabel: scaleLabel, nameMargin: nameMargin, formulaMargin: formulaMargin)
         }
-        .frame(height: height)  // Ensure consistent height for split scale ZStack alignment
+        .frame(height: dimensions.scaleHeight)  // Ensure consistent height for split scale ZStack alignment
         .accessibilityIdentifier("scaleview-\(generatedScale.definition.name)")
     }
     
@@ -181,34 +159,34 @@ struct ScaleView: View, Equatable {
         // Priority 1: Custom left annotations (if non-empty)
         if !generatedScale.definition.leftAnnotations.isEmpty {
             leftMarginAnnotationsView
-                .frame(width: leftMarginWidth, alignment: .trailing)
+                .frame(width: dimensions.leftMarginWidth, alignment: .trailing)
                 .accessibilityIdentifier("scale-left-annotations-\(scaleLabel)")
         }
         // Priority 2: Scale name (if configured for left margin)
         else if nameMargin == .left {
             Text(scaleLabel)
-                .font(nameFont)
+                .font(dimensions.nameFont)
                 .foregroundColor(scaleLabelColor)
                 .offset(
                     x: generatedScale.definition.nameNudge?.horizontalOffset ?? 0,
                     y: generatedScale.definition.nameNudge?.verticalOffset ?? 0
                 )
-                .frame(width: leftMarginWidth, alignment: .trailing)
+                .frame(width: dimensions.leftMarginWidth, alignment: .trailing)
                 .accessibilityIdentifier("scale-name-\(scaleLabel)")
         }
         // Priority 3: Formula (if configured for left margin - unusual but supported)
         else if formulaMargin == .left {
             Text(generatedScale.definition.formula)
-                .font(formulaFont)
+                .font(dimensions.formulaFont)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: leftMarginWidth, alignment: .trailing)
+                .frame(width: dimensions.leftMarginWidth, alignment: .trailing)
                 .accessibilityIdentifier("scale-formula-left-\(generatedScale.definition.name)")
         }
         // Priority 4: Empty spacer to maintain layout
         else {
             Spacer()
-                .frame(width: leftMarginWidth)
+                .frame(width: dimensions.leftMarginWidth)
         }
     }
     
@@ -218,34 +196,34 @@ struct ScaleView: View, Equatable {
         // Priority 1: Custom right annotations (if non-empty)
         if !generatedScale.definition.rightAnnotations.isEmpty {
             rightMarginAnnotationsView
-                .frame(width: rightMarginWidth, alignment: .leading)
+                .frame(width: dimensions.rightMarginWidth, alignment: .leading)
                 .accessibilityIdentifier("scale-right-annotations-\(generatedScale.definition.name)")
         }
         // Priority 2: Formula (if configured for right margin - traditional)
         else if formulaMargin == .right {
             Text(generatedScale.definition.formula)
-                .font(formulaFont)
+                .font(dimensions.formulaFont)
                 .tracking((generatedScale.definition.formulaTracking - 1.0) * 2.0)
                 .foregroundColor(.black)
-                .frame(width: rightMarginWidth, alignment: .leading)
+                .frame(width: dimensions.rightMarginWidth, alignment: .leading)
                 .accessibilityIdentifier("scale-formula-\(generatedScale.definition.name)")
         }
         // Priority 3: Scale name (if configured for right margin - Graphoplex style)
         else if nameMargin == .right {
             Text(scaleLabel)
-                .font(nameFont)
+                .font(dimensions.nameFont)
                 .foregroundColor(scaleLabelColor)
                 .offset(
                     x: generatedScale.definition.nameNudge?.horizontalOffset ?? 0,
                     y: generatedScale.definition.nameNudge?.verticalOffset ?? 0
                 )
-                .frame(width: rightMarginWidth, alignment: .leading)
+                .frame(width: dimensions.rightMarginWidth, alignment: .leading)
                 .accessibilityIdentifier("scale-name-right-\(scaleLabel)")
         }
         // Priority 4: Empty spacer to maintain layout
         else {
             Spacer()
-                .frame(width: rightMarginWidth)
+                .frame(width: dimensions.rightMarginWidth)
         }
     }
     
@@ -256,7 +234,7 @@ struct ScaleView: View, Equatable {
             Canvas { context, size in
                 // DEBUG: Log Canvas size for split scales
                 if DEBUG_SPLIT_CANVAS && (generatedScale.definition.name.contains("Θ") || generatedScale.definition.name.contains("θ")) {
-                    print("🎨 [CANVAS] \(generatedScale.definition.name): size=(\(size.width), \(size.height)), passed height=\(height), tickDir=\(generatedScale.definition.tickDirection)")
+                    print("🎨 [CANVAS] \(generatedScale.definition.name): size=(\(size.width), \(size.height)), passed height=\(dimensions.scaleHeight), tickDir=\(generatedScale.definition.tickDirection)")
                     if let segment = generatedScale.definition.splitSegment {
                         print("   splitSegment: \(segment)")
                     }
@@ -282,7 +260,7 @@ struct ScaleView: View, Equatable {
         // ✅ FIXED HEIGHT: Use fixed frame to ensure Canvas gets consistent size
         // This is critical for split scale ZStack rendering where both scales
         // must have identical Canvas dimensions for proper tick alignment
-        .frame(width: width, height: height)
+        .frame(width: dimensions.width, height: dimensions.scaleHeight)
         .accessibilityIdentifier("scale-tickarea-\(generatedScale.definition.name)")
     }
     
@@ -304,11 +282,11 @@ struct ScaleView: View, Equatable {
             
             // Log every redraw for L/Ln scales, LL scales, or periodically for others
             if definition.name == "L" || definition.name == "Ln" || definition.name.contains("LL") || redrawId <= 10 || redrawId % 50 == 0 {
-                print("🎨 [Canvas REDRAW #\(redrawId)] scale=\(definition.name) size=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) width_prop=\(String(format: "%.2f", self.width)) height_prop=\(String(format: "%.2f", self.height)) tickCount=\(tickMarks.count)")
+                print("🎨 [Canvas REDRAW #\(redrawId)] scale=\(definition.name) size=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) width_prop=\(String(format: "%.2f", dimensions.width)) height_prop=\(String(format: "%.2f", dimensions.scaleHeight)) tickCount=\(tickMarks.count)")
                 
                 // Log if there's a mismatch between passed size and view property
-                if abs(size.width - width) > 0.5 || abs(size.height - height) > 0.5 {
-                    print("⚠️ SIZE MISMATCH: Canvas size differs from view props! canvas=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) props=(\(String(format: "%.2f", self.width))x\(String(format: "%.2f", self.height)))")
+                if abs(size.width - dimensions.width) > 0.5 || abs(size.height - dimensions.scaleHeight) > 0.5 {
+                    print("⚠️ SIZE MISMATCH: Canvas size differs from view props! canvas=(\(String(format: "%.2f", size.width))x\(String(format: "%.2f", size.height))) props=(\(String(format: "%.2f", dimensions.width))x\(String(format: "%.2f", dimensions.scaleHeight)))")
                 }
                 
                 // DEBUG: For Ln scale, log first few tick details
@@ -437,7 +415,7 @@ struct ScaleView: View, Equatable {
     ///   - alignment: Text alignment (.trailing for left margin, .leading for right margin)
     @ViewBuilder
     private func marginAnnotationText(_ annotation: MarginAnnotation, alignment: Alignment) -> some View {
-        let baseFont = alignment == .trailing ? nameFont : formulaFont
+        let baseFont = alignment == .trailing ? dimensions.nameFont : dimensions.formulaFont
         let color = Color(
             red: annotation.color.red,
             green: annotation.color.green,

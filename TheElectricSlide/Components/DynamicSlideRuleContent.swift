@@ -44,8 +44,6 @@ struct DynamicSlideRuleContent: View {
     let slideRule: SlideRule
     let ruleId: UUID?  // Track rule identity for view updates
     let calculatedDimensions: Dimensions
-    let nameFont: Font
-    let formulaFont: Font
     @Binding var cursorDisplayMode: CursorDisplayMode
     @Binding var cursorReadingCycleMode: CursorReadingCycleMode
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
@@ -136,6 +134,7 @@ struct DynamicSlideRuleContent: View {
                 )
             }
         }
+        .environment(\.dimensions, renderDimensions)  // Inject debounced dimensions for all child views
         .padding(.top, 20)  // Space for cursor handle that extends above slide rule (handleHeight = 16pt + buffer)
         .frame(maxWidth: .infinity)
         .ignoresSafeArea(.container, edges: .horizontal)
@@ -236,12 +235,6 @@ struct DynamicSlideRuleContent: View {
                 topStator: topStator,
                 slide: slide,
                 bottomStator: bottomStator,
-                width: renderDimensions.width,
-                scaleHeight: renderDimensions.scaleHeight,
-                leftMarginWidth: renderDimensions.leftMarginWidth,
-                rightMarginWidth: renderDimensions.rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
                 ruleId: ruleId,
                 currentZoomScale: currentZoomScale,
                 isActiveForSliderOffset: true,  // Always true — only called for visible sides
@@ -255,12 +248,8 @@ struct DynamicSlideRuleContent: View {
             .animation(nil, value: renderDimensions.width)
             .overlay {
                 CursorOverlay(
-                    width: renderDimensions.width,
                     height: consistentTotalScaleHeight(for: side),
                     side: side,
-                    scaleHeight: renderDimensions.scaleHeight,
-                    leftMarginWidth: renderDimensions.leftMarginWidth,
-                    rightMarginWidth: renderDimensions.rightMarginWidth,
                     showReadings: cursorDisplayMode.showReadings,
                     showGradients: cursorDisplayMode.showGradients,
                     currentZoomScale: currentZoomScale,

@@ -19,15 +19,11 @@ private let DEBUG_SPLIT_SCALES = true
 // MARK: - Generic ScaleContainerView
 
 struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
+    @Environment(\.dimensions) private var dimensions
+    
     let container: Container
-    let width: CGFloat
     let backgroundColor: Color
     let borderColor: Color
-    let scaleHeight: CGFloat
-    let leftMarginWidth: CGFloat
-    let rightMarginWidth: CGFloat
-    let nameFont: Font
-    let formulaFont: Font
     let ruleId: UUID?
     let scaleCount: Int  // Cached for Equatable comparison
     
@@ -39,12 +35,9 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
     var isPrecisionActive: Bool = false
     
     // Equatable conformance - only compare properties that affect rendering
+    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
     static func == (lhs: ScaleContainerView, rhs: ScaleContainerView) -> Bool {
         lhs.ruleId == rhs.ruleId &&
-        lhs.width == rhs.width &&
-        lhs.scaleHeight == rhs.scaleHeight &&
-        lhs.leftMarginWidth == rhs.leftMarginWidth &&
-        lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.scaleCount == rhs.scaleCount &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
@@ -93,7 +86,7 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
     
     /// Calculate total max height based on number of render groups (not raw scale count)
     private var maxTotalHeight: CGFloat {
-        scaleHeight * CGFloat(scaleRenderGroups.count)
+        dimensions.scaleHeight * CGFloat(scaleRenderGroups.count)
     }
     
     /// Returns background gradient data for drawing directly in ScaleView's Canvas
@@ -122,12 +115,6 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                     // Standard single-scale row
                     ScaleView(
                         generatedScale: generatedScale,
-                        width: width,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,
-                        nameFont: nameFont,
-                        formulaFont: formulaFont,
                         backgroundGradient: scaleBackgroundGradientData(for: generatedScale.definition.name)
                     )
                     .equatable()
@@ -139,37 +126,25 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                     // (ticks draw from bottom baseline upward)
                     let _ = DEBUG_SPLIT_SCALES ? print("🔀 [SPLIT PAIR] Rendering: \(leftScale.definition.name) + \(rightScale.definition.name)") : ()
                     let _ = DEBUG_SPLIT_SCALES ? print("   Left tickDir: \(leftScale.definition.tickDirection), Right tickDir: \(rightScale.definition.tickDirection)") : ()
-                    let _ = DEBUG_SPLIT_SCALES ? print("   scaleHeight: \(scaleHeight), width: \(width)") : ()
+                    let _ = DEBUG_SPLIT_SCALES ? print("   scaleHeight: \(dimensions.scaleHeight), width: \(dimensions.width)") : ()
                     ZStack(alignment: .bottomLeading) {
                         // Left segment
                         ScaleView(
                             generatedScale: leftScale,
-                            width: width,
-                            height: scaleHeight,
-                            leftMarginWidth: leftMarginWidth,
-                            rightMarginWidth: rightMarginWidth,
-                            nameFont: nameFont,
-                            formulaFont: formulaFont,
                             backgroundGradient: scaleBackgroundGradientData(for: leftScale.definition.name)
                         )
                         .equatable()
-                        .frame(height: scaleHeight)  // Ensure consistent height in ZStack
+                        .frame(height: dimensions.scaleHeight)  // Ensure consistent height in ZStack
                         
                         // Right segment (overlaid on same row)
                         ScaleView(
                             generatedScale: rightScale,
-                            width: width,
-                            height: scaleHeight,
-                            leftMarginWidth: leftMarginWidth,
-                            rightMarginWidth: rightMarginWidth,
-                            nameFont: nameFont,
-                            formulaFont: formulaFont,
                             backgroundGradient: scaleBackgroundGradientData(for: rightScale.definition.name)
                         )
                         .equatable()
-                        .frame(height: scaleHeight)  // Ensure consistent height in ZStack
+                        .frame(height: dimensions.scaleHeight)  // Ensure consistent height in ZStack
                     }
-                    .frame(height: scaleHeight)
+                    .frame(height: dimensions.scaleHeight)
                     .accessibilityIdentifier("scale-row-split-\(leftScale.definition.name)-\(rightScale.definition.name)")
                 }
             }
@@ -193,11 +168,11 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
         .overlay(
             ComponentAnnotationsOverlay(
                 annotations: container.annotations,
-                containerWidth: width,
+                containerWidth: dimensions.width,
                 containerHeight: maxTotalHeight
             )
         )
-        .frame(width: width, height: maxTotalHeight)
+        .frame(width: dimensions.width, height: maxTotalHeight)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityIdentifier("scale-container-root")
     }

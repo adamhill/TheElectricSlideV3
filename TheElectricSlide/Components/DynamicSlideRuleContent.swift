@@ -242,7 +242,6 @@ struct DynamicSlideRuleContent: View {
                 colorScheme: colorScheme,
                 manufacturer: selectedRuleDefinition?.manufacturerEnum
             )
-            .equatable()
             .id("\(side.rawValue)-\(ruleId?.uuidString ?? "default")")  // Force view recreation on rule change
             // Disable animation on geometry/dimension changes to prevent intermediate width values
             .animation(nil, value: renderDimensions.width)

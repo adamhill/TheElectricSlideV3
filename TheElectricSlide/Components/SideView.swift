@@ -25,12 +25,16 @@ struct SideView: View, Equatable {
     @Environment(\.gestureHandler) private var gestureHandler
     @Environment(\.slideRuleViewModel) private var viewModel
     @Environment(\.cursorState) private var cursorState
-    @Environment(\.dimensions) private var dimensions
     
     let side: RuleSide
     let topStator: Stator
     let slide: Slide
     let bottomStator: Stator
+    /// Layout dimensions — stored property for `.equatable()` compatibility.
+    /// `@Environment` values are invisible to `static func ==`, so `.equatable()` would
+    /// block dimension-change re-renders. Passing as a stored `let` makes it part of the
+    /// value identity that `.equatable()` compares.
+    let dimensions: Dimensions
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let isActiveForSliderOffset: Bool  // OPTIMIZATION: Only true for visible side to prevent back side from observing sliderOffset
@@ -88,9 +92,10 @@ struct SideView: View, Equatable {
     // Note: sliderOffset is NOT compared - it's read directly from viewModel and only affects .offset() modifier
     // Note: isActiveForSliderOffset IS compared - determines if this side observes sliderOffset
     // ruleId is compared to force re-render when rule changes
-    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
+    // Note: dimensions is a stored property (not @Environment) so .equatable() can detect changes
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
+        lhs.dimensions == rhs.dimensions &&  // Critical: detect layout changes for .equatable()
         lhs.ruleId == rhs.ruleId &&  // Compare rule ID to detect rule changes
         lhs.currentZoomScale == rhs.currentZoomScale &&
         lhs.isActiveForSliderOffset == rhs.isActiveForSliderOffset &&
@@ -337,6 +342,7 @@ struct SideView: View, Equatable {
     private func statorContent(stator: Stator) -> some View {
         ScaleContainerView(
             container: stator,
+            dimensions: dimensions,
             backgroundColor: statorBackgroundColor,
             borderColor: side.borderColor,
             ruleId: ruleId,
@@ -396,6 +402,7 @@ struct SideView: View, Equatable {
             // Slide rendering - precision mode intensifies scale colors via ScaleContainerView
             ScaleContainerView(
                 container: slide,
+                dimensions: dimensions,
                 backgroundColor: slideBackgroundColor,
                 borderColor: .orange,
                 ruleId: ruleId,

@@ -235,6 +235,7 @@ struct DynamicSlideRuleContent: View {
                 topStator: topStator,
                 slide: slide,
                 bottomStator: bottomStator,
+                dimensions: renderDimensions,
                 ruleId: ruleId,
                 currentZoomScale: currentZoomScale,
                 isActiveForSliderOffset: true,  // Always true — only called for visible sides

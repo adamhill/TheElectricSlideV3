@@ -19,9 +19,12 @@ private let DEBUG_SPLIT_SCALES = true
 // MARK: - Generic ScaleContainerView
 
 struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
-    @Environment(\.dimensions) private var dimensions
-    
     let container: Container
+    /// Layout dimensions — stored property for `.equatable()` compatibility.
+    /// `@Environment` values are invisible to `static func ==`, so `.equatable()` would
+    /// block dimension-change re-renders. Passing as a stored `let` makes it part of the
+    /// value identity that `.equatable()` compares.
+    let dimensions: Dimensions
     let backgroundColor: Color
     let borderColor: Color
     let ruleId: UUID?
@@ -35,9 +38,10 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
     var isPrecisionActive: Bool = false
     
     // Equatable conformance - only compare properties that affect rendering
-    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
+    // Note: dimensions is a stored property (not @Environment) so .equatable() can detect changes
     static func == (lhs: ScaleContainerView, rhs: ScaleContainerView) -> Bool {
         lhs.ruleId == rhs.ruleId &&
+        lhs.dimensions == rhs.dimensions &&  // Critical: detect layout changes for .equatable()
         lhs.scaleCount == rhs.scaleCount &&
         lhs.backgroundColor == rhs.backgroundColor &&
         lhs.borderColor == rhs.borderColor &&
@@ -115,6 +119,7 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                     // Standard single-scale row
                     ScaleView(
                         generatedScale: generatedScale,
+                        dimensions: dimensions,
                         backgroundGradient: scaleBackgroundGradientData(for: generatedScale.definition.name)
                     )
                     .equatable()
@@ -131,6 +136,7 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                         // Left segment
                         ScaleView(
                             generatedScale: leftScale,
+                            dimensions: dimensions,
                             backgroundGradient: scaleBackgroundGradientData(for: leftScale.definition.name)
                         )
                         .equatable()
@@ -139,6 +145,7 @@ struct ScaleContainerView<Container: ScaleContainer>: View, Equatable {
                         // Right segment (overlaid on same row)
                         ScaleView(
                             generatedScale: rightScale,
+                            dimensions: dimensions,
                             backgroundGradient: scaleBackgroundGradientData(for: rightScale.definition.name)
                         )
                         .equatable()

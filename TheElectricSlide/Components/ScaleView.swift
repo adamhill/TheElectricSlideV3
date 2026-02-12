@@ -47,9 +47,13 @@ extension EnvironmentValues {
 
 struct ScaleView: View, Equatable {
     @Environment(\.ruleDisplaySettings) private var ruleDisplaySettings
-    @Environment(\.dimensions) private var dimensions
     
     let generatedScale: GeneratedScale  // ✅ Use pre-computed GeneratedScale
+    /// Layout dimensions — stored property for `.equatable()` compatibility.
+    /// `@Environment` values are invisible to `static func ==`, so `.equatable()` would
+    /// block dimension-change re-renders. Passing as a stored `let` makes it part of the
+    /// value identity that `.equatable()` compares.
+    let dimensions: Dimensions
     
     /// Optional background gradient to draw in Canvas instead of using .background() modifier
     /// Drawing in Canvas eliminates VStack preference propagation during parent view updates
@@ -63,9 +67,11 @@ struct ScaleView: View, Equatable {
     
     init(
         generatedScale: GeneratedScale,
+        dimensions: Dimensions = .default,
         backgroundGradient: ScaleBackgroundGradient? = nil
     ) {
         self.generatedScale = generatedScale
+        self.dimensions = dimensions
         self.backgroundGradient = backgroundGradient
         
         // Initialize renderers once during init instead of on each access
@@ -83,8 +89,9 @@ struct ScaleView: View, Equatable {
     
     // ✅ Equatable conformance - only compare properties that affect rendering
     // This prevents unnecessary Canvas redraws when parent views re-evaluate
-    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
+    // Note: dimensions is a stored property (not @Environment) so .equatable() can detect changes
     static func == (lhs: ScaleView, rhs: ScaleView) -> Bool {
+        lhs.dimensions == rhs.dimensions &&  // Critical: detect layout changes for .equatable()
         lhs.generatedScale.definition.name == rhs.generatedScale.definition.name &&
         lhs.generatedScale.tickMarks.count == rhs.generatedScale.tickMarks.count &&
         lhs.backgroundGradient == rhs.backgroundGradient

@@ -30,24 +30,13 @@ struct CursorOverlay: View {
     @Environment(\.gestureHandler) private var gestureHandler
     @Environment(\.slideRuleViewModel) private var viewModel
     @Environment(\.cursorState) private var cursorState  // Non-optional with default instance
+    @Environment(\.dimensions) private var dimensions
     
-    /// Total available width
-    let width: CGFloat
-    
-    /// Total available height
+    /// Total available height (totalScaleHeight for this side — NOT from Dimensions)
     let height: CGFloat
     
     /// Which side this overlay is for
     let side: RuleSide?
-    
-    /// Height of each scale (for vertical positioning of readings)
-    let scaleHeight: CGFloat
-    
-    /// Left margin width (from Dimensions) - aligns cursor with scale area
-    let leftMarginWidth: CGFloat
-    
-    /// Right margin width (from Dimensions) - aligns cursor with scale area
-    let rightMarginWidth: CGFloat
     
     /// Display configuration for scale readings
     var displayConfig: CursorReadingDisplayConfig = .large
@@ -103,11 +92,11 @@ struct CursorOverlay: View {
         HStack(spacing: 0) {
             // Left margin spacer (matches ScaleView left margin + spacing)
             Color.clear
-                .frame(width: CursorCoordinateSystem.cursorMarginSpacerWidth(marginWidth: leftMarginWidth))
+                .frame(width: CursorCoordinateSystem.cursorMarginSpacerWidth(marginWidth: dimensions.leftMarginWidth))
             
             // Cursor interactive area - matches scale width exactly
             VStack(spacing: 0) {
-                let effectiveWidth = width  // Use passed scale width directly
+                let effectiveWidth = dimensions.width  // Use dimensions scale width
                 let basePosition = cursorState.position(for: side) * effectiveWidth
                 
                 // CursorView reads currentReadings internally to isolate Observable dependency
@@ -116,7 +105,6 @@ struct CursorOverlay: View {
                     height: height,
                     cursorState: cursorState,  // Pass state, let CursorView read readings
                     side: side,
-                    scaleHeight: scaleHeight,
                     displayConfig: displayConfig,
                     showReadings: showReadings,
                     showGradients: showGradients,
@@ -246,7 +234,7 @@ struct CursorOverlay: View {
                                     let readingsCount = side == .front 
                                         ? cursorState.currentReadings?.frontReadings.count ?? 0
                                         : cursorState.currentReadings?.backReadings.count ?? 0
-                                    let index = Int(floor(drag.location.y / scaleHeight))
+                                    let index = Int(floor(drag.location.y / dimensions.scaleHeight))
                                     if index >= 0 && index < readingsCount {
                                         highlightedScaleIndex = index
                                     } else {
@@ -319,11 +307,11 @@ struct CursorOverlay: View {
                     isEnabled: isCursorDragEnabled  // Disables during pinch-zoom to prevent gesture conflict
                 )
             }
-            .frame(width: width)  // Constrain to scale width
+            .frame(width: dimensions.width)  // Constrain to scale width
             
             // Right margin spacer (matches ScaleView right margin + spacing)
             Color.clear
-                .frame(width: CursorCoordinateSystem.cursorMarginSpacerWidth(marginWidth: rightMarginWidth))
+                .frame(width: CursorCoordinateSystem.cursorMarginSpacerWidth(marginWidth: dimensions.rightMarginWidth))
         }
         .frame(height: height)
         .allowsHitTesting(cursorState.isEnabled)
@@ -339,15 +327,12 @@ struct CursorOverlay: View {
     let state = CursorState()
     
     CursorOverlay(
-        width: 800,
         height: 200,
         side: .front,
-        scaleHeight: 25,
-        leftMarginWidth: 64,
-        rightMarginWidth: 64,
         cursorDisplayMode: .constant(.values)
     )
     .environment(\.cursorState, state)
+    .environment(\.dimensions, .default)
     .background(Color.gray.opacity(0.2))
     .frame(width: 800, height: 200)
 }

@@ -371,17 +371,18 @@ struct SplitScalesPreview: View {
             VStack(spacing: 1) {
                 ForEach(Array(parserTestScales.enumerated()), id: \.offset) { index, scale in
                     ScaleView(
-                        generatedScale: scale,
-                        width: scaleLength,
-                        height: scaleHeight,
-                        leftMarginWidth: leftMarginWidth,
-                        rightMarginWidth: rightMarginWidth,
-                        nameFont: .system(size: nameFontSize, weight: .medium).monospacedDigit(),
-                        formulaFont: .system(size: formulaFontSize).monospacedDigit()
+                        generatedScale: scale
                     )
                     .frame(height: scaleHeight)
                 }
             }
+            .environment(\.dimensions, Dimensions(
+                width: scaleLength,
+                scaleHeight: scaleHeight,
+                leftMarginWidth: leftMarginWidth,
+                rightMarginWidth: rightMarginWidth,
+                tier: .extraLarge
+            ))
         }
     }
 }

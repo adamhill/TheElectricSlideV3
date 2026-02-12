@@ -155,11 +155,26 @@ Per the SwiftUI expert skill: *"Pass only needed values to views (avoid large 'c
 
 ---
 
-## Recommendation 5: @Environment for Layout Context ⏭ NOT IMPLEMENTED
+## Recommendation 5: @Environment for Layout Context ✅
 
-**Status:** Low priority, deferred
+**Status:** Implemented
 
-**Rationale:** Only worth doing if parameter threading still feels painful after Recs 1+2. The trade-off per WWDC2025 is that every environment change causes all readers to check if their value changed. Since `Dimensions` only changes on window resize, the cost would be near-zero, but the benefit is also minimal given the current clean state.
+**Rationale:** The 6 core layout values (`width`, `scaleHeight`, `leftMarginWidth`, `rightMarginWidth`, `nameFont`, `formulaFont`) were threaded through init parameters across ~7 views, totaling ~38 parameter occurrences. Since `Dimensions` only changes on window resize, the environment invalidation cost is near-zero per WWDC2025 guidance, while the benefit of eliminating repetitive parameter threading is substantial.
+
+**Changes:**
+- **Modified** `Models/LayoutConfiguration.swift` — Added `nameFont`/`formulaFont` convenience computed properties to `Dimensions` struct; added `DimensionsKey` EnvironmentKey and `EnvironmentValues.dimensions` extension
+- **Modified** `Components/DynamicSlideRuleContent.swift` — Removed `nameFont`/`formulaFont` let properties; injects `.environment(\.dimensions, renderDimensions)` so all child views read the debounced value
+- **Modified** `Components/SlideRuleDetailView.swift` — Removed `nameFont`/`formulaFont` arguments from `DynamicSlideRuleContent` init call
+- **Modified** `Components/SideView.swift` — Removed 6 layout init params; added `@Environment(\.dimensions)`
+- **Modified** `Components/ScaleContainerView.swift` — Removed 6 layout init params; added `@Environment(\.dimensions)`
+- **Modified** `Components/ScaleView.swift` — Removed 6 layout init params; added `@Environment(\.dimensions)`
+- **Modified** `Cursor/CursorOverlay.swift` — Removed 4 layout init params (kept `height` for totalScaleHeight); added `@Environment(\.dimensions)`
+- **Modified** `Cursor/CursorView.swift` — Removed `scaleHeight` init param; added `@Environment(\.dimensions)`
+- **Modified** Preview files (`SplitScaleTestComponent.swift`, `ScalePairTestComponent.swift`, `SplitScalesPreview.swift`) — Updated call sites and injected `.environment(\.dimensions, ...)`
+
+**Impact:** ~38 layout-related init parameter occurrences eliminated. Each view now reads layout via `@Environment(\.dimensions)`. The debounce behavior in `DynamicSlideRuleContent` is preserved — `renderDimensions` (not `calculatedDimensions`) is injected into the environment.
+
+**Design decision:** Used a focused `@Environment(\.dimensions)` rather than the pre-existing `SlideRuleContext` (which bundles `slideRule`, `viewMode`, `dimensions`, and `cursorState`). Per SwiftUI best practice: "Pass only needed values to views (avoid large 'config' or 'context' objects)."
 
 ---
 
@@ -168,20 +183,20 @@ Per the SwiftUI expert skill: *"Pass only needed values to views (avoid large 'c
 ```
 ContentView
   └─ SlideRuleDetailView
-       └─ DynamicSlideRuleContent
+       └─ DynamicSlideRuleContent          ← injects .environment(\.dimensions)
             │   (uses ruleSideContent() for both front and back)
-            ├─ SideView
-            │    ├─ statorContent()     ← private @ViewBuilder (was StatorView)
-            │    │    └─ ScaleContainerView<Stator>
-            │    │         └─ ScaleView × N
-            │    ├─ slideContent         ← private @ViewBuilder (was SlideView)
-            │    │    └─ ScaleContainerView<Slide>
+            ├─ SideView                     ← reads @Environment(\.dimensions)
+            │    ├─ statorContent()         ← private @ViewBuilder (was StatorView)
+            │    │    └─ ScaleContainerView ← reads @Environment(\.dimensions)
+            │    │         └─ ScaleView × N ← reads @Environment(\.dimensions)
+            │    ├─ slideContent            ← private @ViewBuilder (was SlideView)
+            │    │    └─ ScaleContainerView
             │    │         └─ ScaleView × N
             │    └─ statorContent()
-            │         └─ ScaleContainerView<Stator>
+            │         └─ ScaleContainerView
             │              └─ ScaleView × N
-            ├─ CursorOverlay            ← gesture attachment + spatial layout
-            │    └─ CursorView          ← pure visual rendering
+            ├─ CursorOverlay               ← reads @Environment(\.dimensions)
+            │    └─ CursorView             ← reads @Environment(\.dimensions)
             ├─ CursorReadingsContainer
             │    └─ CursorReadingsDisplayView
             └─ FlipButton
@@ -193,15 +208,17 @@ ContentView
 |------|--------|-----|
 | `Components/StatorView.swift` | **Deleted** | 1 |
 | `Components/SlideView.swift` | **Deleted** | 1 |
-| `Components/SideView.swift` | Inlined stator + slide as private methods | 1 |
-| `Components/DynamicSlideRuleContent.swift` | Extracted `ruleSideContent()` | 2 |
+| `Components/SideView.swift` | Inlined stator + slide as private methods; reads `@Environment(\.dimensions)` instead of 6 init params | 1, 5 |
+| `Components/DynamicSlideRuleContent.swift` | Extracted `ruleSideContent()`; injects `.environment(\.dimensions, renderDimensions)` | 2, 5 |
+| `Components/SlideRuleDetailView.swift` | Removed `nameFont`/`formulaFont` forwarding | 5 |
+| `Components/ScaleContainerView.swift` | Reads `@Environment(\.dimensions)` instead of 6 init params | 5 |
 | `ContentView.swift` | Updated comments | 1 |
 | `Cursor/CursorCoordinateSystem.swift` | **Created** — centralized constants + math | Pre |
-| `Cursor/CursorOverlay.swift` | Removed gesture math (delegated to GestureHandler) | 3 |
-| `Cursor/CursorView.swift` | Constants delegate to CursorCoordinateSystem | Pre |
+| `Cursor/CursorOverlay.swift` | Removed gesture math (delegated to GestureHandler); reads `@Environment(\.dimensions)` instead of 4 init params | 3, 5 |
+| `Cursor/CursorView.swift` | Constants delegate to CursorCoordinateSystem; reads `@Environment(\.dimensions)` instead of `scaleHeight` param | Pre, 5 |
 | `Cursor/CursorState.swift` | Uses centralized halfCursorWidth | Pre |
-| `Components/ScaleView.swift` | Uses CursorCoordinateSystem.scaleHStackSpacing | Pre |
-| `Models/LayoutConfiguration.swift` | Uses CursorCoordinateSystem.totalMarginSpacing | Pre |
+| `Components/ScaleView.swift` | Uses CursorCoordinateSystem.scaleHStackSpacing; reads `@Environment(\.dimensions)` instead of 6 init params | Pre, 5 |
+| `Models/LayoutConfiguration.swift` | Uses CursorCoordinateSystem.totalMarginSpacing; added `DimensionsKey` EnvironmentKey + `nameFont`/`formulaFont` convenience | Pre, 5 |
 | `Extensions/ContentView+Gestures.swift` | Uses centralized halfCursorWidth | Pre |
 | `Utilities/GestureHandler.swift` | Added cursor position drag handlers | 3 |
 | `TheElectricSlideTests/CursorCoordinateSystemTests.swift` | **Created** — 50 contract tests | Pre |

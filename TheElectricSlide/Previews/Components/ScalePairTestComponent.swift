@@ -130,14 +130,15 @@ struct ScalePairTestComponent: View {
             
             // Scale visualization
             ScaleView(
-                generatedScale: scale,
+                generatedScale: scale
+            )
+            .environment(\.dimensions, Dimensions(
                 width: scaleLength,
-                height: scaleHeight,
+                scaleHeight: scaleHeight,
                 leftMarginWidth: leftMarginWidth,
                 rightMarginWidth: rightMarginWidth,
-                nameFont: .system(size: 14, weight: .medium).monospacedDigit(),
-                formulaFont: .system(size: 12).monospacedDigit()
-            )
+                tier: .extraLarge
+            ))
             .frame(height: scaleHeight)
             
             // Bottom boundary tick mark (blue at 100%) - only for last scale

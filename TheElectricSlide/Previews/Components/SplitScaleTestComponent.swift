@@ -266,26 +266,21 @@ RIGHT segment (\(rightScale.definition.name)):
             
             // Left segment
             ScaleView(
-                generatedScale: leftScale,
-                width: scaleLength,
-                height: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: .system(size: 14, weight: .medium).monospacedDigit(),
-                formulaFont: .system(size: 12).monospacedDigit()
+                generatedScale: leftScale
             )
             
             // Right segment
             ScaleView(
-                generatedScale: rightScale,
-                width: scaleLength,
-                height: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: .system(size: 14, weight: .medium).monospacedDigit(),
-                formulaFont: .system(size: 12).monospacedDigit()
+                generatedScale: rightScale
             )
         }
+        .environment(\.dimensions, Dimensions(
+            width: scaleLength,
+            scaleHeight: scaleHeight,
+            leftMarginWidth: leftMarginWidth,
+            rightMarginWidth: rightMarginWidth,
+            tier: .extraLarge
+        ))
         .frame(height: scaleHeight)
     }
     

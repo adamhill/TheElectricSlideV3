@@ -43,6 +43,14 @@ nonisolated struct Dimensions: Equatable, @unchecked Sendable {
     var rightMarginWidth: CGFloat
     var tier: LayoutTier
     
+    // MARK: - Convenience Accessors (font shortcuts from tier)
+    
+    /// Font for scale names — delegates to ``LayoutTier/nameFont``
+    var nameFont: Font { tier.nameFont }
+    
+    /// Font for scale formulas — delegates to ``LayoutTier/formulaFont``
+    var formulaFont: Font { tier.formulaFont }
+    
     /// Default dimensions for initial state
     static let `default` = Dimensions(
         width: 800,
@@ -240,5 +248,21 @@ extension LayoutTier: Equatable {
         default:
             return false
         }
+    }
+}
+
+// MARK: - Environment Key
+
+/// EnvironmentKey for propagating layout dimensions through the view hierarchy.
+/// Injected at ``DynamicSlideRuleContent`` level using the debounced `renderDimensions`,
+/// so every child view reads the same settled value without parameter threading.
+private struct DimensionsKey: EnvironmentKey {
+    static let defaultValue: Dimensions = .default
+}
+
+extension EnvironmentValues {
+    var dimensions: Dimensions {
+        get { self[DimensionsKey.self] }
+        set { self[DimensionsKey.self] = newValue }
     }
 }

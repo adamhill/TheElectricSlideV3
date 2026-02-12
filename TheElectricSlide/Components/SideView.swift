@@ -25,17 +25,12 @@ struct SideView: View, Equatable {
     @Environment(\.gestureHandler) private var gestureHandler
     @Environment(\.slideRuleViewModel) private var viewModel
     @Environment(\.cursorState) private var cursorState
+    @Environment(\.dimensions) private var dimensions
     
     let side: RuleSide
     let topStator: Stator
     let slide: Slide
     let bottomStator: Stator
-    let width: CGFloat
-    let scaleHeight: CGFloat
-    let leftMarginWidth: CGFloat
-    let rightMarginWidth: CGFloat
-    let nameFont: Font
-    let formulaFont: Font
     let ruleId: UUID?  // Track rule identity for view updates
     let currentZoomScale: CGFloat  // Current zoom level for pan gesture control
     let isActiveForSliderOffset: Bool  // OPTIMIZATION: Only true for visible side to prevent back side from observing sliderOffset
@@ -93,13 +88,10 @@ struct SideView: View, Equatable {
     // Note: sliderOffset is NOT compared - it's read directly from viewModel and only affects .offset() modifier
     // Note: isActiveForSliderOffset IS compared - determines if this side observes sliderOffset
     // ruleId is compared to force re-render when rule changes
+    // Note: dimensions come from @Environment and are compared via SwiftUI's environment diffing
     static func == (lhs: SideView, rhs: SideView) -> Bool {
         lhs.side == rhs.side &&
         lhs.ruleId == rhs.ruleId &&  // Compare rule ID to detect rule changes
-        lhs.width == rhs.width &&
-        lhs.scaleHeight == rhs.scaleHeight &&
-        lhs.leftMarginWidth == rhs.leftMarginWidth &&
-        lhs.rightMarginWidth == rhs.rightMarginWidth &&
         lhs.currentZoomScale == rhs.currentZoomScale &&
         lhs.isActiveForSliderOffset == rhs.isActiveForSliderOffset &&
         lhs.useManufacturerColors == rhs.useManufacturerColors &&
@@ -345,14 +337,8 @@ struct SideView: View, Equatable {
     private func statorContent(stator: Stator) -> some View {
         ScaleContainerView(
             container: stator,
-            width: width,
             backgroundColor: statorBackgroundColor,
             borderColor: side.borderColor,
-            scaleHeight: scaleHeight,
-            leftMarginWidth: leftMarginWidth,
-            rightMarginWidth: rightMarginWidth,
-            nameFont: nameFont,
-            formulaFont: formulaFont,
             ruleId: ruleId,
             scaleCount: stator.scales.count,
             useManufacturerColors: useManufacturerColors,
@@ -410,14 +396,8 @@ struct SideView: View, Equatable {
             // Slide rendering - precision mode intensifies scale colors via ScaleContainerView
             ScaleContainerView(
                 container: slide,
-                width: width,
                 backgroundColor: slideBackgroundColor,
                 borderColor: .orange,
-                scaleHeight: scaleHeight,
-                leftMarginWidth: leftMarginWidth,
-                rightMarginWidth: rightMarginWidth,
-                nameFont: nameFont,
-                formulaFont: formulaFont,
                 ruleId: ruleId,
                 scaleCount: slide.scales.count,
                 useManufacturerColors: useManufacturerColors,
@@ -443,7 +423,7 @@ struct SideView: View, Equatable {
     private var slidePrecisionOverlay: some View {
         // Get precision color from color scheme (centralized in SlideRuleColorScheme)
         let precisionColor: Color = colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)
-        let slideHeight = scaleHeight * CGFloat(slide.scales.count)
+        let slideHeight = dimensions.scaleHeight * CGFloat(slide.scales.count)
         
         VStack(spacing: 0) {
             // Top edge gradient - increased opacity for better visibility
@@ -457,7 +437,7 @@ struct SideView: View, Equatable {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(width: width, height: slideHeight * 0.25)
+            .frame(width: dimensions.width, height: slideHeight * 0.25)
             .allowsHitTesting(false)
             .accessibilityIdentifier("slide-precision-gradient-top")
             
@@ -474,11 +454,11 @@ struct SideView: View, Equatable {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(width: width, height: slideHeight * 0.25)
+            .frame(width: dimensions.width, height: slideHeight * 0.25)
             .allowsHitTesting(false)
             .accessibilityIdentifier("slide-precision-gradient-bottom")
         }
-        .frame(width: width, height: slideHeight)
+        .frame(width: dimensions.width, height: slideHeight)
         .allowsHitTesting(false)
         .accessibilityIdentifier("slide-precision-overlay-container")
     }

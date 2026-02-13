@@ -38,12 +38,18 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - ✅ **Fastest iteration** - Native execution, no simulator overhead
   - ✅ **Most reliable** - Direct hardware access, consistent behavior
   - ✅ **Best debugging** - Full Xcode integration, Instruments support
-  - ✅ **User preference** - Developer manually tests on real iOS devices
+  - ✅ **User preference** - ⚠️ **Developer manually tests on REAL iOS/iPadOS devices** (iPhone, iPad hardware)
   
   **iOS/iPad simulators are SECONDARY** - Use only when:
   - Specifically testing iPhone-only features (FlipButton, compact layouts)
   - Validating device-specific breakpoints or size classes
-  - User explicitly requests iOS simulator testing
+  - User explicitly requests simulator testing
+  - ⚠️ **Note**: Simulators cannot test haptics - haptic feedback requires physical devices
+  
+  **Real Device Testing (Developer's Responsibility):**
+  - **Agents build and run on macOS** for rapid iteration and automated testing
+  - **User manually tests on real hardware** for haptics, gestures, and device-specific validation
+  - **Pattern**: Agents verify functionality on macOS → User validates on physical iPhone/iPad
   
   - **Platform priority (in order):**
     - 🥇 **macOS: My Mac (native)** ← DEFAULT CHOICE
@@ -58,10 +64,32 @@ A modern macOS/iOS slide rule application with a **strict separation** between c
   - `swift build` - Build package
   - `swift test --filter .fast` - Run tagged tests
 - ✅ **Full debugging** with Xcode, Instruments, breakpoints
-- ✅ **Apple Documentation Access**: Use MCP servers for API lookup
-  - `mcp_sosumi_searchAppleDocumentation` / `mcp_sosumi_fetchAppleDocumentation` - Apple Developer docs and HIG
-  - `mcp_apple-docs_*` tools - Comprehensive Apple API documentation, WWDC videos, sample code
-  - `mcp_dash-api_search_documentation` - Search installed Dash docsets (Swift, SwiftUI, UIKit, etc.)
+- ✅ **Apple Documentation Access**: Use MCP servers for API lookup, best practices, and WWDC sessions
+  - **Sosumi MCP** (`mcp_sosumi_*`):
+    - `searchAppleDocumentation` - Quick search across Apple Developer docs and HIG
+    - `fetchAppleDocumentation` - Retrieve specific documentation pages
+    - **Use for**: SwiftUI API questions, HIG patterns, quick API reference lookups
+    - **Example**: "How does `onGeometryChange` work?" → `mcp_sosumi_searchAppleDocumentation("onGeometryChange SwiftUI")`
+  - **Apple Docs MCP** (`mcp_apple-docs_*`):
+    - `get_apple_doc_content` - Detailed API documentation pages with full descriptions
+    - `get_related_apis` - Discover related APIs and alternatives (e.g., "What can I use instead of GeometryReader?")
+    - `get_platform_compatibility` - Check API availability across iOS/macOS versions
+    - `get_sample_code` - Browse official Apple sample code projects
+    - `search_wwdc_content` / `get_wwdc_video` - WWDC session transcripts and code examples
+    - **Use for**: Deep API understanding, migration guides, WWDC session lookups, best practices
+    - **Example**: "Show me WWDC sessions about SwiftUI performance" → `mcp_apple-docs_search_wwdc_content("SwiftUI performance")`
+  - **Dash API MCP** (`mcp_dash-api_*`):
+    - `search_documentation` - Search locally installed Dash docsets (Swift, SwiftUI, UIKit, Foundation)
+    - `list_installed_docsets` - See available offline documentation
+    - **Use for**: Fast offline lookups, standard library APIs, Foundation types
+    - **Example**: "Swift Sendable documentation" → `mcp_dash-api_search_documentation("Sendable")`
+  
+  **When to Use Which MCP:**
+  - **Quick API lookups**: Sosumi MCP (fastest, searches Apple docs directly)
+  - **Deep understanding**: Apple Docs MCP (full pages, related APIs, WWDC sessions)
+  - **Offline/fast reference**: Dash API MCP (local docsets, standard library)
+  - **WWDC research**: Apple Docs MCP (transcripts, code examples, session videos)
+  - **Pattern validation**: Any MCP → "Is this the idiomatic SwiftUI approach?"
 
 ### Remote Agents (Cloud/Sandbox Environments - Linux Runners)
 **Swift Package Development** - Full capability for calculation engine:
@@ -179,9 +207,49 @@ The app follows a clean MVVM-inspired architecture with separate concerns:
 **Utilities** (`Utilities/`):
 - `GestureHandler.swift` - Centralized gesture coordination (Phase 4 refactor)
 - `PrecisionDragCoordinator.swift` - Unified precision mode for slide/cursor
-- `TickHapticCoordinator.swift` - Haptic feedback on tick mark crossings
+- `TickHapticCoordinator.swift` - Haptic feedback on tick mark crossings (slide AND cursor movement)
 - `DeviceDetection.swift` - Device category detection (iPhone/iPad/Mac)
 - `ScrollWheelZoomModifier.swift` - Mouse wheel zoom support (macOS)
+
+**Haptic Feedback System:**
+
+The app provides tactile feedback when the cursor crosses tick marks during slide or cursor dragging:
+
+**Architecture:** `Utilities/TickHapticCoordinator.swift`
+- **Observable State**: `@Observable` class tracks tick crossings
+- **Unified Integration**: Both slide dragging AND cursor dragging trigger haptics via same coordinator
+- **Scale Selection**: Prioritizes C scale, falls back to first available scale
+- **Hairline Position**: Uses cursor position + half cursor width for accurate tick detection
+- **Tick Threshold**: Only major ticks (relativeLength ≥ 0.4) trigger haptics
+- **Position Tolerance**: 0.01 normalized units prevents duplicate haptics
+- **Reset on Drag End**: Clears state so each new drag starts fresh
+
+**Implementation Pattern:**
+```swift
+// Both slide and cursor use identical haptic pattern:
+let hapticScale = TickHapticCoordinator.selectHapticScale(viewMode, currentSlideRule)
+if let scale = hapticScale {
+    let hairlinePosition = cursorNormalizedPosition + halfCursorWidthNormalized
+    tickHapticCoordinator.checkTickCrossing(
+        cursorNormalizedPosition: hairlinePosition,
+        slideOffset: viewModel.sliderOffset,
+        scaleWidth: scaleWidth,
+        cScale: scale
+    )
+}
+
+// On drag end: tickHapticCoordinator.reset()
+```
+
+**Integration Points:**
+- **Slide Dragging**: `ContentView+Gestures.swift` → `handleDragChanged()` → direct `checkTickCrossing()` call
+- **Cursor Dragging**: `CursorOverlay.swift` → `GestureHandler.handleCursorPositionDragChanged()` → `handleCursorDragChanged()` → `checkTickCrossing()` call
+- **Precision Mode**: Same haptic behavior during precision dragging (5× slower movement, same tick feedback)
+
+**HapticService Protocol:**
+- Default implementation uses `UIImpactFeedbackGenerator` / `NSHapticFeedbackManager`
+- Injectable for testing via protocol
+- Event types: `.tickCrossed(level: .major/.medium/.minor)`, `.longBuzz` (precision mode activation)
 
 **Performance-Critical Patterns (see `swift-docs/swift-sliderule-rendering-improvements.md`):**
 
@@ -366,9 +434,33 @@ static func generateCombinations() -> [String] {
 
 ### Building (Local Agents)
 
-CRITICAL: Prefer using Terminal commands first to build the app for checking for syntax errors and running tests
+**⚠️ CRITICAL: Always prefer Terminal commands FIRST for syntax checks and builds**
 
-**Using Xcodebuild MCP Server (Recommended for Local Agents):**
+**Terminal-First Workflow (Fastest Feedback Loop):**
+```bash
+# 1. Build app to check for compilation errors (FAST - no UI launch)
+cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide
+xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide -destination 'platform=macOS' build
+
+# 2. Run Swift package tests (calculation engine only)
+cd SlideRuleCoreV3
+swift test
+
+# 3. Build Swift package to verify changes
+swift build
+
+# 4. Run specific test suites
+swift test --filter .fast
+swift test --filter "Hemmi|H266"
+```
+
+**When to Use XcodeBuild MCP (After Terminal Build Succeeds):**
+
+Only use MCP tools when you need to:
+- **Visual verification** - See the UI actually running
+- **Interactive testing** - Drag, tap, swipe gestures
+- **Screenshot capture** - Document UI state
+- **UI hierarchy inspection** - Read accessibility tree with `describe_ui`
 
 ### ⚠️ ALWAYS START WITH macOS - THIS IS MANDATORY
 
@@ -389,10 +481,9 @@ mcp_xcodebuildmcp_build_run_macos()
 // - Split view layouts
 // - Sidebar behavior on iPad
 // - Regular size class with different dimensions than Mac
-// macOS simualtor is not working for some reason
+// macOS simulator is not working for some reason
 
 mcp_xcodebuildmcp_build_run_sim()  // For iPad 13-inch (M5)
-```
 
 // ========================================
 // 🥈 STEP 3: iOS Simulator (ONLY IF NEEDED)
@@ -421,13 +512,13 @@ mcp_xcodebuildmcp_type_text({ simulatorUuid: "<uuid>", text: "test input" })
 mcp_xcodebuildmcp_screenshot({ simulatorUuid: "<uuid>" })
 ```
 
-**Using Terminal Commands:**
+**Using Terminal Commands (Production Workflow):**
 ```bash
 # ====== Local Agents (macOS with Xcode) ======
 # Xcode project (not workspace)
 open TheElectricSlide.xcodeproj
 
-# Command line build (app + tests)
+# Command line build (app + tests) - FASTEST for syntax validation
 xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide
 
 # ====== Remote Agents (Linux Runners) & Local Agents ======
@@ -488,6 +579,46 @@ swift test --verbose
 - **Pattern**: `colorScheme?.precisionOverlayColor ?? Color(red: 1.0, green: 0.4, blue: 0.3)` (fallback only)
 - **Documentation**: Add `**Color Source:**` comments referencing `SlideRuleColorScheme` property
 
+## Current Feature Status
+
+### ✅ Fully Implemented & Tested
+- **Core Calculation Engine** - `SlideRuleCoreV3` package with 100+ scales
+- **SwiftUI Rendering** - Canvas-based rendering with Metal acceleration
+- **Glass Cursor System** - Draggable cursor with live readings across all scales
+- **Haptic Feedback** - Tick crossing haptics for both slide AND cursor movement
+- **Precision Mode** - 5× slower dragging with long-press activation
+- **Gesture System** - Pinch zoom, pan, slide/cursor drag, vertical flick navigation
+- **Responsive Layout** - 4-tier breakpoint system (small/medium/large/extraLarge)
+- **Device Detection** - iPhone vs iPad/Mac conditional UI (FlipButton, sidebars)
+- **SwiftData Persistence** - Rule definitions and current selection saved
+- **Multiple Manufacturer Themes** - K&E, Hemmi, Faber-Castell color schemes
+
+### 🚧 Known Gaps & Future Work
+- **Circular Scales** - Not yet implemented (see `circularSpec` in models)
+- **Test Coverage** - Some scale types need additional test cases
+- **Documentation** - Some advanced scale functions need more examples
+- **Performance** - Minor optimization opportunities for very large rule definitions
+
+## Testing on Real Devices vs Simulators
+
+**Agent Responsibility:**
+- ✅ Build and run on macOS for rapid iteration
+- ✅ Test logic, calculations, layout, rendering
+- ✅ Verify UI state with screenshots and describe_ui
+- ✅ Run unit tests for calculation engine
+
+**User Responsibility (Manual Testing):**
+- 📱 Test haptics on real iPhone/iPad (simulators can't test haptics)
+- 📱 Validate gestures on physical touchscreen
+- 📱 Verify device-specific behavior (Face ID, haptic engines, sensors)
+- 📱 Test across different device sizes (iPhone Pro Max vs SE, iPad 11" vs 13")
+
+**Why This Division:**
+- Haptic feedback requires actual haptic hardware (Taptic Engine)
+- Gesture refinement benefits from real touch input
+- macOS provides fastest iteration for development
+- Physical devices provide final validation
+
 ## Critical "Don'ts"
 
 1. **Don't add drawing code to SlideRuleCoreV3** - It's a calculation engine only
@@ -495,36 +626,84 @@ swift test --verbose
 3. **Don't use GeometryReader for dimension tracking** - Use `onGeometryChange`
 4. **Don't make stators depend on slider state** - Keep `sliderOffset` isolated
 5. **Don't use XCTest** - Project uses Swift Testing framework exclusively
+6. **Don't skip terminal builds** - Always run `xcodebuild` or `swift test` BEFORE using MCP tools
+7. **Don't test on iOS simulator first** - Always start with macOS for UI verification
+8. **Don't assume haptics work in simulator** - Real device testing required
+9. **Don't hardcode RGB values** - Use `SlideRuleColorScheme` properties for all colors
+10. **Don't implement without checking MCP** - Verify modern Swift/SwiftUI patterns first
 
 ## Reference Materials
 
 **In-Repo Documentation:**
 - `reference/postscript-rule-engine-explainer.md` - Original PostScript algorithm (1000+ lines)
-- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory
+- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory on why as slide rule work / how it works
 - `swift-docs/swift-sliderule-rendering-improvements.md` - Performance optimization guide
 - `swift-docs/swift-testing-playbook.md` - Testing best practices
 - `swift-docs/responsive-margin-implementation.md` - Responsive layout system
 - `swift-docs/device-specific-breakpoints-plan.md` - iPhone/iPad detection patterns
 - `swift-docs/glass-cursor-master-plan.md` - ⭐ **CRITICAL** - Complete cursor architecture and implementation
 - `swift-docs/cursor-reading-quick-reference.md` - Cursor interaction patterns
+- `swift-docs/navigation-gestures-haptics-implementation.md` - Complete gesture and haptic system documentation
 - `reference/api-examples/initial-README.md` - API usage examples
 
-**External References (Use MCP Servers):**
-- **Sosumi MCP**: `mcp_sosumi_searchAppleDocumentation` / `mcp_sosumi_fetchAppleDocumentation`
-  - Search and fetch Apple Developer documentation and Human Interface Guidelines
-  - Example: Search for "SwiftUI onGeometryChange", "Canvas rendering", "SwiftData persistence"
-- **Apple Docs MCP**: `mcp_apple-docs_*` tools
-  - `mcp_apple-docs_get_apple_doc_content` - Detailed API documentation pages
-  - `mcp_apple-docs_get_related_apis` - Discover related APIs and alternatives
-  - `mcp_apple-docs_get_platform_compatibility` - Check API availability across OS versions
-  - `mcp_apple-docs_get_sample_code` - Browse Apple sample code projects
-  - Use for: WWDC session lookup, framework updates, migration guides
-- **Dash API MCP**: `mcp_dash-api_search_documentation`
-  - Search locally installed Dash docsets (Swift, SwiftUI, UIKit, Foundation, etc.)
-  - Faster than online searches for standard APIs
-  - Use `mcp_dash-api_list_installed_docsets` to see available documentation
-- WWDC 2024: SwiftUI Essentials (`onGeometryChange`)
-- Swift Testing documentation: https://developer.apple.com/documentation/testing
+**External References - Use MCP Servers for Live Documentation:**
+
+**Pattern: Always verify modern Swift/SwiftUI patterns via MCP before implementing**
+
+### When to Use MCP Servers:
+
+1. **Before implementing new features**: "What's the idiomatic SwiftUI way to handle X?"
+   ```
+   mcp_sosumi_searchAppleDocumentation("SwiftUI X pattern")
+   mcp_apple-docs_get_related_apis("SwiftUI.X")
+   ```
+
+2. **When encountering deprecated APIs**: "Is there a better alternative?"
+   ```
+   mcp_apple-docs_get_platform_compatibility("GeometryReader")
+   mcp_apple-docs_get_related_apis("SwiftUI.GeometryReader")
+   ```
+
+3. **For performance optimization**: "What did Apple recommend at WWDC?"
+   ```
+   mcp_apple-docs_search_wwdc_content("SwiftUI performance Canvas")
+   mcp_apple-docs_get_wwdc_video(<video_id>)
+   ```
+
+4. **For design patterns**: "What does the HIG say about X?"
+   ```
+   mcp_sosumi_fetchAppleDocumentation("Human Interface Guidelines X")
+   ```
+
+### Key MCP Tools Reference:
+
+| Task | MCP Tool | Example |
+|------|----------|---------|
+| Quick API search | `mcp_sosumi_searchAppleDocumentation` | `("onGeometryChange SwiftUI")` |
+| Full API docs | `mcp_apple-docs_get_apple_doc_content` | `("SwiftUI/View/onGeometryChange")` |
+| Find alternatives | `mcp_apple-docs_get_related_apis` | `("SwiftUI.GeometryReader")` |
+| WWDC sessions | `mcp_apple-docs_search_wwdc_content` | `("Canvas rendering performance")` |
+| Local docsets | `mcp_dash-api_search_documentation` | `("Sendable Swift")` |
+| Sample code | `mcp_apple-docs_get_sample_code` | `("SwiftUI state management")` |
+
+**Don't hardcode assumptions** - Verify modern patterns via MCP servers, especially for:
+- Swift 6 concurrency (`@Sendable`, `@MainActor`)
+- SwiftUI lifecycle (iOS 18+, macOS 15+)
+- Performance best practices (Canvas, `.drawingGroup()`, modifiers)
+- Gesture handling and coordination
+
+**Example MCP Usage Flow:**
+```
+User asks: "Should I use GeometryReader for tracking view size?"
+↓
+Agent searches: mcp_sosumi_searchAppleDocumentation("GeometryReader alternatives SwiftUI")
+↓
+Agent finds: onGeometryChange (iOS 18+) is preferred
+↓
+Agent confirms: mcp_apple-docs_get_apple_doc_content("SwiftUI/View/onGeometryChange")
+↓
+Agent implements using modern API + documents reason in code comment
+```
 
 ## Quick Start for AI Agents
 
@@ -533,16 +712,37 @@ swift test --verbose
 3. **Performance context:** Read `swift-docs/swift-sliderule-rendering-improvements.md` solutions 1-5
 4. **Testing patterns:** Check existing tests in `SlideRuleCoreV3Tests/` for @Suite/@Test examples
 5. **Rendering flow:** Trace `ContentView.swift` → `StatorView`/`SlideView` → `ScaleView` → Canvas
-6. **Interactive testing workflow (⚠️ ALWAYS USE macOS FIRST):**
+6. **Haptics system:** Read `TickHapticCoordinator.swift` to understand tick crossing detection for slide AND cursor
+7. **Interactive testing workflow (⚠️ ALWAYS USE macOS FIRST):**
    - **🥇 PRIMARY:** Build and run on macOS: `mcp_xcodebuildmcp_build_run_macos()` ← START HERE
    - Take screenshots: `mcp_xcodebuildmcp_screenshot` to observe UI state
-   `mcp_xcodebuildmcp_describe_ui` to DETERMINISTICALLY observe UI states and read scale names, formulas, annotations and other text on the slide rule and UI.
+   - Inspect deterministically: `mcp_xcodebuildmcp_describe_ui` to read scale names, formulas, annotations, and UI text
    - Interact: `mcp_xcodebuildmcp_tap`, `mcp_xcodebuildmcp_swipe`, `mcp_xcodebuildmcp_type_text`
    - Verify: Take another screenshot to confirm expected behavior
    - **Only use iOS simulator** if testing iPhone-specific features (FlipButton, compact layout)
-7. **API documentation lookup:**
-   - Quick search: `mcp_sosumi_searchAppleDocumentation` for Swift/SwiftUI APIs
-   - Detailed docs: `mcp_apple-docs_get_apple_doc_content` for full API references
-   - Local docsets: `mcp_dash-api_search_documentation` for fast offline lookup
+   - **Remember**: Haptics require real devices - user tests those manually
+8. **API documentation lookup (REQUIRED for modern Swift/SwiftUI):**
+   - Quick search: `mcp_sosumi_searchAppleDocumentation("API name SwiftUI")`
+   - Detailed docs: `mcp_apple-docs_get_apple_doc_content("SwiftUI/View/APIName")`
+   - Find alternatives: `mcp_apple-docs_get_related_apis("SwiftUI.OldAPI")`
+   - WWDC sessions: `mcp_apple-docs_search_wwdc_content("topic keywords")`
+   - Local docsets: `mcp_dash-api_search_documentation("Swift type")`
 
-   NOTE: UI testing is flaky, even with mcp_
+**Best Practice Flow:**
+```
+New feature request
+↓
+1. Research idiomatic pattern via MCP (sosumi/apple-docs)
+↓
+2. Read relevant in-repo docs (swift-docs/, reference/)
+↓
+3. Implement following established patterns
+↓
+4. Build and test on macOS (mcp_xcodebuildmcp_build_run_macos)
+↓
+5. Verify with screenshots/describe_ui
+↓
+6. User validates haptics/gestures on real device
+```
+
+**Note**: UI testing via MCP can be flaky - use screenshots and describe_ui for verification, but expect occasional inconsistencies.

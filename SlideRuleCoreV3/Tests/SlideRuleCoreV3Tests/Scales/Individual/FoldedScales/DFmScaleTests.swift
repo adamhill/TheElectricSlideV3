@@ -424,7 +424,7 @@ struct DFmScaleTests {
     
     // MARK: - Integration with LL Scales
     
-    @Suite("Integration with LL Scales")
+    @Suite("DFm Scale with Log-Log Scales")
     struct LLScaleIntegrationTests {
         private let M = Double.log10e
         

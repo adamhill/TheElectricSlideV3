@@ -4,7 +4,7 @@ import Foundation
 
 /// Priority 2: Comprehensive ScaleFunction Implementations Test Suite
 /// Validates all scale function types and their transform/inverse behaviors
-@Suite("ScaleFunction Implementations")
+@Suite("Scale Mathematical Functions")
 struct ScaleFunctionImplementationsTests {
     
     // MARK: - Parametric Round-Trip Tests

@@ -30,7 +30,7 @@ struct PositionCalculationTests {
         subsections: []
     )
     
-    @Suite("Normalized Position Tests for Logarithmic Scales")
+    @Suite("Scale Position Tests for Logarithmic Scales")
     struct LogarithmicScalePositions {
         private let cScale = StandardScales.cScale(length: 250.0)
         
@@ -68,7 +68,7 @@ struct PositionCalculationTests {
         }
     }
     
-    @Suite("Normalized Position Tests for Squared Scales")
+    @Suite("Scale Position Tests for Squared Scales")
     struct SquaredScalePositions {
         private let aScale = StandardScales.aScale(length: 250.0)
         
@@ -108,7 +108,7 @@ struct PositionCalculationTests {
         }
     }
     
-    @Suite("Normalized Position Tests for Cubed Scales")
+    @Suite("Scale Position Tests for Cubed Scales")
     struct CubedScalePositions {
         private let kScale = StandardScales.kScale(length: 250.0)
         
@@ -146,7 +146,7 @@ struct PositionCalculationTests {
         }
     }
     
-    @Suite("Normalized Position Tests for Linear Scales")
+    @Suite("Scale Position Tests for Linear Scales")
     struct LinearScalePositions {
         private let lScale = StandardScales.lScale(length: 250.0)
         

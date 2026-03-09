@@ -134,7 +134,7 @@ struct SplitScaleDataStructureTests {
     
     // MARK: - ScaleDefinition Integration
     
-    @Suite("ScaleDefinition Split Segment Property")
+    @Suite("Scale Definition Split Segment Settings")
     struct ScaleDefinitionIntegration {
         
         @Test("ScaleDefinition accepts nil splitSegment (default)")
@@ -189,7 +189,7 @@ struct SplitScaleDataStructureTests {
     
     // MARK: - ScaleBuilder Integration
     
-    @Suite("ScaleBuilder Fluent API")
+    @Suite("Scale Builder Configuration")
     struct ScaleBuilderIntegration {
         
         @Test("ScaleBuilder withSplitSegment sets left segment")

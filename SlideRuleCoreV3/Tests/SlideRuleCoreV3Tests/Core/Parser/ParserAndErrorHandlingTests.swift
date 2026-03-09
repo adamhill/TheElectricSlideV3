@@ -482,7 +482,7 @@ struct ParserAndErrorHandlingTests {
         }
     }
     
-    @Suite("Boundary Value Tests")
+    @Suite("Extreme Scale Configurations")
     struct BoundaryValueTests {
         
         @Test("Very long scale definition parses correctly")
@@ -615,7 +615,7 @@ struct ParserAndErrorHandlingTests {
         }
     }
     
-    @Suite("Integration Tests")
+    @Suite("Complete Rule Definition Parsing")
     struct IntegrationTests {
         
         @Test("Complete valid rule definition parses and generates scales")

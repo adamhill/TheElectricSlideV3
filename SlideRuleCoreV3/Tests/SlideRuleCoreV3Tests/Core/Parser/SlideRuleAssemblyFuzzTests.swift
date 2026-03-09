@@ -565,7 +565,7 @@ struct SlideRuleAssemblyFuzzTests {
     
     // MARK: - Edge Case Tests
     
-    @Suite("Edge Case and Boundary Condition Fuzz Tests")
+    @Suite("Unusual and Extreme Rule Definitions")
     struct EdgeCaseCombinations {
         
         @Test("Edge cases including single scales and maximum complexity parse correctly",

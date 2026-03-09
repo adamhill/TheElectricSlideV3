@@ -62,7 +62,7 @@ struct KScaleFormatterTests {
         }
     }
     
-    @Suite("Full K Scale Integration")
+    @Suite("Complete K Scale Assembly")
     struct FullScaleIntegrationTests {
         
         @Test("K scale decade pattern: 1-10 repeats three times")

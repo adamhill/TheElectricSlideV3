@@ -7,7 +7,7 @@ import Foundation
 @Suite("Scale Position Calculations")
 struct ScalePositionCalculationsTests {
     
-    @Suite("Logarithmic Scale Normalized Positions")
+    @Suite("Logarithmic Scale Positions")
     struct LogarithmicNormalizedPositions {
         private let cScale = StandardScales.cScale(length: 250.0)
         private let dScale = StandardScales.dScale(length: 250.0)

@@ -9,7 +9,7 @@ import SlideRuleCoreV3
 @MainActor
 struct PDFGeneratorTests {
     
-    @Test func testFullSizeExport() throws {
+    @Test("Full-size slide rule exports to PDF") func testFullSizeExport() throws {
         // Create a basic slide rule
         let cScale = TestScaleFactory.createSimpleScale(name: "C", length: 708)
         let dScale = TestScaleFactory.createSimpleScale(name: "D", length: 708)
@@ -39,7 +39,7 @@ struct PDFGeneratorTests {
         try? FileManager.default.removeItem(at: fileURL)
     }
     
-    @Test func testPocketSizeExport() throws {
+    @Test("Pocket-size slide rule exports to PDF") func testPocketSizeExport() throws {
         let cScale = TestScaleFactory.createSimpleScale(name: "C", length: 354)
         
         let slideRule = SlideRule(

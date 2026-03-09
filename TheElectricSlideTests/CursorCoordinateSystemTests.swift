@@ -55,10 +55,10 @@ private let kPrecisionFactor: CGFloat = 5.0
 /// Standard test scale width (arbitrary, used across hairline/clamping tests)
 private let kTestScaleWidth: CGFloat = 800.0
 
-// MARK: - Group 1: Constants Consistency Tests
+// MARK: - Group 1: Cursor Dimension Standards Tests
 
 @MainActor
-@Suite("CP: Constants Consistency")
+@Suite("CP: Cursor Dimension Standards")
 struct ConstantsConsistencyTests {
 
     // MARK: - Test 1: ScaleView HStack spacing matches CursorOverlay margin offset
@@ -274,10 +274,10 @@ struct HairlinePositionCalculationTests {
     }
 }
 
-// MARK: - Group 3: Cursor Clamping Tests
+// MARK: - Group 3: Cursor Travel Limits Tests
 
 @MainActor
-@Suite("CP: Cursor Clamping Math")
+@Suite("CP: Cursor Travel Limits")
 struct CursorClampingTests {
 
     // CONTEXT:
@@ -304,7 +304,7 @@ struct CursorClampingTests {
 
     // MARK: - Test 9: Clamp at left boundary
 
-    @Test("Clamp at left boundary places hairline at 0")
+    @Test("Cursor at left limit places hairline at scale start")
     func clampLeftBoundary() {
         // If proposed position is far left (< -halfCursorWidth), it clamps to -halfCursorWidth.
         // At clamped position -72, the hairline is at -72 + 72 = 0 (first tick).
@@ -322,7 +322,7 @@ struct CursorClampingTests {
 
     // MARK: - Test 10: Clamp at right boundary
 
-    @Test("Clamp at right boundary places hairline at scaleWidth")
+    @Test("Cursor at right limit places hairline at scale end")
     func clampRightBoundary() {
         // If proposed position is far right (> scaleWidth - halfCursorWidth),
         // it clamps to scaleWidth - halfCursorWidth.
@@ -341,7 +341,7 @@ struct CursorClampingTests {
 
     // MARK: - Test 11: No clamping in valid range
 
-    @Test("No clamping when proposed position is within valid range")
+    @Test("Cursor moves freely within the scale reading area")
     func noClampingInValidRange() {
         let scaleWidth = kTestScaleWidth
 
@@ -356,7 +356,7 @@ struct CursorClampingTests {
 
     // MARK: - Test 12: Normalizing clamped position yields valid hairline range
 
-    @Test("Normalized position after clamping keeps hairline in [0, scaleWidth]")
+    @Test("Cursor position always keeps hairline within scale bounds")
     func normalizedClampedPositionValid() {
         let scaleWidth = kTestScaleWidth
 
@@ -375,7 +375,7 @@ struct CursorClampingTests {
 
     // MARK: - Test: CursorState.setPosition() clamps to [0, 1]
 
-    @Test("CursorState.setPosition() clamps normalized values to [0.0, 1.0]")
+    @Test("Setting cursor position keeps it within valid scale range")
     func cursorStateClamps() {
         let state = CursorState()
 
@@ -397,7 +397,7 @@ struct CursorClampingTests {
 
     // MARK: - Test: Clamping triplicated formula consistency
 
-    @Test("Clamping formula in handleDrag, handleDragEnd, handlePrecisionDragEnd all agree")
+    @Test("All drag modes apply the same cursor travel limits")
     func clampingFormulaTriplicatedConsistency() {
         // There are three independent copies of the clamping formula:
         //   CursorOverlay.handleDrag():351-352
@@ -609,10 +609,10 @@ struct TotalScaleHeightTests {
     }
 }
 
-// MARK: - Group 6: Coordinate System Invariants
+// MARK: - Group 6: Cursor and Scale Alignment Rules
 
 @MainActor
-@Suite("CP: Coordinate System Invariants")
+@Suite("CP: Cursor and Scale Alignment Rules")
 struct CoordinateSystemInvariantTests {
 
     // CONTEXT:
@@ -713,7 +713,7 @@ struct CoordinateSystemInvariantTests {
 
     // MARK: - Test: Round-trip invariant (pixel ↔ normalized)
 
-    @Test("Hairline pixel from normalized position round-trips correctly",
+    @Test("Hairline pixel position converts to and from normalized position accurately",
           arguments: [0.0, 0.1, 0.25, 0.333, 0.5, 0.75, 0.9, 1.0])
     func hairlineRoundTripPixelAndNormalized(normalizedP: Double) {
         // Verify: hairlinePixelPosition(normalizedPosition * scaleWidth)

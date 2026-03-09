@@ -11,7 +11,7 @@ import Testing
 internal import CoreFoundation
 
 @MainActor
-@Suite("Gesture Calculator Tests")
+@Suite("Slide Rule Gesture Calculations")
 struct GestureCalculatorTests {
     
     // MARK: - Translation Correction Tests
@@ -55,7 +55,7 @@ struct GestureCalculatorTests {
         #expect(result.height == 10)
     }
     
-    @Test("correctTranslationWidth convenience works correctly")
+    @Test("Width-only translation correction matches full correction")
     func correctTranslationWidthConvenience() {
         let result = GestureCalculator.correctTranslationWidth(
             100,
@@ -68,7 +68,7 @@ struct GestureCalculatorTests {
     
     // MARK: - Slide Offset Tests
     
-    @Test("Slide offset clamps to scale width - trailing")
+    @Test("Slide stops at the right end of the scale")
     func slideOffsetClampsTrailing() {
         let result = GestureCalculator.calculateSlideOffset(
             translation: CGSize(width: 1000, height: 0),
@@ -81,7 +81,7 @@ struct GestureCalculatorTests {
         #expect(result.boundaryEdge == .trailing)
     }
     
-    @Test("Slide offset clamps to scale width - leading")
+    @Test("Slide stops at the left end of the scale")
     func slideOffsetClampsLeading() {
         let result = GestureCalculator.calculateSlideOffset(
             translation: CGSize(width: -1000, height: 0),
@@ -162,7 +162,7 @@ struct GestureCalculatorTests {
     
     // MARK: - Cursor Position Tests
     
-    @Test("Cursor position normalizes to 0-1 range and clamps at upper bound")
+    @Test("Cursor stays within scale at the right edge")
     func cursorPositionNormalizes() {
         let result = GestureCalculator.calculateCursorPosition(
             translation: CGSize(width: 300, height: 0),  // 0.75 delta, exceeds 1.0
@@ -187,7 +187,7 @@ struct GestureCalculatorTests {
         #expect(result.isBounded == false)
     }
     
-    @Test("Cursor clamps at lower bound")
+    @Test("Cursor stays within scale at the left edge")
     func cursorClampsLower() {
         let result = GestureCalculator.calculateCursorPosition(
             translation: CGSize(width: -300, height: 0),
@@ -273,7 +273,7 @@ struct GestureCalculatorTests {
     
     // MARK: - Zoom Tests
     
-    @Test("Zoom clamps to max scale")
+    @Test("Zoom level cannot exceed maximum magnification")
     func zoomClampsToMax() {
         let result = GestureCalculator.calculateZoom(
             magnification: 5.0,

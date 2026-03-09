@@ -62,7 +62,7 @@ struct CursorValueFormatter {
 
 struct CursorDefaultDecimalPlacesTests {
     
-    @Test("Default cursor decimal places constant exists and equals 2")
+    @Test("Cursor readings show 2 decimal places by default")
     func defaultConstantExists() {
         #expect(CursorValuePrecision.defaultCursorDecimalPlaces == 2)
     }

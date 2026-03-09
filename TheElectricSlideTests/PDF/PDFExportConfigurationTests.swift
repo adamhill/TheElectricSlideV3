@@ -7,7 +7,7 @@ import SlideRuleCoreV3
 @MainActor
 struct PDFExportConfigurationTests {
     
-    @Test func testFixedPageDimensions() {
+    @Test("PDF page dimensions are 11×17 inches") func testFixedPageDimensions() {
         let slideRule = TestScaleFactory.createEmptySlideRule()
         let config = PDFExportConfiguration(
             slideRule: slideRule,
@@ -19,7 +19,7 @@ struct PDFExportConfigurationTests {
         #expect(config.pageHeight == 1224.0)
     }
     
-    @Test func testCenteringOffsets() {
+    @Test("Slide rule is centered on the PDF page") func testCenteringOffsets() {
         let slideRule = TestScaleFactory.createEmptySlideRule()
         let config = PDFExportConfiguration(
             size: .full, // 708 points
@@ -31,7 +31,7 @@ struct PDFExportConfigurationTests {
         #expect(config.contentOffsetX == 42.0)
     }
     
-    @Test func testTotalRuleHeight() {
+    @Test("Total rule height includes all stators and slide") func testTotalRuleHeight() {
         let dScale = TestScaleFactory.createSimpleScale(name: "D", length: 708)
         // Simple scale height is usually 40 in test factory (or whatever we specify)
         

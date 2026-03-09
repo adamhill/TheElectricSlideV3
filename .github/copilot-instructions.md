@@ -221,7 +221,7 @@ The app provides tactile feedback when the cursor crosses tick marks during slid
 - **Scale Selection**: Prioritizes C scale, falls back to first available scale
 - **Hairline Position**: Uses cursor position + half cursor width for accurate tick detection
 - **Tick Threshold**: Only major ticks (relativeLength ≥ 0.4) trigger haptics
-- **Position Tolerance**: 0.01 normalized units prevents duplicate haptics
+- **Position Tolerances**: 0.0001 normalized units prevent duplicate haptics; 0.01 normalized units are used to find nearby ticks
 - **Reset on Drag End**: Clears state so each new drag starts fresh
 
 **Implementation Pattern:**

@@ -438,8 +438,7 @@ static func generateCombinations() -> [String] {
 
 **Terminal-First Workflow (Fastest Feedback Loop):**
 ```bash
-# 1. Build app to check for compilation errors (FAST - no UI launch)
-cd /Users/adamhill/dev/apple/TheElectricSlideV3/sources/TheElectricSlide
+# 1. Build app to check for compilation errors (FAST - no UI launch, run from repository root)
 xcodebuild -project TheElectricSlide.xcodeproj -scheme TheElectricSlide -destination 'platform=macOS' build
 
 # 2. Run Swift package tests (calculation engine only)

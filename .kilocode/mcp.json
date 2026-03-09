@@ -60,13 +60,12 @@
             "timeout": 300
         },
         "XcodeBuildMCP": {
-            "command": "npx",
+            "command": "xcodebuildmcp",
             "args": [
-                "-y",
-                "xcodebuildmcp@latest"
+                "mcp"
             ],
             "env": {
-                "XCODEBUILDMCP_DYNAMIC_TOOLS": "false"
+                "XCODEBUILDMCP_DYNAMIC_TOOLS": "true"
             },
             "alwaysAllow": [
                 "build_sim",
@@ -76,9 +75,15 @@
                 "session-set-defaults",
                 "list_sims",
                 "test_macos",
-                "swift_package_build"
+                "swift_package_build",
+                "session_show_defaults",
+                "session_use_defaults_profile",
+                "session_set_defaults",
+                "build_run_sim",
+                "get_sim_app_path",
+                "install_app_sim"
             ],
-            "disabled": true
+            "disabled": false
         },
         "dash-api": {
             "command": "uvx",

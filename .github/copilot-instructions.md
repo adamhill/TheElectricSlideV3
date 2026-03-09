@@ -636,7 +636,7 @@ swift test --verbose
 
 **In-Repo Documentation:**
 - `reference/postscript-rule-engine-explainer.md` - Original PostScript algorithm (1000+ lines)
-- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory on why as slide rule work / how it works
+- `reference/manthematical-foundations-of-the-slide-rule.md` - Mathematical theory on why a slide rule works / how it works
 - `swift-docs/swift-sliderule-rendering-improvements.md` - Performance optimization guide
 - `swift-docs/swift-testing-playbook.md` - Testing best practices
 - `swift-docs/responsive-margin-implementation.md` - Responsive layout system

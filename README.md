@@ -1,7 +1,7 @@
 # The Electric Slide
 
 
-> “This is the weapon of an Engineer. Not as clumsy or random as AI; an elegant calculation engine for a more civilized age.”
+> “This is the weapon of an Engineer. Not as talkative or stochastic as a machine intelligence; an elegant calculation engine for a more civilized age.”
 
 This is an implementation of a tickmark engine in a Swift Package & a SwiftUI system for building slide rules.
 - Over 80 scales (all common ones + various specialized ones)

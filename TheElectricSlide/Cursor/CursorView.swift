@@ -582,7 +582,9 @@ struct CursorView: View {
                 fontConfig: valueConfig,
                 xPosition: valueX,
                 yPosition: yPosition,
-                maxWidth: halfWidth
+                maxWidth: halfWidth,
+                resolvedText: resolvedValue,
+                measuredSize: valueSize
             )
         }
     }
@@ -596,17 +598,24 @@ struct CursorView: View {
         xPosition: CGFloat,
         yPosition: CGFloat,
         maxWidth: CGFloat,
-        opacity: Double = 1.0
+        opacity: Double = 1.0,
+        resolvedText: GraphicsContext.ResolvedText? = nil,
+        measuredSize: CGSize? = nil
     ) {
         var ctx = context
         ctx.opacity = opacity
         
-        let textView = Text(text)
-            .font(fontConfig.makeFont())
-            .foregroundColor(fontConfig.color)
+        let resolved: GraphicsContext.ResolvedText
+        if let resolvedText {
+            resolved = resolvedText
+        } else {
+            let textView = Text(text)
+                .font(fontConfig.makeFont())
+                .foregroundColor(fontConfig.color)
+            resolved = ctx.resolve(textView)
+        }
         
-        let resolved = ctx.resolve(textView)
-        let textSize = resolved.measure(in: CGSize(width: maxWidth, height: dimensions.scaleHeight))
+        let textSize = measuredSize ?? resolved.measure(in: CGSize(width: maxWidth, height: dimensions.scaleHeight))
         
         let rect = CGRect(
             x: xPosition,

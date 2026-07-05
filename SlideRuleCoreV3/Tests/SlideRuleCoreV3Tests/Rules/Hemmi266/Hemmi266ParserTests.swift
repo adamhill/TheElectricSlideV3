@@ -42,7 +42,7 @@ struct Hemmi266ParserTests {
     
     /// Documents scales that ARE NOW IMPLEMENTED
     /// These are Hemmi 266-specific Log-Log scale variants
-    @Suite("Hemmi 266 Log-Log Scales Implementation")
+    @Suite("Hemmi 266 Log-Log Scale Definitions")
     struct ImplementedScalesVerification {
         
         /// H266LL03 - Hemmi 266 specific Log-Log scale

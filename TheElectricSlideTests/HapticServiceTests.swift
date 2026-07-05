@@ -12,13 +12,13 @@ import Testing
 
 // MARK: - HapticService Tests
 
-@Suite("HapticService Tests")
+@Suite("Haptic Feedback")
 @MainActor
 struct HapticServiceTests {
     
     // MARK: - HapticEvent.TickLevel Tests
     
-    @Suite("TickLevel Initialization")
+    @Suite("Tick Mark Haptic Intensity")
     struct TickLevelTests {
         
         @Test("Major tick level for relativeLength >= 0.9", arguments: [0.9, 0.95, 1.0])
@@ -106,12 +106,12 @@ struct HapticServiceTests {
         }
     }
     
-    // MARK: - MockHapticService Tests
+    // MARK: - Test Haptic Feedback Recording
     
-    @Suite("MockHapticService")
+    @Suite("Test Haptic Feedback Recording")
     struct MockHapticServiceTests {
         
-        @Test("Mock service records fired events")
+        @Test("Haptic events are recorded when triggered")
         @MainActor
         func testMockRecordsEvents() {
             let mock = MockHapticService()
@@ -126,7 +126,7 @@ struct HapticServiceTests {
             #expect(mock.firedEvents[2] == .longBuzz)
         }
         
-        @Test("Mock service tracks prepare calls")
+        @Test("Haptic engine preparation is tracked")
         @MainActor
         func testMockTracksPrepare() {
             let mock = MockHapticService()
@@ -141,7 +141,7 @@ struct HapticServiceTests {
             #expect(mock.prepareCallCount == 3)
         }
         
-        @Test("Mock service reset clears state")
+        @Test("Resetting clears all haptic history")
         @MainActor
         func testMockReset() {
             let mock = MockHapticService()
@@ -162,7 +162,7 @@ struct HapticServiceTests {
             #expect(mock.prepareCallCount == 0)
         }
         
-        @Test("Mock service records tick events with correct levels")
+        @Test("Tick crossing haptics capture the correct intensity level")
         @MainActor
         func testMockRecordsTickEvents() {
             let mock = MockHapticService()
@@ -179,7 +179,7 @@ struct HapticServiceTests {
             #expect(mock.firedEvents[3] == .tickCrossed(level: .ignored))
         }
         
-        @Test("Mock service records button tap events with correct styles")
+        @Test("Button tap haptics capture the correct style")
         @MainActor
         func testMockRecordsButtonTapStyles() {
             let mock = MockHapticService()
@@ -195,7 +195,7 @@ struct HapticServiceTests {
             #expect(mock.firedEvents[4] == .buttonTap(style: .soft))
         }
         
-        @Test("Mock service starts with empty state")
+        @Test("No haptic events exist before any interaction")
         @MainActor
         func testMockStartsEmpty() {
             let mock = MockHapticService()
@@ -205,9 +205,9 @@ struct HapticServiceTests {
         }
     }
     
-    // MARK: - HapticEvent Equatable Tests
+    // MARK: - Haptic Event Identity Tests
     
-    @Suite("HapticEvent Equatable")
+    @Suite("Haptic Event Identity")
     struct HapticEventEquatableTests {
         
         @Test("Same discrete events are equal")
@@ -274,7 +274,7 @@ struct HapticServiceTests {
     
     // MARK: - HapticEvent.HapticStyle Tests
     
-    @Suite("HapticStyle Enum")
+    @Suite("Haptic Feedback Styles")
     struct HapticStyleTests {
         
         @Test("All HapticStyle cases exist")
@@ -284,7 +284,7 @@ struct HapticServiceTests {
             #expect(styles.count == 5)
         }
         
-        @Test("HapticStyle cases are equatable")
+        @Test("HapticStyle cases are distinct")
         @MainActor
         func testStyleEquatable() {
             let light1: HapticEvent.HapticStyle = .light
@@ -296,9 +296,9 @@ struct HapticServiceTests {
         }
     }
     
-    // MARK: - HapticEvent.TickLevel Equatable Tests
+    // MARK: - Tick Intensity Level Identity Tests
     
-    @Suite("TickLevel Equatable")
+    @Suite("Tick Intensity Level Identity")
     struct TickLevelEquatableTests {
         
         @Test("Same TickLevel values are equal")
@@ -327,12 +327,12 @@ struct HapticServiceTests {
         }
     }
     
-    // MARK: - HapticService Protocol Tests
+    // MARK: - Haptic Feedback Providers Tests
     
-    @Suite("HapticService Protocol Conformance")
+    @Suite("Haptic Feedback Providers")
     struct HapticServiceProtocolTests {
         
-        @Test("MockHapticService conforms to HapticService protocol")
+        @Test("Test haptic provider can substitute for real haptic engine")
         @MainActor
         func testMockConformance() {
             let service: HapticService = MockHapticService()
@@ -348,7 +348,7 @@ struct HapticServiceTests {
             }
         }
         
-        @Test("DefaultHapticService conforms to HapticService protocol")
+        @Test("Default haptic provider delivers real device feedback")
         @MainActor
         func testDefaultConformance() {
             let service: HapticService = DefaultHapticService()
@@ -363,12 +363,12 @@ struct HapticServiceTests {
         }
     }
     
-    // MARK: - Integration Tests
+    // MARK: - Haptic Feedback Workflows Tests
     
-    @Suite("Haptic Integration")
+    @Suite("Haptic Feedback Workflows")
     struct HapticIntegrationTests {
         
-        @Test("Creating TickLevel from relativeLength and using in tickCrossed event")
+        @Test("Tick mark height determines haptic intensity when cursor crosses it")
         @MainActor
         func testTickLevelIntegration() {
             let mock = MockHapticService()
@@ -382,7 +382,7 @@ struct HapticServiceTests {
             #expect(mock.firedEvents[0] == .tickCrossed(level: .major))
         }
         
-        @Test("Sequence of haptic events for precision mode workflow")
+        @Test("Entering precision mode, crossing ticks, and exiting produces correct haptic sequence")
         @MainActor
         func testPrecisionModeWorkflow() {
             let mock = MockHapticService()
@@ -403,7 +403,7 @@ struct HapticServiceTests {
             #expect(mock.firedEvents.last == .precisionModeExited)
         }
         
-        @Test("Verify ignored tick level produces no haptic feedback")
+        @Test("Minor tick marks below haptic threshold produce no feedback")
         @MainActor
         func testIgnoredTickLevelNoHaptic() {
             let mock = MockHapticService()

@@ -296,7 +296,7 @@ struct LabelLevelsBehaviorTests {
     
     // MARK: - Boundary and Edge Cases
     
-    @Suite("Edge Cases and Boundary Tests")
+    @Suite("Unusual Scale Configurations")
     struct EdgeCaseTests {
         
         @Test("labelLevels with invalid level (out of range) is safely ignored")
@@ -375,7 +375,7 @@ struct LabelLevelsBehaviorTests {
     
     // MARK: - Real Scale Integration Tests
     
-    @Suite("Real Scale Integration")
+    @Suite("Standard Scale Label Levels")
     struct RealScaleIntegrationTests {
         
         @Test("S scale 80°-90° subsection with labelLevels: [] behavior")

@@ -11,7 +11,7 @@ import Foundation
 import CoreGraphics
 @testable import TheElectricSlide
 
-@Suite("GestureService Integration Tests")
+@Suite("Slide Rule Gesture Handling")
 @MainActor
 struct GestureServiceTests {
     
@@ -27,7 +27,7 @@ struct GestureServiceTests {
     
     // MARK: - Slide Tests
     
-    @Test("handleSlide returns calculated offset")
+    @Test("Sliding the rule produces the correct offset")
     func slideReturnsCalculatedOffset() {
         let input = SlideGestureInput(
             translation: CGSize(width: 100, height: 0),
@@ -45,7 +45,7 @@ struct GestureServiceTests {
         #expect(result.boundaryEdge == nil)
     }
     
-    @Test("handleSlide fires haptic on boundary hit")
+    @Test("Sliding to the edge of travel triggers haptic feedback")
     func slideFiresHapticOnBoundary() {
         let input = SlideGestureInput(
             translation: CGSize(width: 600, height: 0),
@@ -68,7 +68,7 @@ struct GestureServiceTests {
         }
     }
     
-    @Test("handleSlide does not fire repeated haptics for same boundary")
+    @Test("Reaching the same travel limit again does not repeat haptic feedback")
     func slideNoRepeatedHaptics() {
         let input = SlideGestureInput(
             translation: CGSize(width: 600, height: 0),
@@ -103,7 +103,7 @@ struct GestureServiceTests {
         #expect(mockHaptic.firedEvents.count == 2)
     }
     
-    @Test("handleSlide includes momentum when velocity provided")
+    @Test("A fast slide flick carries momentum")
     func slideIncludesMomentum() {
         let input = SlideGestureInput(
             translation: CGSize(width: 100, height: 0),
@@ -122,7 +122,7 @@ struct GestureServiceTests {
     
     // MARK: - Cursor Tests
     
-    @Test("handleCursor normalizes position correctly")
+    @Test("Cursor drag converts to fractional scale position")
     func cursorNormalizesPosition() {
         let input = CursorGestureInput(
             translation: CGSize(width: 100, height: 0),
@@ -139,7 +139,7 @@ struct GestureServiceTests {
         #expect(result.normalizedPosition == 0.75)
     }
     
-    @Test("handleCursor fires haptic on leading boundary")
+    @Test("Cursor reaching the left edge of travel triggers haptic feedback")
     func cursorFiresHapticOnLeadingBoundary() {
         let input = CursorGestureInput(
             translation: CGSize(width: -300, height: 0),
@@ -165,7 +165,7 @@ struct GestureServiceTests {
     
     // MARK: - Zoom Tests
     
-    @Test("handleZoom clamps to max scale")
+    @Test("Magnification cannot exceed the maximum zoom level")
     func zoomClampsToMax() {
         let input = ZoomGestureInput(
             magnification: 10.0,  // Way over max
@@ -179,7 +179,7 @@ struct GestureServiceTests {
         #expect(result.scale == 4.0)
     }
     
-    @Test("handleZoom fires haptic when snapping to default")
+    @Test("Zoom snapping back to 1× triggers haptic feedback")
     func zoomFiresHapticOnSnap() {
         let input = ZoomGestureInput(
             magnification: 0.95,  // Just below 1.0
@@ -202,7 +202,7 @@ struct GestureServiceTests {
     
     // MARK: - Pan Tests
     
-    @Test("handlePan bounds to viewport")
+    @Test("Panning stays within the visible slide rule area")
     func panBoundsToViewport() {
         let input = PanGestureInput(
             translation: CGSize(width: 1000, height: 0),
@@ -220,7 +220,7 @@ struct GestureServiceTests {
         #expect(result.offset.width == 300)
     }
     
-    @Test("handlePan fires haptic for new boundary only")
+    @Test("Panning to a new edge triggers haptic feedback only once")
     func panFiresHapticForNewBoundary() {
         let input = PanGestureInput(
             translation: CGSize(width: 1000, height: 0),
@@ -241,13 +241,13 @@ struct GestureServiceTests {
     }
 }
 
-// MARK: - Mock GestureService Tests
+// MARK: - Test Gesture Handler Recording
 
-@Suite("MockGestureService Tests")
+@Suite("Test Gesture Handler Recording")
 @MainActor
 struct MockGestureServiceTests {
     
-    @Test("Mock tracks slide calls")
+    @Test("Slide drag events are recorded")
     func mockTracksSlideCall() {
         let mock = MockGestureService()
         
@@ -266,7 +266,7 @@ struct MockGestureServiceTests {
         #expect(mock.lastSlideInput?.translation.width == 100)
     }
     
-    @Test("Mock returns stubbed result")
+    @Test("Preset gesture results are returned correctly")
     func mockReturnsStubbedResult() {
         let mock = MockGestureService()
         
@@ -292,7 +292,7 @@ struct MockGestureServiceTests {
         #expect(result.isBounded == true)
     }
     
-    @Test("Mock reset clears all state")
+    @Test("Resetting clears all gesture history")
     func mockResetClearsState() {
         let mock = MockGestureService()
         

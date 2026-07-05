@@ -13,7 +13,7 @@ import Foundation
 ///
 /// **This test catches**: Missing parameters in ScaleDefinition init calls
 /// throughout the codebase, particularly in SlideRuleAssembly.parseComponents.
-@Suite("ScaleDefinition Property Preservation")
+@Suite("Scale Definition Settings Preservation")
 struct ScaleDefinitionPropertyPreservationTests {
     
     // MARK: - Parser Integration Tests (Primary Regression Tests)

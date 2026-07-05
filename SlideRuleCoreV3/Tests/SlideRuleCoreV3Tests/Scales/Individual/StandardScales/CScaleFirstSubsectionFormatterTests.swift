@@ -314,7 +314,7 @@ struct CScaleFirstSubsectionFormatterTests {
     
     // MARK: - Integration with Scale Subsections
     
-    @Suite("Scale Subsection Integration")
+    @Suite("Scale Subsection Assembly")
     struct ScaleSubsectionIntegrationTests {
         
         @Test("Formatter works correctly with C scale definition")

@@ -59,7 +59,7 @@ struct ScaleKeyMatchingTests {
 @Suite("ScaleKey Codable")
 struct ScaleKeyCodableTests {
     
-    @Test("Type-safe keys round-trip through JSON")
+    @Test("Type-safe configuration keys preserve values when saved and restored")
     func typeSafeRoundTrip() throws {
         let keys: [ScaleKey] = [.c, .d, .ll1, .theta2, .st]
         let encoder = JSONEncoder()
@@ -72,7 +72,7 @@ struct ScaleKeyCodableTests {
         }
     }
     
-    @Test("Named keys round-trip through JSON")
+    @Test("Named configuration keys preserve values when saved and restored")
     func namedRoundTrip() throws {
         let key = ScaleKey.named("CustomScale")
         let encoder = JSONEncoder()
@@ -83,7 +83,7 @@ struct ScaleKeyCodableTests {
         #expect(decoded == key)
     }
     
-    @Test("Pattern keys round-trip through JSON")
+    @Test("Pattern configuration keys preserve values when saved and restored")
     func patternRoundTrip() throws {
         let key = ScaleKey.matching(pattern: "LL[0-3]")
         let encoder = JSONEncoder()
@@ -387,7 +387,7 @@ struct LabelColorTests {
 @Suite("AnnotationPosition")
 struct AnnotationPositionTests {
     
-    @Test("Normalized positions resolve correctly")
+    @Test("Scale positions resolve correctly")
     func normalizedResolution() {
         let pos = AnnotationPosition.normalized(h: 0.25, v: 0.75)
         let resolved = pos.normalized(in: (width: 100, height: 200))
@@ -619,7 +619,7 @@ struct SlideRuleConfigurationTests {
 @Suite("SlideRuleConfiguration Codable")
 struct SlideRuleConfigurationCodableTests {
     
-    @Test("Full configuration round-trips through JSON")
+    @Test("Complete configuration preserves all settings when saved and restored")
     func fullRoundTrip() throws {
         var config = SlideRuleConfiguration(
             displaySettings: RuleDisplaySettings(showFormulas: false)
@@ -638,7 +638,7 @@ struct SlideRuleConfigurationCodableTests {
         #expect(decoded.componentConfigs.count == 1)
     }
     
-    @Test("Empty configuration round-trips")
+    @Test("Default configuration preserves correctly when saved and restored")
     func emptyRoundTrip() throws {
         let config = SlideRuleConfiguration.standard
         

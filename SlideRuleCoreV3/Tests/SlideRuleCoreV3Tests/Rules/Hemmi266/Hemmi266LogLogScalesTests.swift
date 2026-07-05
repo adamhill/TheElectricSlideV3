@@ -402,7 +402,7 @@ struct Hemmi266LogLogScalesTests {
     
     // MARK: - Cross-Scale Integration Tests
     
-    @Suite("Hemmi 266 Cross-Scale Integration")
+    @Suite("Hemmi 266 Cross-Scale Calculations")
     struct CrossScaleIntegrationTests {
         
         @Test("All 4 Hemmi 266 scales can be retrieved from factory")

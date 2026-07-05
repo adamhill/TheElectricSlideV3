@@ -9,7 +9,7 @@ import SlideRuleCoreV3
 @MainActor
 struct PDFRenderContextTests {
     
-    @Test func testTextMeasurement() {
+    @Test("Scale label text produces measurable dimensions") func testTextMeasurement() {
         // Create a dummy config and context
         let config = PDFExportConfiguration(
             slideRule: TestScaleFactory.createEmptySlideRule(),
@@ -34,7 +34,7 @@ struct PDFRenderContextTests {
         #expect(size.height > 0)
     }
     
-    @Test func testLineDrawing() {
+    @Test("Drawing lines produces valid PDF data") func testLineDrawing() {
         let config = PDFExportConfiguration(
             slideRule: TestScaleFactory.createEmptySlideRule(),
             slideRuleName: "Test"
@@ -57,7 +57,7 @@ struct PDFRenderContextTests {
         #expect(data.length > 0)
     }
     
-    @Test func testRegistrationMarks() {
+    @Test("Registration marks render around content area") func testRegistrationMarks() {
         let config = PDFExportConfiguration(
             slideRule: TestScaleFactory.createEmptySlideRule(),
             slideRuleName: "Test"

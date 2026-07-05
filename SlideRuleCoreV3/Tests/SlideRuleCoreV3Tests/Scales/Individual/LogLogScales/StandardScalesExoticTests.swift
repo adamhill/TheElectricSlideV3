@@ -132,7 +132,7 @@ struct StandardScalesExoticTests {
     
     // MARK: - Hyperbolic Scale Implementations
     
-    @Suite("Hyperbolic Scale Implementations")
+    @Suite("Hyperbolic Scale Definitions")
     struct HyperbolicScalesTests {
         
         // Sh scale: PostScript line 1075-1083

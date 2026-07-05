@@ -552,7 +552,7 @@ struct ModuloTickGenerationTests {
         }
     }
     
-    @Suite("Integration Tests")
+    @Suite("Complete Tick Mark Generation")
     struct IntegrationTests {
         private let tolerance: Double = 0.0001
         

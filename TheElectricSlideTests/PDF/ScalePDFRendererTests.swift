@@ -9,7 +9,7 @@ import SlideRuleCoreV3
 @MainActor
 struct ScalePDFRendererTests {
     
-    @Test func testTickRendering() throws {
+    @Test("Scale tick marks render in PDF output") func testTickRendering() throws {
         // Create a simple scale with known ticks
         let scale = TestScaleFactory.createSimpleScale(name: "C", length: 708)
         

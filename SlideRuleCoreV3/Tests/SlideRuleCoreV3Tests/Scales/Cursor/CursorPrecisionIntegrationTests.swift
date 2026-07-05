@@ -4,7 +4,7 @@ import Foundation
 
 /// Comprehensive integration tests for cursor precision system
 /// Verifies that precision calculation, formatting, and scale definitions work correctly end-to-end
-@Suite("Cursor Precision Integration Tests")
+@Suite("Cursor Reading Precision Across Scales")
 struct CursorPrecisionIntegrationTests {
     
     // MARK: - Scale-Specific Precision Tests
@@ -267,7 +267,7 @@ struct CursorPrecisionIntegrationTests {
     
     // MARK: - Format Integration Tests
     
-    @Suite("Format Integration Tests")
+    @Suite("Cursor Reading Display Format")
     struct FormatIntegrationTests {
         
         @Test("C scale formatting at position 1.5 with 3 decimals")
@@ -1004,7 +1004,7 @@ struct CursorPrecisionIntegrationTests {
     
     // MARK: - Integration with ScaleCalculator Tests
     
-    @Suite("ScaleCalculator Integration Tests")
+    @Suite("Scale Calculator with Cursor Readings")
     struct ScaleCalculatorIntegrationTests {
         
         @Test("Precision query uses ScaleCalculator.value correctly")
@@ -1096,7 +1096,7 @@ struct CursorPrecisionIntegrationTests {
     
     // MARK: - Precision Clamping Tests
     
-    @Suite("Precision Clamping Tests")
+    @Suite("Cursor Precision at Scale Endpoints")
     struct PrecisionClampingTests {
         
         @Test("Precision always clamped to minimum 1 decimal")
@@ -1232,7 +1232,7 @@ struct CursorPrecisionIntegrationTests {
     
     // MARK: - Comprehensive End-to-End Tests
     
-    @Suite("End-to-End Integration Tests")
+    @Suite("Complete Cursor Reading Workflow")
     struct EndToEndTests {
         
         @Test("Complete workflow: position → value → precision → format")

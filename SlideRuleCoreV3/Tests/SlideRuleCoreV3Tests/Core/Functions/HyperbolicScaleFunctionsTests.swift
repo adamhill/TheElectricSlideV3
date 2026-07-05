@@ -102,7 +102,7 @@ struct HyperbolicScaleFunctionsTests {
     // MARK: - Specialized Tests: Multiplier/Parameter Variations
     
     /// Tests for functions with configurable parameters
-    @Suite("Parameter Variations")
+    @Suite("Offset and Range Variations")
     struct ParameterVariationTests {
         
         @Test("Hyperbolic tangent multiplier affects log scale offset")

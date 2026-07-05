@@ -306,7 +306,7 @@ struct ScaleUtilitiesTests {
     
     // MARK: - Scale Export Tests
     
-    @Suite("Scale Export - CSV and JSON format support")
+    @Suite("Scale Data Export Formats")
     struct ExportTests {
         
         private let cScale = StandardScales.cScale(length: 250.0)
@@ -356,7 +356,7 @@ struct ScaleUtilitiesTests {
             #expect(csv.contains("e"), "Should include e constant")
         }
         
-        @Test("JSON export produces parseable output")
+        @Test("Exported scale data is valid and readable")
         func jsonExportValidity() throws {
             let generatedScale = GeneratedScale(definition: cScale)
             let json = try ScaleExporter.toJSON(generatedScale)
@@ -372,7 +372,7 @@ struct ScaleUtilitiesTests {
             }
         }
         
-        @Test("JSON export maintains all scale metadata")
+        @Test("Exported data preserves all scale information")
         func jsonMetadataPreservation() throws {
             let generatedScale = GeneratedScale(definition: cScale)
             let json = try ScaleExporter.toJSON(generatedScale)

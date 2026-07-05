@@ -13,15 +13,15 @@ import Foundation
 @testable import SlideRuleCoreV3
 
 /// Tests for SwiftData integration of SlideRuleConfiguration
-@Suite("SwiftData Configuration Integration")
+@Suite("Slide Rule Configuration Persistence")
 struct SwiftDataConfigurationTests {
     
     // MARK: - Configuration JSON Persistence
     
-    @Suite("Configuration JSON Encoding/Decoding")
+    @Suite("Configuration Save and Restore")
     struct JSONPersistenceTests {
         
-        @Test("Configuration round-trips through JSON correctly")
+        @Test("Configuration preserves all settings when saved and restored")
         func configurationRoundTrip() throws {
             // Build a configuration with various settings
             let original = SlideRuleConfigurationBuilder()
@@ -58,7 +58,7 @@ struct SwiftDataConfigurationTests {
             #expect(decoded.ruleAnnotations[.back]?.count == 1)
         }
         
-        @Test("Empty configuration encodes correctly")
+        @Test("Default configuration saves without errors")
         func emptyConfigurationEncoding() throws {
             let config = SlideRuleConfiguration()
             
@@ -99,10 +99,10 @@ struct SwiftDataConfigurationTests {
     
     // MARK: - SlideRuleDefinitionModel Integration
     
-    @Suite("SlideRuleDefinitionModel Configuration Property")
+    @Suite("Slide Rule Definition Settings")
     struct ModelIntegrationTests {
         
-        @Test("Model stores configuration via JSON property")
+        @Test("Rule definition stores its display settings")
         func modelStoresConfiguration() {
             let config = SlideRuleConfigurationBuilder()
                 .hideFormulas()
@@ -122,7 +122,7 @@ struct SwiftDataConfigurationTests {
             #expect(model.configuration.displaySettings.showFormulas == false)
         }
         
-        @Test("Model without configuration returns migrated defaults")
+        @Test("Rule without saved settings uses sensible defaults")
         func modelWithoutConfigurationMigrates() {
             let model = SlideRuleDefinitionModel(
                 name: "Legacy Rule",
@@ -141,7 +141,7 @@ struct SwiftDataConfigurationTests {
             #expect(!config.componentConfigs.isEmpty)
         }
         
-        @Test("Setting configuration property updates JSON")
+        @Test("Changing settings updates the stored data")
         func settingConfigurationUpdatesJSON() {
             let model = SlideRuleDefinitionModel(
                 name: "Test Rule",
@@ -163,7 +163,7 @@ struct SwiftDataConfigurationTests {
             #expect(model.configuration.displaySettings.showScaleNames == false)
         }
         
-        @Test("Computed showScaleNames reads from configuration")
+        @Test("Scale name visibility reflects saved settings")
         func showScaleNamesReadsFromConfiguration() {
             let config = SlideRuleConfigurationBuilder()
                 .hideScaleNames()
@@ -179,7 +179,7 @@ struct SwiftDataConfigurationTests {
             #expect(model.showScaleNames == false)
         }
         
-        @Test("Computed showFormulas reads from configuration")
+        @Test("Formula visibility reflects saved settings")
         func showFormulasReadsFromConfiguration() {
             let config = SlideRuleConfigurationBuilder()
                 .hideFormulas()
@@ -198,10 +198,10 @@ struct SwiftDataConfigurationTests {
     
     // MARK: - Migration Tests
     
-    @Suite("Legacy Property Migration")
+    @Suite("Upgrading from Older Settings Format")
     struct MigrationTests {
         
-        @Test("migrateToConfiguration converts legacy properties")
+        @Test("Older rule settings are upgraded to current format")
         func migrateToConfigurationWorks() {
             let model = SlideRuleDefinitionModel(
                 name: "Legacy",
@@ -255,10 +255,10 @@ struct SwiftDataConfigurationTests {
     
     // MARK: - ParseSlideRule Integration
     
-    @Suite("ParseSlideRule with Configuration")
+    @Suite("Assembling Slide Rule from Configuration")
     struct ParseSlideRuleTests {
         
-        @Test("parseSlideRule applies configuration display settings")
+        @Test("Assembled slide rule reflects configured display settings")
         func parseAppliesDisplaySettings() throws {
             let config = SlideRuleConfigurationBuilder()
                 .hideFormulas()
@@ -276,7 +276,7 @@ struct SwiftDataConfigurationTests {
             #expect(rule.displaySettings.showFormulas == false)
         }
         
-        @Test("parseSlideRule applies back slide annotations")
+        @Test("Assembled slide rule includes back slide annotations")
         func parseAppliesAnnotations() throws {
             let annotation = ComponentAnnotation(
                 content: .text("Test annotation"),
@@ -309,11 +309,11 @@ struct SwiftDataConfigurationTests {
     
     // MARK: - Library Integration
     
-    @Suite("SlideRuleLibrary Configuration Integration")
+    @Suite("Slide Rule Library with Configuration")
     @MainActor
     struct LibraryTests {
         
-        @Test("Configuration Playground rule uses Configuration API")
+        @Test("Configuration Playground rule uses the configuration system")
         func configurationPlaygroundUsesConfigAPI() {
             let rule = SlideRuleLibrary.pickettN16ESConfigurationPlayground()
             
@@ -326,7 +326,7 @@ struct SwiftDataConfigurationTests {
             #expect(config.ruleAnnotations[.back]?.isEmpty == false)
         }
         
-        @Test("Configuration Playground rule parses successfully")
+        @Test("Configuration Playground rule assembles into a working slide rule")
         func configurationPlaygroundParses() throws {
             let model = SlideRuleLibrary.pickettN16ESConfigurationPlayground()
             let rule = try model.parseSlideRule()
